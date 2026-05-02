@@ -1,239 +1,230 @@
-  import { useEffect, useState } from "react";
-  import { useNavigate } from "react-router-dom";
-  import {
-    FaShoppingCart,
-    FaUsers,
-    FaChartLine,
-    FaChartBar,
-    FaBox,
-    FaRupeeSign,
-  } from "react-icons/fa";
-  import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    Tooltip,
-    CartesianGrid,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell,
-  } from "recharts";
-  import { exportToPDF, exportToExcel } from "../utils/exportReports";
-  import { BASE_URL } from "../utils/api";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaBox, FaChartBar, FaChartLine, FaRupeeSign, FaShoppingCart, FaUsers } from "react-icons/fa";
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { exportToPDF, exportToExcel } from "../utils/exportReports";
+import { BASE_URL } from "../utils/api";
 
-  export default function Dashboard() {
-    const navigate = useNavigate();
+export default function Dashboard() {
+  const navigate = useNavigate();
 
-    useEffect(() => {
-      const user = localStorage.getItem("user");
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    if (!user) navigate("/");
+  }, [navigate]);
 
-      if (!user) {
-        navigate("/");
-      }
-    }, [navigate]);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showExportPopup, setShowExportPopup] = useState(false);
+  const [filterPeriod, setFilterPeriod] = useState("month");
 
-    const [dashboardData, setDashboardData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [showExportPopup, setShowExportPopup] = useState(false);
-    const [filterPeriod, setFilterPeriod] = useState("month");
+  const loadDashboard = () => {
+    setLoading(true);
+    setError("");
 
-    const loadDashboard = () => {
-      setLoading(true);
-      setError("");
+    fetch(`${BASE_URL}/api/dashboard`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Dashboard request failed: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        setDashboardData(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Dashboard API error:", err);
+        setError("Failed to load dashboard data.");
+        setLoading(false);
+      });
+  };
 
-      fetch(`${BASE_URL}/api/dashboard`)
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`Dashboard request failed: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          setDashboardData(data);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error("Dashboard API error:", err);
-          setError("Failed to load dashboard data.");
-          setLoading(false);
-        });
-    };
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
-    useEffect(() => {
-      loadDashboard();
-    }, []);
+  if (loading) {
+    return (
+      <div className="p-10 text-center text-slate-500 bg-slate-50 min-h-screen">
+        Loading dashboard data...
+      </div>
+    );
+  }
 
-    if (loading) {
-      return <div className="p-10 text-center text-gray-500">Loading dashboard data...</div>;
-    }
+  if (!dashboardData) {
+    return (
+      <div className="p-10 text-center text-red-600 bg-slate-50 min-h-screen">
+        {error || "Failed to load dashboard"}
+      </div>
+    );
+  }
 
-    if (!dashboardData) {
-      return <div className="p-10 text-center text-red-500">{error || "Failed to load dashboard"}</div>;
-    }
+  const monthlySales = (dashboardData.monthlySales || []).map((item) => ({
+    ...item,
+    sales: Number(item.sales) || 0,
+    expenses: Number(item.expenses) || 0,
+    profit:
+      Number.isFinite(Number(item.profit)) ? Number(item.profit) : (Number(item.sales) || 0) - (Number(item.expenses) || 0),
+  }));
 
-    const monthlySales = (dashboardData.monthlySales || []).map((item) => ({
-      ...item,
-      sales: Number(item.sales) || 0,
-      expenses: Number(item.expenses) || 0,
-      profit:
-        Number.isFinite(Number(item.profit))
-          ? Number(item.profit)
-          : (Number(item.sales) || 0) - (Number(item.expenses) || 0),
-    }));
+  const kpis = {
+    totalSales: Number(dashboardData.kpis?.totalSales) || 0,
+    totalOrders: Number(dashboardData.kpis?.totalOrders) || 0,
+    totalCustomers: Number(dashboardData.kpis?.totalCustomers) || 0,
+    totalExpenses: Number(dashboardData.kpis?.totalExpenses) || Number(dashboardData.kpis?.expenses) || 0,
+    profit: Number(dashboardData.kpis?.profit) || 0,
+  };
 
-    const kpis = {
-      totalSales: Number(dashboardData.kpis?.totalSales) || 0,
-      totalOrders: Number(dashboardData.kpis?.totalOrders) || 0,
-      totalCustomers: Number(dashboardData.kpis?.totalCustomers) || 0,
-      totalExpenses:
-        Number(dashboardData.kpis?.totalExpenses) ||
-        Number(dashboardData.kpis?.expenses) ||
-        0,
-      profit: Number(dashboardData.kpis?.profit) || 0,
-    };
-
-    const currentMonthData = monthlySales[monthlySales.length - 1] || {
+  const currentMonthData =
+    monthlySales[monthlySales.length - 1] || {
       name: "Current Month",
       sales: 0,
       expenses: 0,
       profit: 0,
     };
 
-    const summary = dashboardData.summary || {};
-    const selectedSummary =
-      summary[filterPeriod] || {
-        sales: filterPeriod === "year" ? kpis.totalSales : currentMonthData.sales,
-        orders: filterPeriod === "year" ? kpis.totalOrders : 0,
-        expenses: filterPeriod === "year" ? kpis.totalExpenses : currentMonthData.expenses,
-        profit: filterPeriod === "year" ? kpis.profit : currentMonthData.profit,
-      };
-
-    const filteredData =
-      filterPeriod === "year"
-        ? monthlySales
-        : [
-            {
-              name: filterPeriod === "today" ? "Today" : currentMonthData.name,
-              sales: Number(selectedSummary.sales) || 0,
-              expenses: Number(selectedSummary.expenses) || 0,
-              profit: Number(selectedSummary.profit) || 0,
-            },
-          ];
-
-    const statusCounts = dashboardData.orderStatus || {};
-    const totalStatusCount =
-      (Number(statusCounts.completed) || Number(statusCounts.Completed) || 0) +
-      (Number(statusCounts.pending) || Number(statusCounts.Pending) || 0) +
-      (Number(statusCounts.cancelled) || Number(statusCounts.Cancelled) || 0);
-
-    const orderStatusData = [
-      {
-        name: "Completed",
-        value: Number(statusCounts.completed) || Number(statusCounts.Completed) || 0,
-        share:
-          totalStatusCount
-            ? Math.round((((Number(statusCounts.completed) || Number(statusCounts.Completed) || 0)) / totalStatusCount) * 100)
-            : 0,
-      },
-      {
-        name: "Pending",
-        value: Number(statusCounts.pending) || Number(statusCounts.Pending) || 0,
-        share:
-          totalStatusCount
-            ? Math.round((((Number(statusCounts.pending) || Number(statusCounts.Pending) || 0)) / totalStatusCount) * 100)
-            : 0,
-      },
-      {
-        name: "Cancelled",
-        value: Number(statusCounts.cancelled) || Number(statusCounts.Cancelled) || 0,
-        share:
-          totalStatusCount
-            ? Math.round((((Number(statusCounts.cancelled) || Number(statusCounts.Cancelled) || 0)) / totalStatusCount) * 100)
-            : 0,
-      },
-    ].filter((item) => item.value > 0);
-
-    const activityFeed = dashboardData.activityFeed || [];
-    const topProducts = dashboardData.topProducts || [];
-    const topCustomers = dashboardData.topCustomers || [];
-    const COLORS = ["#22c55e", "#facc15", "#ef4444"];
-
-    const calculateGrowth = () => {
-      if (monthlySales.length < 2) {
-        return { salesGrowth: 0, profitGrowth: 0 };
-      }
-
-      const currentMonth = monthlySales[monthlySales.length - 1];
-      const lastMonth = monthlySales[monthlySales.length - 2];
-
-      const salesGrowth =
-        lastMonth.sales === 0
-          ? currentMonth.sales > 0
-            ? 100
-            : 0
-          : Math.round(((currentMonth.sales - lastMonth.sales) / lastMonth.sales) * 100);
-
-      const profitGrowth =
-        lastMonth.profit === 0
-          ? currentMonth.profit > 0
-            ? 100
-            : 0
-          : Math.round(((currentMonth.profit - lastMonth.profit) / lastMonth.profit) * 100);
-
-      return { salesGrowth, profitGrowth };
+  const summary = dashboardData.summary || {};
+  const selectedSummary =
+    summary[filterPeriod] || {
+      sales: filterPeriod === "year" ? kpis.totalSales : currentMonthData.sales,
+      orders: filterPeriod === "year" ? kpis.totalOrders : 0,
+      expenses: filterPeriod === "year" ? kpis.totalExpenses : currentMonthData.expenses,
+      profit: filterPeriod === "year" ? kpis.profit : currentMonthData.profit,
     };
 
-    const { salesGrowth, profitGrowth } = calculateGrowth();
-    const totalRevenue = filteredData.reduce((sum, month) => sum + month.sales, 0);
-    const totalExpenses = filteredData.reduce((sum, month) => sum + month.expenses, 0);
-    const totalProfit = filteredData.reduce((sum, month) => sum + month.profit, 0);
-    const profitMargin = totalRevenue === 0 ? 0 : Math.round((totalProfit / totalRevenue) * 100);
+  const filteredData =
+    filterPeriod === "year"
+      ? monthlySales
+      : [
+          {
+            name: filterPeriod === "today" ? "Today" : currentMonthData.name,
+            sales: Number(selectedSummary.sales) || 0,
+            expenses: Number(selectedSummary.expenses) || 0,
+            profit: Number(selectedSummary.profit) || 0,
+          },
+        ];
 
-    {/* main return */}
-    
-    return (
-      <div className="w-full min-h-screen">
-        <div className="mb-10">
+  const statusCounts = dashboardData.orderStatus || {};
+  const totalStatusCount =
+    (Number(statusCounts.completed) || Number(statusCounts.Completed) || 0) +
+    (Number(statusCounts.pending) || Number(statusCounts.Pending) || 0) +
+    (Number(statusCounts.cancelled) || Number(statusCounts.Cancelled) || 0);
+
+  const orderStatusData = [
+    {
+      name: "Completed",
+      value: Number(statusCounts.completed) || Number(statusCounts.Completed) || 0,
+      share: totalStatusCount
+        ? Math.round(
+            (((Number(statusCounts.completed) || Number(statusCounts.Completed) || 0)) / totalStatusCount) * 100
+          )
+        : 0,
+    },
+    {
+      name: "Pending",
+      value: Number(statusCounts.pending) || Number(statusCounts.Pending) || 0,
+      share: totalStatusCount
+        ? Math.round(
+            (((Number(statusCounts.pending) || Number(statusCounts.Pending) || 0)) / totalStatusCount) * 100
+          )
+        : 0,
+    },
+    {
+      name: "Cancelled",
+      value: Number(statusCounts.cancelled) || Number(statusCounts.Cancelled) || 0,
+      share: totalStatusCount
+        ? Math.round(
+            (((Number(statusCounts.cancelled) || Number(statusCounts.Cancelled) || 0)) / totalStatusCount) * 100
+          )
+        : 0,
+    },
+  ].filter((item) => item.value > 0);
+
+  const activityFeed = dashboardData.activityFeed || [];
+  const topProducts = dashboardData.topProducts || [];
+  const topCustomers = dashboardData.topCustomers || [];
+  const COLORS = ["#22c55e", "#facc15", "#ef4444"];
+
+  const calculateGrowth = () => {
+    if (monthlySales.length < 2) return { salesGrowth: 0, profitGrowth: 0 };
+
+    const currentMonth = monthlySales[monthlySales.length - 1];
+    const lastMonth = monthlySales[monthlySales.length - 2];
+
+    const salesGrowth =
+      lastMonth.sales === 0
+        ? currentMonth.sales > 0
+          ? 100
+          : 0
+        : Math.round(((currentMonth.sales - lastMonth.sales) / lastMonth.sales) * 100);
+
+    const profitGrowth =
+      lastMonth.profit === 0
+        ? currentMonth.profit > 0
+          ? 100
+          : 0
+        : Math.round(((currentMonth.profit - lastMonth.profit) / lastMonth.profit) * 100);
+
+    return { salesGrowth, profitGrowth };
+  };
+
+  const { salesGrowth, profitGrowth } = calculateGrowth();
+  const totalRevenue = filteredData.reduce((sum, month) => sum + month.sales, 0);
+  const totalExpenses = filteredData.reduce((sum, month) => sum + month.expenses, 0);
+  const totalProfit = filteredData.reduce((sum, month) => sum + month.profit, 0);
+  const profitMargin = totalRevenue === 0 ? 0 : Math.round((totalProfit / totalRevenue) * 100);
+
+  return (
+    <div className="w-full min-h-screen text-slate-900 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+      
+      </div>
+
+      <div className="relative">
+        <div className="mb-5">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Dashboard</h1>
-              <p className="text-sm text-gray-600 font-medium">Welcome back! Here's your business overview</p>
+              <h1 className="text-2xl font-bold mb-2 tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent">
+                Dashboard
+              </h1>
+              <p className="text-sm sm:text-[15px] text-slate-500 font-medium">
+                Welcome back! Here's your business overview
+              </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex items-center gap-1 bg-white rounded-lg shadow-sm border border-gray-200 p-0.5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex items-center gap-1 bg-white/70 rounded-2xl border border-slate-200 shadow-[0_0_0_1px_rgba(15,23,42,0.03)] backdrop-blur p-1">
                 <FilterBtn label="Today" active={filterPeriod === "today"} onClick={() => setFilterPeriod("today")} />
                 <FilterBtn label="This Month" active={filterPeriod === "month"} onClick={() => setFilterPeriod("month")} />
                 <FilterBtn label="This Year" active={filterPeriod === "year"} onClick={() => setFilterPeriod("year")} />
               </div>
 
-              <div className="flex gap-1.5">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setShowExportPopup(true)}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium text-xs hover:bg-emerald-700 active:scale-95 transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold text-sm hover:from-emerald-600 hover:to-emerald-700 active:scale-[0.99] transition-all duration-200 shadow-[0_12px_30px_-15px_rgba(16,185,129,0.55)] border border-white/40"
                 >
                   Export
                 </button>
                 <button
-                  className="px-3 py-1.5 rounded-lg bg-purple-600 text-white font-medium text-xs hover:bg-purple-700 active:scale-95 transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold text-sm hover:from-purple-600 hover:to-purple-700 active:scale-[0.99] transition-all duration-200 shadow-[0_12px_30px_-15px_rgba(139,92,246,0.45)] border border-white/40"
                 >
                   Import
                 </button>
               </div>
             </div>
           </div>
+
+          <div className="mt-6 h-px bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200" />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 justify-items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 justify-items-stretch">
           <KpiCard
             title="Total Sales"
             value={`Rs ${totalRevenue.toLocaleString("en-IN")}`}
             growth={`${salesGrowth > 0 ? "+" : ""}${salesGrowth}%`}
             icon={<FaChartBar />}
-            iconBg="bg-green-500"
+            iconBg="bg-emerald-500"
             up={salesGrowth >= 0}
           />
 
@@ -275,9 +266,9 @@
         </div>
 
         {showExportPopup && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-xl w-80 shadow-xl">
-              <h3 className="text-lg font-semibold mb-4 text-center">Select Export Type</h3>
+          <div className="fixed inset-0 bg-slate-950/20 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white border border-slate-200 p-6 rounded-2xl w-[340px] shadow-2xl">
+              <h3 className="text-lg font-semibold mb-4 text-center text-slate-900">Select Export Type</h3>
 
               <button
                 onClick={() => {
@@ -293,7 +284,7 @@
                   );
                   setShowExportPopup(false);
                 }}
-                className="w-full mb-3 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                className="w-full mb-3 px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 font-semibold transition-all"
               >
                 Export as PDF
               </button>
@@ -307,14 +298,14 @@
                   );
                   setShowExportPopup(false);
                 }}
-                className="w-full mb-3 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                className="w-full mb-3 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 font-semibold transition-all"
               >
                 Export as Excel
               </button>
 
               <button
                 onClick={() => setShowExportPopup(false)}
-                className="w-full px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                className="w-full px-4 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold transition-all"
               >
                 Cancel
               </button>
@@ -323,11 +314,11 @@
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 w-full mt-6">
-          <div className="xl:col-span-2 bg-white rounded-2xl p-8 shadow-md border border-gray-100  transition-all duration-300">
-            <div className="flex justify-between items-center mb-8">
+          <div className="xl:col-span-2 bg-white/70 rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-[0_35px_90px_-60px_rgba(99,102,241,0.28)] backdrop-blur">
+            <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Revenue & Expenses</h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">Revenue & Expenses</h3>
+                <p className="text-sm text-slate-500 mt-1">
                   {filterPeriod === "today"
                     ? "Today's breakdown"
                     : filterPeriod === "month"
@@ -337,118 +328,150 @@
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 p-6 bg-gradient-to-br from-slate-50 via-white to-slate-50 rounded-xl border border-slate-200">
-              <SummaryStat label="Revenue" value={`Rs ${totalRevenue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`} color="text-green-600" />
-              <SummaryStat label="Expenses" value={`Rs ${totalExpenses.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`} color="text-red-600" withDivider />
-              <SummaryStat label="Net Profit" value={`Rs ${totalProfit.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`} color="text-blue-600" withDivider />
-              <SummaryStat label="Profit Margin" value={`${profitMargin}%`} color="text-amber-600" withDivider />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-5 bg-gradient-to-br from-slate-50 via-white to-slate-50 rounded-2xl border border-slate-200">
+              <SummaryStat
+                label="Revenue"
+                value={`Rs ${totalRevenue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+                color="text-emerald-700"
+              />
+              <SummaryStat
+                label="Expenses"
+                value={`Rs ${totalExpenses.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+                color="text-rose-700"
+                withDivider
+              />
+              <SummaryStat
+                label="Net Profit"
+                value={`Rs ${totalProfit.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+                color="text-sky-700"
+                withDivider
+              />
+              <SummaryStat label="Profit Margin" value={`${profitMargin}%`} color="text-amber-700" withDivider />
             </div>
 
-            <div className="flex gap-8 text-sm text-gray-600 mb-8 flex-wrap">
+            <div className="flex gap-6 text-sm text-slate-600 mb-6 flex-wrap">
               <LegendSwatch colorClass="from-emerald-500 to-green-600" label="Revenue" />
               <LegendSwatch colorClass="from-rose-500 to-red-600" label="Expenses" />
-              <LegendSwatch colorClass="from-blue-500 to-indigo-600" label="Profit" />
+              <LegendSwatch colorClass="from-sky-500 to-indigo-600" label="Profit" />
             </div>
 
-            <div className="h-96 w-full overflow-hidden rounded-lg bg-gray-50 p-4">
+            <div className="h-96 w-full overflow-hidden rounded-2xl bg-white border border-slate-200">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={filteredData} barGap={15} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                <BarChart
+                  data={filteredData}
+                  barGap={14}
+                  margin={{ top: 14, right: 16, left: 0, bottom: 10 }}
+                >
                   <defs>
                     <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10B981" />
-                      <stop offset="100%" stopColor="#059669" />
+                      <stop offset="0%" stopColor="#34d399" />
+                      <stop offset="100%" stopColor="#10b981" />
                     </linearGradient>
                     <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#EF4444" />
-                      <stop offset="100%" stopColor="#DC2626" />
+                      <stop offset="0%" stopColor="#fb7185" />
+                      <stop offset="100%" stopColor="#ef4444" />
                     </linearGradient>
                     <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3B82F6" />
-                      <stop offset="100%" stopColor="#1D4ED8" />
+                      <stop offset="0%" stopColor="#60a5fa" />
+                      <stop offset="100%" stopColor="#1d4ed8" />
                     </linearGradient>
                   </defs>
 
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.08)" vertical={false} />
                   <XAxis
                     dataKey="name"
                     tickLine={false}
                     axisLine={false}
-                    tick={{ fill: "#6B7280", fontSize: 13, fontWeight: 500 }}
+                    tick={{ fill: "#475569", fontSize: 12, fontWeight: 650 }}
                     interval={0}
                   />
                   <YAxis
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(value) => `Rs ${value}`}
-                    tick={{ fill: "#9CA3AF", fontSize: 12 }}
-                    width={70}
+                    tick={{ fill: "#64748b", fontSize: 12 }}
+                    width={74}
                   />
                   <Tooltip
                     formatter={(value) => [`Rs ${Number(value).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`]}
                     contentStyle={{
-                      borderRadius: "12px",
-                      border: "none",
-                      boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                      borderRadius: "14px",
+                      border: "1px solid rgba(15,23,42,0.08)",
+                      background: "rgba(255,255,255,0.96)",
+                      boxShadow: "0 22px 60px rgba(2,6,23,0.10)",
                     }}
+                    labelStyle={{ color: "#0f172a" }}
+                    itemStyle={{ color: "#0f172a" }}
                   />
-                  <Bar dataKey="sales" fill="url(#revenueGradient)" radius={[8, 8, 0, 0]} name="sales" barSize={45} />
-                  <Bar dataKey="expenses" fill="url(#expenseGradient)" radius={[8, 8, 0, 0]} name="expenses" barSize={45} />
-                  <Bar dataKey="profit" fill="url(#profitGradient)" radius={[8, 8, 0, 0]} name="profit" barSize={45} />
+                  <Bar dataKey="sales" fill="url(#revenueGradient)" radius={[10, 10, 0, 0]} name="sales" barSize={45} />
+                  <Bar dataKey="expenses" fill="url(#expenseGradient)" radius={[10, 10, 0, 0]} name="expenses" barSize={45} />
+                  <Bar dataKey="profit" fill="url(#profitGradient)" radius={[10, 10, 0, 0]} name="profit" barSize={45} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 shadow-md border border-gray-100 transition-all duration-300">
-            <div className="mb-8">
-              <h3 className="text-2xl font-bold text-gray-900">Order Status</h3>
-              <p className="text-sm text-gray-600 mt-1">Distribution of your order states</p>
+          <div className="bg-white/70 rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-[0_35px_90px_-60px_rgba(139,92,246,0.25)] backdrop-blur">
+            <div className="mb-6">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">Order Status</h3>
+              <p className="text-sm text-slate-500 mt-1">Distribution of your order states</p>
             </div>
 
             <div className="flex flex-col items-center">
               {orderStatusData.length > 0 ? (
                 <>
-                  <PieChart width={220} height={220}>
-                    <Pie data={orderStatusData} dataKey="value" innerRadius={60} outerRadius={85} paddingAngle={4}>
+                  <PieChart width={230} height={230}>
+                    <Pie
+                      data={orderStatusData}
+                      dataKey="value"
+                      innerRadius={58}
+                      outerRadius={88}
+                      paddingAngle={4}
+                    >
                       {orderStatusData.map((entry, index) => (
                         <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-
                     <text
                       x="50%"
                       y="50%"
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      className="text-lg font-bold fill-gray-700"
+                      className="text-lg font-bold fill-slate-800"
                     >
                       {totalStatusCount}
                     </text>
                   </PieChart>
 
-                  <div className="w-full mt-8 space-y-4">
+                  <div className="w-full mt-8 space-y-3">
                     {orderStatusData.map((item, index) => (
-                      <div key={item.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div
+                        key={item.name}
+                        className="flex items-center justify-between p-3 rounded-xl bg-white/80 hover:bg-white transition-colors border border-slate-200"
+                      >
                         <div className="flex items-center gap-3">
                           <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index] }} />
-                          <span className="text-gray-700 font-medium">{item.name}</span>
+                          <span className="text-slate-800 font-semibold">{item.name}</span>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-gray-900">{item.value}</p>
-                          <p className="text-xs text-gray-500">{item.share}%</p>
+                          <p className="font-extrabold text-slate-900">{item.value}</p>
+                          <p className="text-xs text-slate-500">{item.share}%</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </>
               ) : (
-                <EmptyState title="No order status data available" subtitle="Orders will be tracked here once you start processing them." />
+                <EmptyState
+                  title="No order status data available"
+                  subtitle="Orders will be tracked here once you start processing them."
+                />
               )}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-10 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-8 items-stretch">
           <Card title="Activity Feed">
             {activityFeed.length > 0 ? (
               activityFeed.map((item) => (
@@ -498,50 +521,63 @@
           </Card>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   function KpiCard({ title, value, growth, icon, iconBg, up }) {
     const isPercent = growth.includes("%");
 
     const bgColorMap = {
-      "bg-green-500": "from-green-500 to-green-600",
-      "bg-blue-500": "from-blue-500 to-blue-600",
-      "bg-purple-500": "from-purple-500 to-purple-600",
-      "bg-red-500": "from-red-500 to-red-600",
+      "bg-green-500": "from-emerald-500 to-green-600",
+      "bg-blue-500": "from-sky-500 to-indigo-600",
+      "bg-purple-500": "from-purple-500 to-indigo-600",
+      "bg-red-500": "from-rose-500 to-red-600",
       "bg-amber-500": "from-amber-500 to-amber-600",
       "bg-emerald-500": "from-emerald-500 to-emerald-600",
     };
 
-    const gradient = bgColorMap[iconBg] || "from-gray-500 to-gray-600";
+    const gradient = bgColorMap[iconBg] || "from-slate-400 to-slate-500";
 
     return (
-      <div className="w-full max-w-[240px] bg-white rounded-xl p-4 shadow-md border border-gray-100 hover:shadow-lg hover:border-gray-200 transition-all duration-300 overflow-hidden group cursor-pointer transform hover:-translate-y-0.5">
-        <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${gradient} opacity-8 rounded-full -mr-8 -mt-8 group-hover:opacity-12 transition-all duration-500 blur-lg`} />
+      <div className="relative bg-white/70 rounded-2xl p-4 border border-slate-200 hover:border-slate-300 transition-all duration-300 shadow-[0_18px_40px_-25px_rgba(15,23,42,0.18)] overflow-hidden group backdrop-blur">
+        <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${gradient} opacity-25 rounded-full -mr-10 -mt-10 blur-2xl transition-opacity duration-500 group-hover:opacity-45`} />
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-b from-white/70 to-transparent" />
 
         <div className="relative z-10">
-          <div className="flex justify-between items-start mb-2">
-            <div className="flex-1">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-tight mb-1">{title}</p>
-              <h3 className="text-2xl font-bold text-gray-900 leading-tight">{value}</h3>
+          <div className="flex justify-between items-start gap-3 mb-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-tight mb-1">{title}</p>
+              <h3 className="text-2xl font-extrabold text-slate-900 leading-tight truncate" title={value}>
+                {value}
+              </h3>
             </div>
 
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-md bg-gradient-to-br ${gradient} group-hover:shadow-lg transition-all duration-300 flex-shrink-0 ml-2`}>
+            <div
+              className={`w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-md bg-gradient-to-br ${gradient} transition-transform duration-300 flex-shrink-0 group-hover:scale-[1.04]`}
+            >
               <span className="text-lg">{icon}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`inline-block text-xs font-semibold px-2 py-1 rounded-md ${up ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-              {isPercent ? (up ? "Up" : "Down") : ""} {growth}
+          <div className="flex items-center gap-2 mb-3">
+            <span
+              className={`inline-flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded-lg ${
+                up ? "bg-emerald-400/15 text-emerald-700" : "bg-rose-400/15 text-rose-700"
+              }`}
+            >
+              {isPercent ? (up ? "Up" : "Down") : ""}
+              {!isPercent ? " " : ""} {growth}
             </span>
-            {isPercent && <span className="text-xs text-gray-500">vs last month</span>}
+
+            {isPercent && <span className="text-xs text-slate-500">vs last month</span>}
           </div>
 
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
             <div
-              className={`h-full rounded-full transition-all duration-700 ${up ? "bg-gradient-to-r from-green-500 to-emerald-500" : "bg-gradient-to-r from-red-500 to-pink-500"}`}
-              style={{ width: isPercent ? "70%" : "50%" }}
+              className={`h-full rounded-full transition-all duration-700 ${
+                up ? "bg-gradient-to-r from-emerald-400 to-emerald-600" : "bg-gradient-to-r from-rose-400 to-pink-600"
+              }`}
+              style={{ width: isPercent ? "70%" : "45%" }}
             />
           </div>
         </div>
@@ -553,10 +589,10 @@
     return (
       <button
         onClick={onClick}
-        className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+        className={`px-4 py-1.5 rounded-xl text-sm font-bold transition-all duration-200 ${
           active
-            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
-            : "bg-transparent text-gray-700 hover:bg-gray-100 border border-transparent"
+            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-[0_18px_40px_-25px_rgba(99,102,241,0.65)] border border-white/50"
+            : "bg-transparent text-slate-700 hover:bg-slate-100 border border-transparent"
         }`}
       >
         {label}
@@ -566,11 +602,9 @@
 
   function Card({ title, children }) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl transition-all duration-300">
-        <h3 className="text-lg font-bold text-gray-900 mb-6">{title}</h3>
-        <div className="space-y-4 max-h-[320px] overflow-y-auto pr-2">
-          {children}
-        </div>
+      <div className="bg-white/70 rounded-3xl p-6 sm:p-7 border border-slate-200 hover:border-slate-300 transition-all duration-300 shadow-[0_18px_40px_-25px_rgba(15,23,42,0.14)] backdrop-blur">
+        <h3 className="text-lg font-extrabold text-slate-900 mb-5">{title}</h3>
+        <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2">{children}</div>
       </div>
     );
   }
@@ -579,24 +613,26 @@
     return (
       <div
         onClick={onClick}
-        className={`flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors ${onClick ? "cursor-pointer" : ""}`}
+        className={`flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors ${
+          onClick ? "cursor-pointer" : ""
+        } border border-slate-200`}
       >
-        <div className="w-10 h-10 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center text-indigo-600">
+        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500/15 to-purple-500/15 rounded-xl flex items-center justify-center text-indigo-700">
           {icon}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-gray-700 font-medium truncate">{label}</p>
+          <p className="text-sm text-slate-800 font-semibold truncate">{label}</p>
         </div>
-        <span className="text-sm font-bold text-gray-900 whitespace-nowrap">{value}</span>
+        <span className="text-sm font-extrabold text-slate-900 whitespace-nowrap">{value}</span>
       </div>
     );
   }
 
   function SummaryStat({ label, value, color, withDivider = false }) {
     return (
-      <div className={`text-center ${withDivider ? "border-l border-gray-300" : ""}`}>
-        <p className="text-xs font-semibold text-gray-600 mb-1">{label.toUpperCase()}</p>
-        <p className={`text-xl font-bold ${color}`}>{value}</p>
+      <div className={`text-center ${withDivider ? "border-l border-slate-200" : ""} px-1`}>
+        <p className="text-xs font-semibold text-slate-500 mb-1">{label.toUpperCase()}</p>
+        <p className={`text-xl font-extrabold ${color}`}>{value}</p>
       </div>
     );
   }
@@ -604,17 +640,18 @@
   function LegendSwatch({ colorClass, label }) {
     return (
       <div className="flex items-center gap-2">
-        <span className={`w-4 h-4 rounded-sm bg-gradient-to-r ${colorClass}`} />
-        <span className="font-medium">{label}</span>
+        <span className={`w-4 h-4 rounded-md bg-gradient-to-r ${colorClass}`} />
+        <span className="font-semibold text-slate-700">{label}</span>
       </div>
     );
   }
 
   function EmptyState({ title, subtitle }) {
     return (
-      <div className="text-center py-12">
-        <p className="text-base text-gray-700 font-semibold">{title}</p>
-        <p className="text-sm text-gray-500 mt-2">{subtitle}</p>
+      <div className="text-center py-12 px-2">
+        <p className="text-base text-slate-800 font-bold">{title}</p>
+        <p className="text-sm text-slate-500 mt-2">{subtitle}</p>
       </div>
     );
   }
+}
