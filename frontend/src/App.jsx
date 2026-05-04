@@ -82,14 +82,12 @@ function AppRoutes({ token }) {
   const auth = isAuthenticated();
 
   return (
-    <div className="flex">
+    <div className={`flex ${auth && !hideSidebar ? "pl-56" : ""}`}>
       {/* Sidebar */}
       {auth && !hideSidebar && <Sidebar />}
 
       {/* Main Content */}
-      <div
-  className="flex-1 min-h-screen bg-gray-50"
->
+      <div className="flex-1 min-h-screen bg-gray-50">
         {/* Navbar */}
         {auth && <TopNavbar />}
 

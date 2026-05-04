@@ -34,6 +34,7 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProducts, setSelectedProducts] = useState([]);
 
   useEffect(() => {
     if (location.state?.toastMessage) {
@@ -79,7 +80,7 @@ export default function Products() {
     if (!query) return products;
 
     return products.filter((product) =>
-      [product.name, product.category, product.sku, product.source]
+      [product.name, product.categories?.join(","), product.sku, product.source]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query))
     );
@@ -129,7 +130,7 @@ const handleExport = () => {
     ["Name", "Price", "Category", "SKU"],
     ...products.map(p => [
       p.name,
-      p.price,
+      p.sale_price || p.regular_price,
       p.category,
       p.sku
     ])
@@ -241,7 +242,41 @@ const handleImport = async (e) => {
       Add Product
     </Link>
 
+    <button
+  onClick={async () => {
+    if (!selectedProducts.length) {
+      toast.error("No products selected");
+      return;
+    }
+
+    const confirmDelete = window.confirm("Delete selected products?");
+    if (!confirmDelete) return;
+
+    try {
+      await Promise.all(
+        selectedProducts.map(id =>
+          fetch(`${BASE_URL}/api/products/${id}`, {
+            method: "DELETE",
+          })
+        )
+      );
+
+      toast.success("Selected products deleted");
+      setSelectedProducts([]);
+      fetchProducts();
+
+    } catch (err) {
+      toast.error("Bulk delete failed");
+    }
+  }}
+  className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700"
+>
+  Delete Selected
+</button>
+
   </div>
+
+  
 </div>
           </div>
 
@@ -296,16 +331,32 @@ const handleImport = async (e) => {
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead className="bg-slate-50/90 text-slate-600">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-semibold">Product Name</th>
-                    <th className="px-6 py-4 text-left font-semibold">Price</th>
-                    <th className="px-6 py-4 text-left font-semibold">Category</th>
-                    <th className="px-6 py-4 text-left font-semibold">Source</th>
-                    <th className="px-6 py-4 text-left font-semibold">Created</th>
-                    <th className="px-6 py-4 text-left font-semibold">Actions</th>
-                  </tr>
-                </thead>
+    <thead className="bg-slate-50/90 text-slate-600">
+  <tr>
+    <th className="px-6 py-4">
+  <input
+    type="checkbox"
+    checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+    onChange={(e) => {
+      if (e.target.checked) {
+        setSelectedProducts(filteredProducts.map(p => p.id));
+      } else {
+        setSelectedProducts([]);
+      }
+    }}
+  />
+</th>
+    <th className="px-6 py-4 text-left font-semibold">Product Name</th>
+    <th className="px-6 py-4 text-left font-semibold">Price</th>
+    <th className="px-6 py-4 text-left font-semibold">Stock</th>
+    <th className="px-6 py-4 text-left font-semibold">Stock Status</th>
+    <th className="px-6 py-4 text-left font-semibold">Status</th>
+    <th className="px-6 py-4 text-left font-semibold">Category</th>
+    <th className="px-6 py-4 text-left font-semibold">Source</th>
+    <th className="px-6 py-4 text-left font-semibold">Created</th>
+    <th className="px-6 py-4 text-left font-semibold">Actions</th>
+  </tr>
+</thead>
 
                 <tbody className="divide-y divide-slate-200/80">
                   {filteredProducts.map((product) => {
@@ -316,19 +367,23 @@ const handleImport = async (e) => {
                         key={product.id}
                         className="group transition duration-200 hover:bg-slate-50/90"
                       >
+
+<td className="px-6 py-4">
+  <input
+    type="checkbox"
+    checked={selectedProducts.includes(product.id)}
+    onChange={(e) => {
+      if (e.target.checked) {
+        setSelectedProducts(prev => [...prev, product.id]);
+      } else {
+        setSelectedProducts(prev => prev.filter(id => id !== product.id));
+      }
+    }}
+  />
+</td>
+
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
-                              {product.image_url ? (
-                                <img
-                                  src={product.image_url}
-                                  alt={product.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <ShoppingBag className="h-5 w-5 text-slate-400" />
-                              )}
-                            </div>
 
                             <div>
                               <div className="font-semibold text-slate-900">
@@ -341,13 +396,70 @@ const handleImport = async (e) => {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 font-medium text-slate-900">
-                          ₹{Number(product.price || 0).toLocaleString("en-IN")}
-                        </td>
+              <td className="px-6 py-4 font-medium text-slate-900">
+  <div className="flex flex-col">
+    
+    {/* SALE PRICE */}
+    {product.sale_price !== null && product.sale_price !== 0 && (
+      <span className="text-green-600 font-semibold">
+       {product.sale_price !== null &&
+ product.sale_price !== "" &&
+ !isNaN(Number(product.sale_price)) && (
+  <span className="text-green-600 font-semibold">
+    ₹{Number(product.sale_price).toLocaleString("en-IN")}
+  </span>
+)}
+      </span>
+    )}
+
+    {/* REGULAR PRICE */}
+    <span
+      className={
+        product.sale_price
+          ? "text-xs line-through text-slate-400"
+          : ""
+      }
+    >
+      ₹{!isNaN(Number(product.regular_price))
+  ? Number(product.regular_price).toLocaleString("en-IN")
+  : "0"}
+    </span>
+
+  </div>
+</td>
+
+{/* STOCK */}
+<td className="px-6 py-4 text-slate-600">
+  {product.stock ?? 0}
+</td>
+
+{/* STOCK STATUS */}
+<td className="px-6 py-4">
+<span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+  product.stock_status === "in_stock"
+    ? "bg-emerald-100 text-emerald-700"
+    : "bg-rose-100 text-rose-700"
+}`}>
+  {product.stock_status === "in_stock" ? "In Stock" : "Out of Stock"}
+</span>
+</td>
+
+{/* STATUS */}
+<td className="px-6 py-4">
+  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+    product.status === "publish"
+      ? "bg-blue-100 text-blue-700"
+      : "bg-amber-100 text-amber-700"
+  }`}>
+    {product.status || "draft"}
+  </span>
+</td>
 
                         <td className="px-6 py-4 text-slate-600">
-                          {product.category || "Uncategorized"}
-                        </td>
+                         {product.categories?.length
+                          ? product.categories.join(", ")
+                           : "Uncategorized"}
+                         </td>
 
                         <td className="px-6 py-4">
                           <span
@@ -368,13 +480,13 @@ const handleImport = async (e) => {
                         </td>
 
                         <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2 ">
                             <Link
                               to={`/edit-product/${product.id}`}
                               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:text-blue-700"
                             >
                               <PencilLine className="h-3.5 w-3.5" />
-                              Edit
+                              
                             </Link>
 
                             <button
@@ -384,7 +496,7 @@ const handleImport = async (e) => {
                               className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700 transition hover:-translate-y-0.5 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
-                              {deletingId === product.id ? "Deleting..." : "Delete"}
+                              {deletingId === product.id ? "Deleting..." : ""}
                             </button>
                           </div>
                         </td>

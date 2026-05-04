@@ -11,33 +11,40 @@ export default function AddProduct() {
   const [isSaving, setIsSaving] = useState(false);
   const [categories, setCategories] = useState([]);
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFormData((current) => ({
+  {/* handle change */}
+ const handleChange = (event) => {
+  const { name, value } = event.target;
+  setFormData((current) => {
+    let updated = {
       ...current,
       [name]: value,
-    }));
-  };
+    };
+    // ✅ Auto update stock status
+    if (name === "stock") {
+      updated.stock_status = Number(value) > 0 ? "in_stock" : "out_of_stock";
+    }
+    return updated;
+  });
+};
 
 useEffect(() => {
   const fetchCategories = async () => {
     try {
       const res = await fetch(`${BASE_URL}/api/categories`);
       const data = await res.json();
-
-      console.log("API DATA:", data); // debug
-
-      // ✅ FIX HERE
+      console.log("API DATA:", data);
       setCategories(Array.isArray(data) ? data : []);
-
-    } catch (err) {
+    } 
+    catch (err) 
+    {
       console.error("Category fetch error:", err);
     }
   };
-
   fetchCategories();
 }, []);
 
+
+{/* handle category change */}
 const handleCategoryChange = (categoryName) => {
   setFormData((prev) => {
     const exists = prev.categories.includes(categoryName);
@@ -51,19 +58,17 @@ const handleCategoryChange = (categoryName) => {
   });
 };
 
+{/* handle submit */}
   const handleSubmit = async (event) => {
     event.preventDefault();
-
     if (!formData.name.trim()) {
       toast.error("Product name is required");
       return;
     }
-
     if (!formData.regular_price || Number(formData.regular_price) <= 0) {
       toast.error("Please enter a valid product price");
       return;
     }
-
     setIsSaving(true);
 
     try {
@@ -73,9 +78,20 @@ const handleCategoryChange = (categoryName) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...formData,
-          regular_price: Number(formData.regular_price),
-          stock: Number(formData.stock) || 0,
+         ...formData,
+       regular_price:
+       formData.regular_price === ""
+        ? 0
+        : Number(formData.regular_price),
+       sale_price:
+        formData.sale_price === ""
+        ? null
+       : Number(formData.sale_price),
+         stock: Number(formData.stock) || 0,
+         weight: Number(formData.weight) || 0,
+         length: Number(formData.length) || 0,
+         width: Number(formData.width) || 0,
+         height: Number(formData.height) || 0,
           source: "admin",
         }),
       });
@@ -85,7 +101,6 @@ const handleCategoryChange = (categoryName) => {
       if (!response.ok) {
         throw new Error(data.error || data.details || "Failed to add product");
       }
-
       navigate("/products", {
         state: {
           toastMessage: data.message || "Product added successfully",

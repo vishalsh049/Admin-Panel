@@ -19,8 +19,9 @@ const Product = sequelize.define(
   defaultValue: 0,
   field: "regular_price",
 },
-    salePrice: {
-      type: DataTypes.DECIMAL(10, 2),
+    sale_price: {
+     type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
       field: "sale_price",
     },
     category: {
@@ -36,6 +37,11 @@ const Product = sequelize.define(
       defaultValue: 0,
       field: "stock",
     },
+    stock_status: {
+  type: DataTypes.ENUM("in_stock", "out_of_stock"),
+  defaultValue: "in_stock",
+  field: "stock_status",
+},
     status: {
       type: DataTypes.ENUM("draft", "publish"),
       defaultValue: "draft",

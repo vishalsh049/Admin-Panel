@@ -13,8 +13,14 @@ export const defaultProductFormValues = {
   categories: [],
   sku: "",
   stock: "",
+  stock_status: "in_stock",
   status: "publish",
-  image_url: "",
+  image_file: null,
+  image_preview: "",
+  weight: "",
+  length: "",
+  width: "",
+  height: "",
 };
 
 export default function ProductEditorForm({
@@ -50,12 +56,37 @@ useEffect(() => {
 const filteredCategories = categories.filter((cat) =>
   cat.name.toLowerCase().includes(search.toLowerCase())
 );
+
+{/* handle select all */}
 const handleSelectAll = () => {
   if (selectedCategories.length === categories.length) {
     onCategoryChange([]); // clear all
   } else {
     onCategoryChange(categories.map((c) => c.name)); // select all
   }
+};
+
+{/** handle image upload */}
+const handleImageUpload = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const preview = URL.createObjectURL(file);
+
+  // update file
+  onChange({
+    target: {
+      name: "image_file",
+      value: file,
+    },
+  });
+
+  // update preview
+  onChange({
+    target: {
+      name: "image_preview",
+      value: preview,
+    },
+  });
 };
 
   return (
@@ -66,14 +97,14 @@ const handleSelectAll = () => {
             <div>
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 font-semibold uppercase px-2 py-0.5 text-[10px] tracking-wide text-blue-700">
                 <Package2 className="h-3.5 w-3.5" />
-                PRODUCT MANAGEMENT
+                        PRODUCT MANAGEMENT
               </div>
               <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl"> 
                 {title}
               </h1>
             <p className="mt-1 text-xs text-slate-500">
                 {subtitle}
-              </p>
+            </p>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-600 shadow-sm">
@@ -103,18 +134,19 @@ const handleSelectAll = () => {
                 </Field>
 
                <Field label="Category">
-  <div className="relative" ref={dropdownRef}>
+             <div className="relative" ref={dropdownRef}>
 
-    {/* Dropdown Button */}
+         {/* Dropdown Button */}
     <div
       onClick={() => setOpenDropdown(!openDropdown)}
-      className="w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-3 py-2 min-h-[44px] shadow-sm hover:shadow-md transition text-sm flex justify-between items-center"
+      className="w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-3 py-2 
+      min-h-[44px] shadow-sm hover:shadow-md transition text-sm flex justify-between items-center"
     >
       <span className="text-slate-700">
         {selectedCategories.length > 0
           ? <div className="flex flex-wrap gap-2">
-  {selectedCategories.length > 0 ? (
-    selectedCategories.map((cat) => (
+       {selectedCategories.length > 0 ? (
+        selectedCategories.map((cat) => (
       <span
         key={cat}
         className="flex items-center gap-1 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 px-2 py-1 rounded-full text-[11px] font-medium border border-blue-100 shadow-sm"
@@ -135,14 +167,15 @@ const handleSelectAll = () => {
     <span className="text-slate-400">Select categories</span>
   )}
 </div>
-          : "Select categories"}
+     : "Select categories"}
       </span>
       <span>▼</span>
     </div>
 
     {/* Dropdown Panel */}
     {openDropdown && (
-  <div className="absolute z-50 mt-2 w-full max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-xl shadow-2xl p-4 space-y-3">
+    <div className="absolute z-50 mt-2 w-full max-h-72 overflow-y-auto rounded-2xl border border-slate-200
+     bg-white/90 backdrop-blur-xl shadow-2xl p-4 space-y-3">
 
     {/* 🔍 SEARCH */}
     <input
@@ -181,37 +214,36 @@ const handleSelectAll = () => {
       .map((parent) => (
         <div key={parent.id} className="space-y-1">
 
-          {/* Parent */}
-          <label className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 cursor-pointer font-medium">
-            <input
-              type="checkbox"
-              className="accent-blue-600"
-              checked={selectedCategories.includes(parent.name)}
-              onChange={() => onCategoryChange(parent.name)}
-            />
+      {/* Parent */}
+     <label className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 cursor-pointer font-medium">
+          <input
+             type="checkbox"
+             className="accent-blue-600"
+             checked={selectedCategories.includes(parent.name)}
+             onChange={() => onCategoryChange(parent.name)}
+          />
             {parent.name}
           </label>
 
-          {/* Children */}
-          <div className="ml-5 space-y-1">
-            {filteredCategories
-              .filter((child) => child.parent_id === parent.id)
-              .map((child) => (
-                <label
-                  key={child.id}
-                  className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 cursor-pointer text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    className="accent-blue-500"
-                    checked={selectedCategories.includes(child.name)}
-                    onChange={() => onCategoryChange(child.name)}
-                  />
-                  {child.name}
+      {/* Children */}
+        <div className="ml-5 space-y-1">
+          {filteredCategories
+            .filter((child) => child.parent_id === parent.id)
+             .map((child) => (
+            <label
+              key={child.id}
+             className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 cursor-pointer text-sm"
+             >
+             <input
+               type="checkbox"
+                className="accent-blue-500"
+                checked={selectedCategories.includes(child.name)}
+                 onChange={() => onCategoryChange(child.name)}
+              />
+                {child.name}
                 </label>
               ))}
-          </div>
-
+          </div>  
         </div>
       ))}
 
@@ -219,10 +251,11 @@ const handleSelectAll = () => {
 )}
   </div>
 </Field>
-                <div className="grid gap-5 md:grid-cols-2">
 
-  <Field label="Regular Price (₹)" required>
-    <input
+        <div className="grid gap-5 md:grid-cols-2">
+
+     <Field label="Regular Price (₹)" required>
+     <input
       name="regular_price"
       type="number"
       value={formData.regular_price}
@@ -231,7 +264,7 @@ const handleSelectAll = () => {
       className={inputClassName}
       required
     />
-  </Field>
+     </Field>
 
   <Field label="Sale Price (₹)">
     <input
@@ -244,50 +277,96 @@ const handleSelectAll = () => {
     />
   </Field>
 
+  </div>
+ 
+       <Field label="SKU">
+          <input
+             name="sku"
+             value={formData.sku}
+             onChange={onChange}
+             placeholder="SKU-001"
+             className={inputClassName}
+          />
+         </Field>
+     </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <Field label="Weight (kg)">
+         <input
+           name="weight"
+           type="number"
+           value={formData.weight}
+           onChange={onChange}
+           placeholder="0"
+           className={inputClassName}
+          />
+      </Field>
+
+     <Field label="Length (cm)">
+        <input
+          name="length"
+          type="number"
+          value={formData.length}
+          onChange={onChange}
+          placeholder="0"
+          className={inputClassName}
+        />
+     </Field>
+
+  <Field label="Width (cm)">
+    <input
+      name="width"
+      type="number"
+      value={formData.width}
+      onChange={onChange}
+      placeholder="0"
+      className={inputClassName}
+    />
+  </Field>
+
+  <Field label="Height (cm)">
+    <input
+      name="height"
+      type="number"
+      value={formData.height}
+      onChange={onChange}
+      placeholder="0"
+      className={inputClassName}
+    />
+  </Field>
 </div>
 
-                <Field label="SKU">
-                  <input
-                    name="sku"
-                    value={formData.sku}
-                    onChange={onChange}
-                    placeholder="SKU-001"
-                    className={inputClassName}
-                  />
-                </Field>
-              </div>
+      <Field label="Description">
+       <textarea
+         name="description"
+          value={formData.description}
+          onChange={onChange}
+          rows="7"
+          placeholder="Write a polished product description..."
+          className={`${inputClassName} resize-none`}
+       />
+       </Field>
+     </GlassCard>
 
-              <Field label="Description">
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={onChange}
-                  rows="7"
-                  placeholder="Write a polished product description..."
-                  className={`${inputClassName} resize-none`}
-                />
-              </Field>
-            </GlassCard>
+        <GlassCard
+          icon={<ImagePlus className="h-5 w-5 text-fuchsia-600" />}
+         title="Media"
+        description="Use a product image URL to give the catalog a polished visual identity."
+       >
 
-            <GlassCard
-              icon={<ImagePlus className="h-5 w-5 text-fuchsia-600" />}
-              title="Media"
-              description="Use a product image URL to give the catalog a polished visual identity."
-            >
-              <Field label="Image URL">
-                <input
-                  name="image_url"
-                  value={formData.image_url}
-                  onChange={onChange}
-                  placeholder="https://example.com/product-image.jpg"
-                  className={inputClassName}
-                />
-              </Field>
+      <Field label="Upload Image">
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleImageUpload(e)}
+          className="w-full text-sm"
+        />
+        </Field>
 
               <div className="overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50">
-                {formData.image_url ? (
+                {formData.image_preview ? (
                   <img
-                    src={formData.image_url}
+                    src={formData.image_preview}
                     alt={formData.name || "Product preview"}
                     className="h-64 w-full object-cover"
                   />
@@ -319,6 +398,18 @@ const handleSelectAll = () => {
                     className={inputClassName}
                   />
                 </Field>
+
+                <Field label="Stock Status">
+             <select
+             name="stock_status"
+             value={formData.stock_status}
+             onChange={onChange}
+             className={inputClassName}
+             >
+             <option value="in_stock">In Stock</option>
+             <option value="out_of_stock">Out of Stock</option>
+             </select>
+           </Field>
 
                 <Field label="Status">
                   <select

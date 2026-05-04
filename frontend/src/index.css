@@ -6,11 +6,85 @@
 @tailwind utilities;
 
 /* ===================================== */
-/* Sidebar scrollbar: show only on hover */
+ /* PREMIUM SAAS STYLES - ORDERS DASHBOARD */
+ /* ===================================== */
+
+/* CSS Variables */
+:root {
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.2);
+  --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 0 1px rgba(99, 102, 241, 0.2);
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  --status-green: #10b981;
+  --status-yellow: #f59e0b;
+  --status-red: #ef4444;
+}
+
+/* Glassmorphism Card */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Premium KPI Card */
+.premium-kpi {
+  @apply glass-card rounded-3xl p-8 border-0 hover:scale-[1.02] transition-all duration-300;
+}
+
+/* Gradient Button */
+.gradient-btn {
+  @apply bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-600 text-white shadow-lg hover:shadow-[0_0_25px_rgba(99,102,241,0.4)] transform hover:scale-[1.05] transition-all duration-300 px-6 py-3 rounded-2xl font-medium;
+}
+
+/* Status Badge */
+.status-badge {
+  @apply px-3 py-1 rounded-full text-xs font-medium ring-1 ring-inset shadow-sm;
+}
+
 /* ===================================== */
+ /* Sidebar scrollbar: show only on hover */
+ /* ===================================== */
 
 .sidebar-scroll {
   overflow-y: auto;
+}
+
+/* ===================================== */
+ /* ANIMATIONS */
+ /* ===================================== */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
 /* Hidden by default */

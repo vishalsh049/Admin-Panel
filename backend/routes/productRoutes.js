@@ -20,17 +20,32 @@ const normalizeSource = (source = "admin") => {
 const serializeProduct = (productInstance) => {
   const product = productInstance.toJSON();
 
-  return {
-    id: product.id,
-    name: product.name,
-    price: Number(product.regular_price || 0),
-    category: product.category || "",
-    sku: product.sku || "",
-    stock: Number(product.stock || 0),
-    status: normalizeStatus(product.status),
-    source: normalizeSource(product.source),
-    created_at: product.created_at,
-  };
+ return {
+  id: product.id,
+  name: product.name,
+
+  regular_price:
+  product.regular_price === null ||
+  product.regular_price === "" ||
+  isNaN(product.regular_price)
+    ? 0
+    : Number(product.regular_price),
+
+    sale_price:
+      product.sale_price === null ||
+      product.sale_price === "" ||
+      isNaN(product.sale_price)
+        ? null
+        : Number(product.sale_price),
+
+  category: product.category || "",
+  sku: product.sku || "",
+  stock: Number(product.stock || 0),
+  stock_status: product.stock_status,
+  status: normalizeStatus(product.status),
+  source: normalizeSource(product.source),
+  created_at: product.created_at,
+};
 };
 
 // ---------------- IMPORT PRODUCTS ----------------
@@ -129,14 +144,42 @@ router.get("/:id", async (req, res) => {
 // ---------------- CREATE ----------------
 router.post("/", async (req, res) => {
   try {
+    const {
+      name,
+      description,
+      regular_price,
+      sale_price,
+      categories,
+      sku,
+      stock,
+      status,
+      source,
+    } = req.body;
+
     const newProduct = await Product.create({
-      name: req.body.name,
-      regular_price: req.body.price || 0,
-      category: req.body.category,
-      sku: req.body.sku,
-      stock: req.body.stock || 0,
-      status: "publish",
-      source: "admin",
+      name,
+      description: description || "",
+      regular_price:
+        regular_price === "" || regular_price === undefined
+           ? 0
+          : Number(regular_price),
+
+   sale_price:
+    sale_price === "" || sale_price === undefined
+      ? null
+      : Number(sale_price),
+
+      // ✅ convert array → string
+      category: Array.isArray(categories)
+        ? categories.join(", ")
+        : categories || "",
+
+      sku,
+      stock: Number(stock) || 0,
+      stock_status:
+       Number(stock) > 0 ? "in_stock" : "out_of_stock",
+      status: status || "publish",
+      source: source || "admin",
     });
 
     return res.json({
@@ -144,7 +187,9 @@ router.post("/", async (req, res) => {
       message: "Product created",
       product: serializeProduct(newProduct),
     });
+
   } catch (error) {
+    console.error("CREATE ERROR:", error);
     return res.status(500).json({ error: "Create failed" });
   }
 });
@@ -160,9 +205,19 @@ router.put("/:id", async (req, res) => {
 
     await product.update({
       name: req.body.name,
-      regular_price: req.body.price,
-      category: req.body.category,
+      regular_price:
+      req.body.regular_price === "" || req.body.regular_price === undefined
+        ? 0
+       : Number(req.body.regular_price),
+      description: req.body.description,
+      category: Array.isArray(req.body.categories)
+        ? req.body.categories.join(", ")
+        : req.body.category,
       sku: req.body.sku,
+      stock: Number(req.body.stock) || 0,
+
+stock_status:
+  Number(req.body.stock) > 0 ? "in_stock" : "out_of_stock",
     });
 
     return res.json({ success: true, message: "Updated" });
