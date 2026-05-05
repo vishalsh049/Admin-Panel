@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 import { BASE_URL } from "../utils/api";
 
 const NAV_ITEMS = [
@@ -68,83 +68,6 @@ const NAV_ITEMS = [
 
 const SUB_NAV = ["All Orders", "Pending Orders", "Completed Orders", "Cancelled Orders"];
 
-const STATS = [
-  {
-    label: "Total Orders", value: "1,248", change: "↑ 12.5%", color: "#6c63ff",
-    bgColor: "#eef2ff", strokeColor: "#6c63ff",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="#6c63ff" strokeWidth="2" viewBox="0 0 24 24">
-        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-        <line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
-      </svg>
-    ),
-    sparkline: "0,28 13,22 26,26 39,14 52,18 65,10 80,14",
-  },
-  {
-    label: "Total Revenue", value: "₹2,45,800", change: "↑ 18.6%", color: "#22c55e",
-    bgColor: "#f0fdf4", strokeColor: "#22c55e",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="#22c55e" strokeWidth="2" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-      </svg>
-    ),
-    sparkline: "0,30 13,24 26,28 39,16 52,20 65,8 80,12",
-  },
-  {
-    label: "Pending Orders", value: "86", change: "↑ 8.3%", color: "#f59e0b",
-    bgColor: "#fffbeb", strokeColor: "#f59e0b",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="#f59e0b" strokeWidth="2" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-      </svg>
-    ),
-    sparkline: "0,20 13,26 26,18 39,24 52,14 65,20 80,12",
-  },
-  {
-    label: "Completed Orders", value: "1,162", change: "↑ 14.2%", color: "#14b8a6",
-    bgColor: "#f0fdfa", strokeColor: "#14b8a6",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="#14b8a6" strokeWidth="2" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/>
-      </svg>
-    ),
-    sparkline: "0,26 13,20 26,24 39,12 52,16 65,8 80,10",
-  },
-];
-
-const ORDERS = [
-  {
-    id: "#ORD-1250", name: "Rohan Sharma", email: "rohan@mail.com", initial: "R",
-    gradient: "linear-gradient(135deg,#667eea,#764ba2)",
-    date: "Jun 20, 2024", time: "10:30 AM", items: "3 Items", amount: "₹2,450.00",
-    status: "Pending", statusStyle: "bg-orange-50 text-orange-500", payment: "Paid", paymentStyle: "text-green-500",
-  },
-  {
-    id: "#ORD-1249", name: "Priya Singh", email: "priya@mail.com", initial: "P",
-    gradient: "linear-gradient(135deg,#f093fb,#f5576c)",
-    date: "Jun 20, 2024", time: "09:15 AM", items: "1 Item", amount: "₹850.00",
-    status: "Processing", statusStyle: "bg-blue-50 text-blue-500", payment: "Paid", paymentStyle: "text-green-500",
-  },
-  {
-    id: "#ORD-1248", name: "Amit Patel", email: "amit@mail.com", initial: "A",
-    gradient: "linear-gradient(135deg,#4facfe,#00f2fe)",
-    date: "Jun 19, 2024", time: "08:45 PM", items: "5 Items", amount: "₹5,250.00",
-    status: "Shipped", statusStyle: "bg-sky-50 text-sky-500", payment: "Paid", paymentStyle: "text-green-500",
-  },
-  {
-    id: "#ORD-1247", name: "Neha Verma", email: "neha@mail.com", initial: "N",
-    gradient: "linear-gradient(135deg,#43e97b,#38f9d7)",
-    date: "Jun 19, 2024", time: "06:20 PM", items: "2 Items", amount: "₹1,150.00",
-    status: "Delivered", statusStyle: "bg-green-50 text-green-600", payment: "Paid", paymentStyle: "text-green-500",
-  },
-  {
-    id: "#ORD-1246", name: "Vikram Joshi", email: "vikram@mail.com", initial: "V",
-    gradient: "linear-gradient(135deg,#fa709a,#fee140)",
-    date: "Jun 19, 2024", time: "04:10 PM", items: "4 Items", amount: "₹3,650.00",
-    status: "Cancelled", statusStyle: "bg-red-50 text-red-500", payment: "Refunded", paymentStyle: "text-slate-400",
-  },
-];
-
 function ChevronDown({ className = "w-3 h-3" }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -184,6 +107,30 @@ export default function ShopHubDashboard() {
   const [status, setStatus] = useState("All Status");
   const [customer, setCustomer] = useState("All Customers");
   const [sortBy, setSortBy] = useState("Newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const perPage = 10;
+  const totalPages = Math.ceil(totalOrders / perPage);
+
+  const [orders, setOrders] = useState([]);
+
+useEffect(() => {
+  fetchOrders(currentPage);
+}, [currentPage]);
+
+const fetchOrders = async (page = 1) => {
+  try {
+    const res = await fetch(`${BASE_URL}/api/orders?page=${page}`);
+    const data = await res.json();
+
+    if (data.success) {
+      setOrders(data.data || []);
+      setTotalOrders(data.total || 0);
+    }
+  } catch (err) {
+    console.log(err);
+  }
+};
 
   return (
     <div
@@ -233,29 +180,6 @@ export default function ShopHubDashboard() {
 
         {/* CONTENT */}
        <main className="p-3 flex-1 w-full max-w-[1400px] mx-auto">
-
-          {/* STAT CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            {STATS.map((stat) => (
-              <div key={stat.label} className="bg-white rounded-2xl p-4 shadow-sm">
-                <div className="flex items-start justify-between">
-                  <span className="text-[12.5px] text-slate-400 font-medium">{stat.label}</span>
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: stat.bgColor }}>
-                    {stat.icon}
-                  </div>
-                </div>
-                <div className="text-[24px] font-bold tracking-tight">{stat.value}</div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] font-semibold text-green-500">{stat.change}</span>
-                  <span className="text-[11.5px] text-slate-400">vs last month</span>
-                  <svg className="ml-auto" width="80" height="32" viewBox="0 0 80 36">
-                    <polyline fill="none" stroke={stat.strokeColor} strokeWidth="2" strokeLinejoin="round" points={stat.sparkline}/>
-                  </svg>
-                </div>
-              </div>
-            ))}
-          </div>
 
           {/* FILTER BAR */}
           <div className="bg-white rounded-2xl px-5 py-5 shadow-sm mb-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -361,62 +285,92 @@ export default function ShopHubDashboard() {
                     ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {ORDERS.map((order, i) => (
-                    <tr key={order.id} className={`hover:bg-slate-50/60 transition-colors ${i < ORDERS.length - 1 ? "border-b border-slate-50" : ""}`}>
-                      <td className="px-4 py-3.5">
-                        <a href="#" className="font-semibold text-[13.5px] hover:underline" style={{ color: "#6c63ff" }}>{order.id}</a>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-[13px] flex-shrink-0"
-                            style={{ background: order.gradient }}>{order.initial}</div>
-                          <div>
-                            <div className="font-medium text-[13.5px]">{order.name}</div>
-                            <div className="text-[11.5px] text-slate-400">{order.email}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="text-[13.5px]">{order.date}</div>
-                        <div className="text-[11.5px] text-slate-400">{order.time}</div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1.5 text-slate-400 text-[13.5px]">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
-                          </svg>
-                          {order.items}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 font-semibold text-[13.5px]">{order.amount}</td>
-                      <td className="px-4 py-3.5">
-                        <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-semibold ${order.statusStyle}`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className={`px-4 py-3.5 font-medium text-[13.5px] ${order.paymentStyle}`}>{order.payment}</td>
-                      <td className="px-4 py-3.5"><ActionButtons /></td>
-                    </tr>
-                  ))}
-                </tbody>
+               <tbody>
+
+  {orders.map((order, i) => (
+
+    <tr key={order.id} className={`hover:bg-slate-50 text-sm ${i < orders.length - 1 ? "border-b" : ""}`}>
+      
+     <td className="px-4 py-2 text-sm font-medium text-slate-700">
+  #{order.id}
+</td>
+
+  <td className="px-4 py-2">
+  <div className="text-sm font-medium text-slate-800">
+    {order.billing?.first_name} {order.billing?.last_name}
+  </div>
+  <div className="text-xs text-slate-400">
+    {order.billing?.email}
+  </div>
+</td>
+
+  <td className="px-4 py-2 text-sm text-slate-600">
+  {new Date(order.date_created).toLocaleDateString()}
+</td>
+
+  <td className="px-4 py-2 text-sm text-slate-600">
+  {order.line_items?.length} items
+</td>
+
+   <td className="px-4 py-2 text-sm font-semibold text-slate-800">
+  ₹{order.total}
+</td>
+
+  <td className="px-4 py-2">
+  <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600 capitalize">
+    {order.status}
+  </span>
+</td>
+
+ <td className="px-4 py-2 text-xs text-slate-500 max-w-[180px] truncate">
+  {order.payment_method_title}
+</td>
+
+      <td><ActionButtons /></td>
+
+    </tr>
+  ))}
+</tbody>
               </table>
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
-              <span className="text-[13px] text-slate-400">Showing 1 to 5 of 1,248 orders</span>
-              <div className="flex items-center gap-1">
-                <button className="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 flex items-center justify-center text-sm transition-colors hover:text-[#6c63ff]">‹</button>
-                <button className="w-8 h-8 rounded-lg text-white font-bold flex items-center justify-center text-[13px]" style={{ backgroundColor: "#6c63ff" }}>1</button>
-                {["2","3"].map(p => (
-                  <button key={p} className="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 flex items-center justify-center text-[13px] transition-colors hover:text-[#6c63ff]">{p}</button>
-                ))}
-                <button className="w-8 h-8 flex items-center justify-center text-slate-400 text-[13px]">…</button>
-                <button className="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 flex items-center justify-center text-[13px] transition-colors hover:text-[#6c63ff]">250</button>
-                <button className="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 flex items-center justify-center text-sm transition-colors hover:text-[#6c63ff]">›</button>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+
+  {/* PREV */}
+  <button
+    onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+    className="px-2 py-1 border rounded"
+  >
+    ‹
+  </button>
+
+  {/* PAGE NUMBERS */}
+  {[...Array(totalPages)].map((_, i) => (
+    <button
+      key={i}
+      onClick={() => setCurrentPage(i + 1)}
+      className={`px-3 py-1 rounded ${
+        currentPage === i + 1
+          ? "bg-indigo-500 text-white"
+          : "border"
+      }`}
+    >
+      {i + 1}
+    </button>
+  ))}
+
+  {/* NEXT */}
+  <button
+    onClick={() =>
+      setCurrentPage(p => Math.min(p + 1, totalPages))
+    }
+    className="px-2 py-1 border rounded"
+  >
+    ›
+  </button>
+
+</div>
           </div>
 
         </main>

@@ -2,6 +2,44 @@ const express = require("express");
 const router = express.Router();
 const WooCommerce = require("../config/woocommerce");
 
+// GET ALL ORDERS
+router.get("/", async (req, res) => {
+  try {
+    if (!WooCommerce) {
+      return res.status(400).json({
+        success: false,
+        message: "WooCommerce not configured",
+      });
+    }
+
+    const page = Number(req.query.page) || 1;
+    const perPage = 10;
+
+    const response = await WooCommerce.get("orders", {
+      per_page: perPage,
+      page: page,
+    });
+
+    const total = response.headers["x-wp-total"];
+
+    return res.json({
+      success: true,
+      data: response.data,
+      total: Number(total),
+    });
+
+  } catch (error) {
+    console.log(error.response?.data || error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders"
+    });
+  }
+});
+
+
+// GET SINGLE ORDER
 router.get("/:id", async (req, res) => {
 
 try {
