@@ -53,10 +53,58 @@ const Product = sequelize.define(
       defaultValue: "admin",
       field: "source",
     },
-    imageUrl: {
-      type: DataTypes.TEXT,
-      field: "image_url",
-    },
+    image: {
+      type: DataTypes.STRING,
+   },
+   hsn: {
+  type: DataTypes.STRING,
+  field: "hsn",
+},
+
+tax_class: {
+  type: DataTypes.STRING,
+  field: "tax_class",
+},
+
+tax_status: {
+  type: DataTypes.STRING,
+  field: "tax_status",
+},
+
+color: {
+  type: DataTypes.STRING,
+  field: "color",
+},
+
+size: {
+  type: DataTypes.STRING,
+  field: "size",
+},
+
+brand: {
+  type: DataTypes.STRING,
+  field: "brand",
+},
+
+weight: {
+  type: DataTypes.DECIMAL(10, 2),
+  field: "weight",
+},
+
+length: {
+  type: DataTypes.DECIMAL(10, 2),
+  field: "length",
+},
+
+width: {
+  type: DataTypes.DECIMAL(10, 2),
+  field: "width",
+},
+
+height: {
+  type: DataTypes.DECIMAL(10, 2),
+  field: "height",
+},
   },
   {
     tableName: "products",

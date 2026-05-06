@@ -20,16 +20,19 @@ const normalizeSource = (source = "admin") => {
 const serializeProduct = (productInstance) => {
   const product = productInstance.toJSON();
 
- return {
-  id: product.id,
-  name: product.name,
+  return {
+    id: product.id,
 
-  regular_price:
-  product.regular_price === null ||
-  product.regular_price === "" ||
-  isNaN(product.regular_price)
-    ? 0
-    : Number(product.regular_price),
+    name: product.name || "",
+
+    description: product.description || "",
+
+    regular_price:
+      product.regular_price === null ||
+      product.regular_price === "" ||
+      isNaN(product.regular_price)
+        ? 0
+        : Number(product.regular_price),
 
     sale_price:
       product.sale_price === null ||
@@ -38,14 +41,44 @@ const serializeProduct = (productInstance) => {
         ? null
         : Number(product.sale_price),
 
-  category: product.category || "",
-  sku: product.sku || "",
-  stock: Number(product.stock || 0),
-  stock_status: product.stock_status,
-  status: normalizeStatus(product.status),
-  source: normalizeSource(product.source),
-  created_at: product.created_at,
-};
+    category: product.category || "",
+
+    sku: product.sku || "",
+
+    stock: Number(product.stock || 0),
+
+    stock_status: product.stock_status || "",
+
+    status: normalizeStatus(product.status),
+
+    source: normalizeSource(product.source),
+
+    brand: product.brand || "",
+
+    color: product.color || "",
+
+    size: product.size || "",
+
+    hsn: product.hsn || "",
+
+    tax_class: product.tax_class || "",
+
+    tax_status: product.tax_status || "",
+
+    weight: product.weight || 0,
+
+    length: product.length || 0,
+
+    width: product.width || 0,
+
+    height: product.height || 0,
+
+    image: product.image || "",
+
+    created_at: product.created_at,
+
+    updated_at: product.updated_at,
+  };
 };
 
 // ---------------- IMPORT PRODUCTS ----------------
@@ -76,15 +109,93 @@ router.post("/import", upload.single("file"), async (req, res) => {
         }
       }
 
-      productsToInsert.push({
-        name: row.Name || row.name,
-        regular_price: row.Price || row.price || 0,
-        category: row.Category || row.category || "",
-        sku: sku || "",
-        stock: 0,
-        status: "publish",
-        source: "admin",
-      });
+    productsToInsert.push({
+  name: row.Name || row.name || "",
+
+  description:
+    row.Description || row.description || "",
+
+  regular_price:
+    row["Regular Price"] ||
+    row.regular_price ||
+    row.Price ||
+    row.price ||
+    0,
+
+  sale_price:
+    row["Sale Price"] ||
+    row.sale_price ||
+    0,
+
+  category:
+    row.Category ||
+    row.category ||
+    "",
+
+  sku: sku || "",
+
+  stock:
+    Number(row.Stock || row.stock || 0),
+
+  stock_status:
+    Number(row.Stock || row.stock || 0) > 0
+      ? "in_stock"
+      : "out_of_stock",
+
+  status:
+    row.Status ||
+    row.status ||
+    "publish",
+
+  source: "admin",
+
+  brand:
+    row.Brand ||
+    row.brand ||
+    "",
+
+  color:
+    row.Color ||
+    row.color ||
+    "",
+
+  size:
+    row.Size ||
+    row.size ||
+    "",
+
+  hsn:
+    row.HSN ||
+    row.hsn ||
+    "",
+
+  tax_class:
+    row["Tax Class"] ||
+    row.tax_class ||
+    "",
+
+  tax_status:
+    row["Tax Status"] ||
+    row.tax_status ||
+    "taxable",
+
+  weight:
+    Number(row.Weight || row.weight || 0),
+
+  length:
+    Number(row.Length || row.length || 0),
+
+  width:
+    Number(row.Width || row.width || 0),
+
+  height:
+    Number(row.Height || row.height || 0),
+
+  image:
+    row.Image ||
+    row.image ||
+    "",
+});
     }
 
     if (productsToInsert.length > 0) {
@@ -144,43 +255,83 @@ router.get("/:id", async (req, res) => {
 // ---------------- CREATE ----------------
 router.post("/", async (req, res) => {
   try {
-    const {
-      name,
-      description,
-      regular_price,
-      sale_price,
-      categories,
-      sku,
-      stock,
-      status,
-      source,
-    } = req.body;
 
-    const newProduct = await Product.create({
-      name,
-      description: description || "",
-      regular_price:
-        regular_price === "" || regular_price === undefined
-           ? 0
-          : Number(regular_price),
+  const {
+  name,
+  description,
+  regular_price,
+  sale_price,
+  categories,
+  sku,
+  stock,
+  stock_status,
+  status,
+  source,
 
-   sale_price:
+  weight,
+  length,
+  width,
+  height,
+
+  color,
+  size,
+  brand,
+
+  hsn,
+  tax_class,
+  tax_status,
+
+  image,
+} = req.body;
+
+   const newProduct = await Product.create({
+  name,
+
+  description: description || "",
+
+  regular_price:
+    regular_price === "" || regular_price === undefined
+      ? 0
+      : Number(regular_price),
+
+  sale_price:
     sale_price === "" || sale_price === undefined
       ? null
       : Number(sale_price),
 
-      // ✅ convert array → string
-      category: Array.isArray(categories)
-        ? categories.join(", ")
-        : categories || "",
+  category: Array.isArray(categories)
+    ? categories.join(", ")
+    : categories || "",
 
-      sku,
-      stock: Number(stock) || 0,
-      stock_status:
-       Number(stock) > 0 ? "in_stock" : "out_of_stock",
-      status: status || "publish",
-      source: source || "admin",
-    });
+  sku,
+
+  stock: Number(stock) || 0,
+
+  stock_status:
+  stock_status ||
+  (Number(stock) > 0
+    ? "in_stock"
+    : "out_of_stock"),
+
+  status: status || "publish",
+
+  source: source || "admin",
+
+  weight: Number(weight) || 0,
+  length: Number(length) || 0,
+  width: Number(width) || 0,
+  height: Number(height) || 0,
+
+  color: color || "",
+  size: size || "",
+  brand: brand || "",
+
+  hsn: hsn || "",
+  tax_class: tax_class || "",
+  tax_status: tax_status || "taxable",
+
+  image: image || "",
+});
 
     return res.json({
       success: true,
@@ -217,7 +368,10 @@ router.put("/:id", async (req, res) => {
       stock: Number(req.body.stock) || 0,
 
 stock_status:
-  Number(req.body.stock) > 0 ? "in_stock" : "out_of_stock",
+  req.body.stock_status ||
+  (Number(req.body.stock) > 0
+    ? "in_stock"
+    : "out_of_stock"),
     });
 
     return res.json({ success: true, message: "Updated" });
