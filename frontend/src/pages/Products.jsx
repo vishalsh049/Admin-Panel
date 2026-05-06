@@ -35,6 +35,9 @@ export default function Products() {
   const [deletingId, setDeletingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProducts, setSelectedProducts] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+
+const productsPerPage = 10;
 
   useEffect(() => {
     if (location.state?.toastMessage) {
@@ -80,11 +83,25 @@ export default function Products() {
     if (!query) return products;
 
     return products.filter((product) =>
-      [product.name, product.categories?.join(","), product.sku, product.source]
+      [product.name, product.category, product.sku, product.source]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query))
     );
   }, [products, searchTerm]);
+
+  const totalPages = Math.ceil(
+  filteredProducts.length / productsPerPage
+);
+
+const indexOfLastProduct = currentPage * productsPerPage;
+
+const indexOfFirstProduct =
+  indexOfLastProduct - productsPerPage;
+
+const currentProducts = filteredProducts.slice(
+  indexOfFirstProduct,
+  indexOfLastProduct
+);
 
   const handleDelete = async (product) => {
     const confirmed = window.confirm(
@@ -127,24 +144,80 @@ const handleExport = () => {
   }
 
   const csv = [
-    ["Name", "Price", "Category", "SKU"],
-    ...products.map(p => [
+    [
+      "ID",
+      "Name",
+      "Description",
+      "Regular Price",
+      "Sale Price",
+      "Category",
+      "SKU",
+      "Stock",
+      "Stock Status",
+      "Status",
+      "Brand",
+      "Color",
+      "Size",
+      "HSN",
+      "Tax Class",
+      "Tax Status",
+      "Weight",
+      "Length",
+      "Width",
+      "Height",
+      "Image",
+      "Source",
+      "Created At",
+      "Updated At"
+    ],
+
+    ...products.map((p) => [
+      p.id,
       p.name,
-      p.sale_price || p.regular_price,
+      p.description,
+      p.regular_price,
+      p.sale_price,
       p.category,
-      p.sku
+      p.sku,
+      p.stock,
+      p.stock_status,
+      p.status,
+      p.brand,
+      p.color,
+      p.size,
+      p.hsn,
+      p.tax_class,
+      p.tax_status,
+      p.weight,
+      p.length,
+      p.width,
+      p.height,
+      p.image,
+      p.source,
+      p.created_at,
+      p.updated_at
     ])
   ]
-    .map(row => row.join(","))
+    .map((row) =>
+      row.map((value) => `"${value ?? ""}"`).join(",")
+    )
     .join("\n");
 
-  const blob = new Blob([csv], { type: "text/csv" });
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
   const url = window.URL.createObjectURL(blob);
 
   const a = document.createElement("a");
+
   a.href = url;
-  a.download = "products.csv";
+
+  a.download = `products-export-${new Date()
+    .toISOString()
+    .slice(0, 10)}.csv`;
+
   a.click();
+
+  window.URL.revokeObjectURL(url);
 };
 
 // 🔥 IMPORT FUNCTION
@@ -179,23 +252,24 @@ const handleImport = async (e) => {
 
   return (
     <div className="min-h-screen">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <section className="rounded-[32px] border border-white/60 bg-white/70 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-violet-700">
-                <Sparkles className="h-3.5 w-3.5" />
+     <div className="mx-auto max-w-7xl space-y-6">
+      <section className="rounded-[32px] border border-white/60 bg-white/70 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-8">
+       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-violet-700">
+          <Sparkles className="h-3.5 w-3.5" />
                SMART PRODUCT MANAGEMENT
-              </div>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3 xl">
-                Product Dashboard
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
-                Manage your product inventory, track sources, and control listings from Admin Panel & WooCommerce in one place.
-              </p>
-            </div>
+         </div>
+         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3 xl">
+          Product Dashboard
+        </h1>
+      <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
+        Manage your product inventory, track sources, and control listings
+        from Admin Panel & WooCommerce in one place.
+     </p>
+  </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-3 sm:flex-row">
 
   {/* 🔍 SEARCH */}
   <div className="relative min-w-[260px]">
@@ -205,7 +279,7 @@ const handleImport = async (e) => {
       value={searchTerm}
       onChange={(event) => setSearchTerm(event.target.value)}
       placeholder="Search products, SKU, category..."
-      className="w-full rounded-2xl border border-white/70 bg-white/90 py-3 pl-11 pr-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+      className="w-full rounded-2xl bg-white border border-slate-200 py-2 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
     />
   </div>
 
@@ -213,7 +287,7 @@ const handleImport = async (e) => {
   <div className="flex gap-2">
 
     {/* IMPORT */}
-    <label className="inline-flex items-center gap-2 cursor-pointer rounded-2xl bg-white border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition">
+    <label className="inline-flex items-center gap-2 cursor-pointer rounded-2xl bg-white border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition">
       <Upload className="h-4 w-4" />
       Import
       <input
@@ -227,7 +301,7 @@ const handleImport = async (e) => {
     {/* EXPORT */}
     <button
       onClick={handleExport}
-      className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-md hover:bg-emerald-700 transition"
+      className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-emerald-700 transition"
     >
       <Download className="h-4 w-4" />
       Export
@@ -236,10 +310,11 @@ const handleImport = async (e) => {
     {/* ADD PRODUCT */}
     <Link
       to="/add-product"
-      className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#2563eb_0%,#7c3aed_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_35px_rgba(59,130,246,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_45px_rgba(59,130,246,0.35)]"
+      className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#2563eb_0%,#7c3aed_100%)] 
+      px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5"
     >
       <Plus className="h-4 w-4" />
-      Add Product
+      Add
     </Link>
 
     <button
@@ -269,18 +344,18 @@ const handleImport = async (e) => {
       toast.error("Bulk delete failed");
     }
   }}
-  className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700"
+  className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2
+              text-sm font-semibold text-white hover:bg-red-700"
 >
-  Delete Selected
+  Delete
 </button>
 
   </div>
-
   
 </div>
-          </div>
+    </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
+         <div className="mt-6 grid gap-4 grid-cols-1 md:grid-cols-3">
             <StatCard
               icon={<ShoppingBag className="h-5 w-5 text-blue-600" />}
               label="Total Products"
@@ -302,35 +377,36 @@ const handleImport = async (e) => {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[32px] border border-white/60 bg-white/75 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl">
-          {loading ? (
-            <div className="flex min-h-[320px] flex-col items-center justify-center gap-4">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
-              <p className="text-sm font-medium text-slate-600">Loading products...</p>
-            </div>
+  <section className="overflow-hidden rounded-[32px] border border-white/60 bg-white/75 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+   {loading ? (
+   <div className="flex min-h-[320px] flex-col items-center justify-center gap-4">
+    <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+     <p className="text-sm font-medium text-slate-600">Loading products...</p>
+    </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="flex min-h-[320px] flex-col items-center justify-center px-6 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100">
-                <ShoppingBag className="h-8 w-8 text-slate-400" />
-              </div>
-              <h2 className="mt-5 text-xl font-semibold text-slate-900">
+    <div className="flex min-h-[320px] flex-col items-center justify-center px-6 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100">
+         <ShoppingBag className="h-8 w-8 text-slate-400" />
+      </div>
+        <h2 className="mt-5 text-xl font-semibold text-slate-900">
                 No products found
-              </h2>
-              <p className="mt-2 max-w-md text-sm text-slate-500">
-                Add your first product or adjust the search query to surface items
-                in the catalog.
-              </p>
-              <Link
-                to="/add-product"
-                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                <Plus className="h-4 w-4" />
-                Add First Product
-              </Link>
+        </h2>
+      <p className="mt-2 max-w-md text-sm text-slate-500">
+          Add your first product or adjust the search query to surface items in the catalog.
+       </p>
+        <Link
+        to="/add-product"
+        className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 
+        py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+         >
+           <Plus className="h-4 w-4" />
+            Add First Product
+            </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+        
+     <div className="overflow-x-auto">
+     <table className="min-w-full text-sm">
     <thead className="bg-slate-50/90 text-slate-600">
   <tr>
     <th className="px-6 py-4">
@@ -358,15 +434,15 @@ const handleImport = async (e) => {
   </tr>
 </thead>
 
-                <tbody className="divide-y divide-slate-200/80">
-                  {filteredProducts.map((product) => {
-                    const badge = getSourceBadge(product.source);
+     <tbody className="divide-y divide-slate-200/80">
+        {currentProducts.map((product) => {
+          const badge = getSourceBadge(product.source);
 
-                    return (
-                      <tr
-                        key={product.id}
-                        className="group transition duration-200 hover:bg-slate-50/90"
-                      >
+           return (
+             <tr
+               key={product.id}
+              className="group transition duration-200 hover:bg-slate-50/90"
+             >
 
 <td className="px-6 py-4">
   <input
@@ -382,33 +458,33 @@ const handleImport = async (e) => {
   />
 </td>
 
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-4">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-4">
 
-                            <div>
-                              <div className="font-semibold text-slate-900">
-                                {product.name}
-                              </div>
-                              <div className="mt-1 text-xs text-slate-500">
-                                {product.sku ? `SKU: ${product.sku}` : "No SKU assigned"}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
+          <div>
+            <div className="font-semibold text-slate-900">
+              {product.name}
+               </div>
+            <div className="mt-1 text-xs text-slate-500">
+              {product.sku ? `SKU: ${product.sku}` : "No SKU assigned"}
+          </div>
+        </div>
+      </div>
+     </td>
 
-              <td className="px-6 py-4 font-medium text-slate-900">
-  <div className="flex flex-col">
+      <td className="px-6 py-4 font-medium text-slate-900">
+        <div className="flex flex-col">
     
     {/* SALE PRICE */}
     {product.sale_price !== null && product.sale_price !== 0 && (
       <span className="text-green-600 font-semibold">
        {product.sale_price !== null &&
- product.sale_price !== "" &&
- !isNaN(Number(product.sale_price)) && (
-  <span className="text-green-600 font-semibold">
-    ₹{Number(product.sale_price).toLocaleString("en-IN")}
-  </span>
-)}
+        product.sale_price !== "" &&
+        !isNaN(Number(product.sale_price)) && (
+      <span className="text-green-600 font-semibold">
+        ₹{Number(product.sale_price).toLocaleString("en-IN")}
+      </span>
+    )}
       </span>
     )}
 
@@ -421,8 +497,8 @@ const handleImport = async (e) => {
       }
     >
       ₹{!isNaN(Number(product.regular_price))
-  ? Number(product.regular_price).toLocaleString("en-IN")
-  : "0"}
+      ? Number(product.regular_price).toLocaleString("en-IN")
+       : "0"}
     </span>
 
   </div>
@@ -455,61 +531,131 @@ const handleImport = async (e) => {
   </span>
 </td>
 
-                        <td className="px-6 py-4 text-slate-600">
-                         {product.categories?.length
-                          ? product.categories.join(", ")
-                           : "Uncategorized"}
-                         </td>
+     <td className="px-6 py-4 text-slate-600">
+       {product.category || "Uncategorized"}
+     </td>
 
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
-                          >
-                            {badge.label}
-                          </span>
-                        </td>
+      <td className="px-6 py-4">
+        <span 
+        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
+        >
+         {badge.label}
+         </span>
+           </td>
 
-                        <td className="px-6 py-4 text-slate-500">
-                          {product.created_at
-                            ? new Date(product.created_at).toLocaleDateString("en-IN", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : "—"}
-                        </td>
+    <td className="px-6 py-4 text-slate-500">
+       {product.created_at
+         ? new Date(product.created_at).toLocaleDateString("en-IN", {
+           day: "2-digit",
+           month: "short",
+           year: "numeric",
+           })
+           : "—"}
+     </td>
 
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-2 ">
-                            <Link
-                              to={`/edit-product/${product.id}`}
-                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:text-blue-700"
-                            >
-                              <PencilLine className="h-3.5 w-3.5" />
+      <td className="px-6 py-4">
+        <div className="flex flex-wrap gap-2 ">
+         <Link
+           to={`/edit-product/${product.id}`}
+           className="inline-flex items-center gap-2 rounded-xl border border-slate-200
+            bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition
+             hover:-translate-y-0.5 hover:border-blue-200 hover:text-blue-700"
+         >
+          <PencilLine className="h-3.5 w-3.5" />
                               
-                            </Link>
+            </Link>
 
-                            <button
-                              type="button"
-                              disabled={deletingId === product.id}
-                              onClick={() => handleDelete(product)}
-                              className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700 transition hover:-translate-y-0.5 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              {deletingId === product.id ? "Deleting..." : ""}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      </div>
-    </div>
+         <button
+            type="button"
+            disabled={deletingId === product.id}
+            onClick={() => handleDelete(product)}
+            className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3.5 py-2
+             bg-rose-50 text-xs font-semibold text-rose-700 transition hover:-translate-y-0.5
+               hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
+           >
+             <Trash2 className="h-3.5 w-3.5" />
+               {deletingId === product.id ? "Deleting..." : ""}
+             </button>
+             </div>
+            </td>
+           </tr>
+          );
+        })}
+     </tbody>
+   </table>
+
+   {/* Pagination */}
+   <div className="flex items-center justify-between border-t border-slate-200 px-6 py-2">
+
+  {/* LEFT */}
+  <div className="text-sm text-slate-500">
+    Showing{" "}
+    <span className="font-semibold">
+      {indexOfFirstProduct + 1}
+    </span>{" "}
+    to{" "}
+    <span className="font-semibold">
+      {Math.min(indexOfLastProduct, filteredProducts.length)}
+    </span>{" "}
+    of{" "}
+    <span className="font-semibold">
+      {filteredProducts.length}
+    </span>{" "}
+    products
+  </div>
+
+  {/* RIGHT */}
+  <div className="flex items-center gap-2">
+
+    {/* PREVIOUS */}
+    <button
+      onClick={() =>
+        setCurrentPage((prev) => Math.max(prev - 1, 1))
+      }
+      disabled={currentPage === 1}
+      className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium disabled:opacity-50"
+    >
+      Previous
+    </button>
+
+    {/* PAGE NUMBERS */}
+    {[...Array(totalPages)].map((_, index) => {
+      const page = index + 1;
+
+      return (
+        <button
+          key={page}
+          onClick={() => setCurrentPage(page)}
+          className={`h-8 w-8 rounded-xl text-sm font-semibold transition ${
+            currentPage === page
+              ? "bg-blue-600 text-white"
+              : "border border-slate-200 bg-white text-slate-700"
+          }`}
+        >
+          {page}
+        </button>
+      );
+    })}
+
+    {/* NEXT */}
+    <button
+      onClick={() =>
+        setCurrentPage((prev) =>
+          Math.min(prev + 1, totalPages)
+        )
+      }
+      disabled={currentPage === totalPages}
+      className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+</div>
+  </div>
+ )}
+  </section>
+ </div>
+</div>
   );
 }
 
@@ -521,14 +667,14 @@ function StatCard({ icon, label, value, tone }) {
   };
 
   return (
-    <div className={`rounded-3xl border p-5 shadow-sm ${toneMap[tone]}`}>
+    <div className={`rounded-2xl border p-4 shadow-sm transition hover:shadow-md ${toneMap[tone]}`}>
       <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/80 shadow-sm">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/80 shadow-sm">
           {icon}
         </div>
         <div>
           <div className="text-sm text-slate-500">{label}</div>
-          <div className="text-2xl font-semibold text-slate-900">{value}</div>
+          <div className="text-xl font-bold text-slate-900">{value}</div>
         </div>
       </div>
     </div>

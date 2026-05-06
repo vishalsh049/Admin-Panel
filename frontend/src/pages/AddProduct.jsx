@@ -77,23 +77,30 @@ const handleCategoryChange = (categoryName) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-         ...formData,
-       regular_price:
-       formData.regular_price === ""
-        ? 0
-        : Number(formData.regular_price),
-       sale_price:
-        formData.sale_price === ""
-        ? null
-       : Number(formData.sale_price),
-         stock: Number(formData.stock) || 0,
-         weight: Number(formData.weight) || 0,
-         length: Number(formData.length) || 0,
-         width: Number(formData.width) || 0,
-         height: Number(formData.height) || 0,
-          source: "admin",
-        }),
+      body: JSON.stringify({
+  ...formData,
+
+  image: formData.image_preview,
+
+  regular_price:
+    formData.regular_price === ""
+      ? 0
+      : Number(formData.regular_price),
+
+  sale_price:
+    formData.sale_price === ""
+      ? null
+      : Number(formData.sale_price),
+
+  stock: Number(formData.stock) || 0,
+
+  weight: Number(formData.weight) || 0,
+  length: Number(formData.length) || 0,
+  width: Number(formData.width) || 0,
+  height: Number(formData.height) || 0,
+
+  source: "admin",
+}),
       });
 
       const data = await response.json();

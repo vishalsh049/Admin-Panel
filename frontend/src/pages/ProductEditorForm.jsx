@@ -8,8 +8,8 @@ const statusOptions = ["publish", "draft"];
 export const defaultProductFormValues = {
   name: "",
   description: "",
-  regular_price: "",  
-  sale_price: "",     
+  regular_price: "",
+  sale_price: "",
   categories: [],
   sku: "",
   stock: "",
@@ -21,6 +21,15 @@ export const defaultProductFormValues = {
   length: "",
   width: "",
   height: "",
+  gst: "",
+  gst_class: "",
+  low_stock_threshold: "",
+  color: "",
+  size: "",
+  hsn: "",
+  brand: "",
+  tax_class: "",
+  tax_status: "taxable",
 };
 
 export default function ProductEditorForm({
@@ -32,62 +41,86 @@ export default function ProductEditorForm({
   onCancel,
   isSaving,
   submitLabel,
-   categories = [],
-   selectedCategories = [],
+  categories = [],
+  selectedCategories = [],
   onCategoryChange,
 }) {
 
   const [openDropdown, setOpenDropdown] = useState(false);
   const [search, setSearch] = useState("");
 
-const dropdownRef = useRef();
+  const dropdownRef = useRef();
 
-useEffect(() => {
-  const handleClickOutside = (e) => {
-    if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-      setOpenDropdown(false);
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpenDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredCategories = categories.filter((cat) =>
+    cat.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  {/* handle select all */ }
+  const handleSelectAll = () => {
+    if (selectedCategories.length === categories.length) {
+      onCategoryChange([]); // clear all
+    } else {
+      onCategoryChange(categories.map((c) => c.name)); // select all
     }
   };
 
-  document.addEventListener("mousedown", handleClickOutside);
-  return () => document.removeEventListener("mousedown", handleClickOutside);
-}, []);
+  {/** handle image upload */ }
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
 
-const filteredCategories = categories.filter((cat) =>
-  cat.name.toLowerCase().includes(search.toLowerCase())
-);
+    // update file
+    onChange({
+      target: {
+        name: "image_file",
+        value: file,
+      },
+    });
 
-{/* handle select all */}
-const handleSelectAll = () => {
-  if (selectedCategories.length === categories.length) {
-    onCategoryChange([]); // clear all
-  } else {
-    onCategoryChange(categories.map((c) => c.name)); // select all
-  }
-};
+    // update preview
+    onChange({
+      target: {
+        name: "image_preview",
+        value: preview,
+      },
+    });
+  };
 
-{/** handle image upload */}
-const handleImageUpload = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const preview = URL.createObjectURL(file);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-  // update file
-  onChange({
-    target: {
-      name: "image_file",
-      value: file,
-    },
-  });
+    if (name === "tax_class") {
+      let gstValue = "";
 
-  // update preview
-  onChange({
-    target: {
-      name: "image_preview",
-      value: preview,
-    },
-  });
-};
+      switch (value) {
+        case "gst_0": gstValue = 0; break;
+        case "gst_0_25": gstValue = 0.25; break;
+        case "gst_3": gstValue = 3; break;
+        case "gst_5": gstValue = 5; break;
+        case "gst_12": gstValue = 12; break;
+        case "gst_18":
+        case "gst_18_standard": gstValue = 18; break;
+        case "gst_28": gstValue = 28; break;
+        default: gstValue = "";
+      }
+
+      onChange({ target: { name: "gst", value: gstValue } });
+    }
+
+    onChange(e);
+  };
 
   return (
     <div className="">
@@ -97,14 +130,14 @@ const handleImageUpload = (e) => {
             <div>
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 font-semibold uppercase px-2 py-0.5 text-[10px] tracking-wide text-blue-700">
                 <Package2 className="h-3.5 w-3.5" />
-                        PRODUCT MANAGEMENT
+                PRODUCT MANAGEMENT
               </div>
-              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl"> 
+              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
                 {title}
               </h1>
-            <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500">
                 {subtitle}
-            </p>
+              </p>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-600 shadow-sm">
@@ -114,14 +147,14 @@ const handleImageUpload = (e) => {
           </div>
         </div>
 
-        <form onSubmit={onSubmit} className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
+        <form onSubmit={onSubmit} className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
           <div className="space-y-4">
             <GlassCard
               icon={<Tag className="h-5 w-5 text-blue-600" />}
               title="Product Details"
               description="Define the essentials customers and staff will recognize instantly."
             >
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid gap-4">
                 <Field label="Product Name" required>
                   <input
                     name="name"
@@ -133,235 +166,292 @@ const handleImageUpload = (e) => {
                   />
                 </Field>
 
-               <Field label="Category">
-             <div className="relative" ref={dropdownRef}>
+                <Field label="Category">
+                  <div className="relative" ref={dropdownRef}>
 
-         {/* Dropdown Button */}
-    <div
-      onClick={() => setOpenDropdown(!openDropdown)}
-      className="w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-3 py-2 
+                    {/* Dropdown Button */}
+                    <div
+                      onClick={() => setOpenDropdown(!openDropdown)}
+                      className="w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-3 py-2 
       min-h-[44px] shadow-sm hover:shadow-md transition text-sm flex justify-between items-center"
-    >
-      <span className="text-slate-700">
-        {selectedCategories.length > 0
-          ? <div className="flex flex-wrap gap-2">
-       {selectedCategories.length > 0 ? (
-        selectedCategories.map((cat) => (
-      <span
-        key={cat}
-        className="flex items-center gap-1 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 px-2 py-1 rounded-full text-[11px] font-medium border border-blue-100 shadow-sm"
-      >
-        {cat}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onCategoryChange(cat);
-          }}
-          className="text-blue-500 hover:text-red-500"
-        >
-          ✕
-        </button>
-      </span>
-    ))
-  ) : (
-    <span className="text-slate-400">Select categories</span>
-  )}
-</div>
-     : "Select categories"}
-      </span>
-      <span>▼</span>
-    </div>
+                    >
+                      <span className="text-slate-700">
+                        {selectedCategories.length > 0
+                          ? <div className="flex flex-wrap gap-2">
+                            {selectedCategories.length > 0 ? (
+                              selectedCategories.map((cat) => (
+                                <span
+                                  key={cat}
+                                  className="flex items-center gap-1 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 px-2 py-1 rounded-full text-[11px] font-medium border border-blue-100 shadow-sm"
+                                >
+                                  {cat}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onCategoryChange(cat);
+                                    }}
+                                    className="text-blue-500 hover:text-red-500"
+                                  >
+                                    ✕
+                                  </button>
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-slate-400">Select categories</span>
+                            )}
+                          </div>
+                          : "Select categories"}
+                      </span>
+                      <span>▼</span>
+                    </div>
 
-    {/* Dropdown Panel */}
-    {openDropdown && (
-    <div className="absolute z-50 mt-2 w-full max-h-72 overflow-y-auto rounded-2xl border border-slate-200
+                    {/* Dropdown Panel */}
+                    {openDropdown && (
+                      <div className="absolute z-50 mt-2 w-full max-h-72 overflow-y-auto rounded-2xl border border-slate-200
      bg-white/90 backdrop-blur-xl shadow-2xl p-4 space-y-3">
 
-    {/* 🔍 SEARCH */}
-    <input
-      type="text"
-      placeholder="Search categories..."
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-100"
-    />
+                        {/* 🔍 SEARCH */}
+                        <input
+                          type="text"
+                          placeholder="Search categories..."
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                        />
 
-    {/* ✅ SELECT ALL */}
-    <div className="flex justify-between items-center text-xs text-slate-500">
-      <button
-        type="button"
-        onClick={() => {
-          const all = categories.map((c) => c.name);
-          onCategoryChange(all);
-        }}
-        className="hover:text-blue-600"
-      >
-        Select All
-      </button>
+                        {/* ✅ SELECT ALL */}
+                        <div className="flex justify-between items-center text-xs text-slate-500">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const all = categories.map((c) => c.name);
+                              onCategoryChange(all);
+                            }}
+                            className="hover:text-blue-600"
+                          >
+                            Select All
+                          </button>
 
-      <button
-        type="button"
-        onClick={() => onCategoryChange([])}
-        className="hover:text-red-500"
-      >
-        Clear
-      </button>
-    </div>
+                          <button
+                            type="button"
+                            onClick={() => onCategoryChange([])}
+                            className="hover:text-red-500"
+                          >
+                            Clear
+                          </button>
+                        </div>
 
-    {/* 📂 CATEGORY LIST */}
-    {filteredCategories
-      .filter((cat) => !cat.parent_id)
-      .map((parent) => (
-        <div key={parent.id} className="space-y-1">
+                        {/* 📂 CATEGORY LIST */}
+                        {filteredCategories
+                          .filter((cat) => !cat.parent_id)
+                          .map((parent) => (
+                            <div key={parent.id} className="space-y-1">
 
-      {/* Parent */}
-     <label className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 cursor-pointer font-medium">
-          <input
-             type="checkbox"
-             className="accent-blue-600"
-             checked={selectedCategories.includes(parent.name)}
-             onChange={() => onCategoryChange(parent.name)}
-          />
-            {parent.name}
-          </label>
+                              {/* Parent */}
+                              <label className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 cursor-pointer font-medium">
+                                <input
+                                  type="checkbox"
+                                  className="accent-blue-600"
+                                  checked={selectedCategories.includes(parent.name)}
+                                  onChange={() => onCategoryChange(parent.name)}
+                                />
+                                {parent.name}
+                              </label>
 
-      {/* Children */}
-        <div className="ml-5 space-y-1">
-          {filteredCategories
-            .filter((child) => child.parent_id === parent.id)
-             .map((child) => (
-            <label
-              key={child.id}
-             className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 cursor-pointer text-sm"
-             >
-             <input
-               type="checkbox"
-                className="accent-blue-500"
-                checked={selectedCategories.includes(child.name)}
-                 onChange={() => onCategoryChange(child.name)}
-              />
-                {child.name}
-                </label>
-              ))}
-          </div>  
-        </div>
-      ))}
+                              {/* Children */}
+                              <div className="ml-5 space-y-1">
+                                {filteredCategories
+                                  .filter((child) => child.parent_id === parent.id)
+                                  .map((child) => (
+                                    <label
+                                      key={child.id}
+                                      className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 cursor-pointer text-sm"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        className="accent-blue-500"
+                                        checked={selectedCategories.includes(child.name)}
+                                        onChange={() => onCategoryChange(child.name)}
+                                      />
+                                      {child.name}
+                                    </label>
+                                  ))}
+                              </div>
+                            </div>
+                          ))}
 
-  </div>
-)}
-  </div>
-</Field>
+                      </div>
+                    )}
+                  </div>
+                </Field>
 
-        <div className="grid gap-5 md:grid-cols-2">
+                {/* Price Section */}
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-5">
+                  <Field label="Regular Price (₹)" required>
+                    <input
+                      name="regular_price"
+                      type="number"
+                      value={formData.regular_price}
+                      onChange={onChange}
+                      placeholder="0.00"
+                      className={inputClassName}
+                      required
+                    />
+                  </Field>
 
-     <Field label="Regular Price (₹)" required>
-     <input
-      name="regular_price"
-      type="number"
-      value={formData.regular_price}
-      onChange={onChange}
-      placeholder="0.00"
-      className={inputClassName}
-      required
-    />
-     </Field>
+                  <Field label="Sale Price (₹)">
+                    <input
+                      name="sale_price"
+                      type="number"
+                      value={formData.sale_price}
+                      onChange={onChange}
+                      placeholder="Optional"
+                      className={inputClassName}
+                    />
+                  </Field>
 
-  <Field label="Sale Price (₹)">
-    <input
-      name="sale_price"
-      type="number"
-      value={formData.sale_price}
-      onChange={onChange}
-      placeholder="Optional"
-      className={inputClassName}
-    />
-  </Field>
+                  {/* SKU */}
+                  <Field label="SKU">
+                    <input
+                      name="sku"
+                      value={formData.sku}
+                      onChange={onChange}
+                      placeholder="SKU-001"
+                      className={inputClassName}
+                    />
+                  </Field>
 
-  </div>
- 
-       <Field label="SKU">
-          <input
-             name="sku"
-             value={formData.sku}
-             onChange={onChange}
-             placeholder="SKU-001"
-             className={inputClassName}
-          />
-         </Field>
-     </div>
+                  <Field label="HSN Code">
+                    <input
+                     name="hsn"
+                      value={formData.hsn}
+                       onChange={onChange}
+                       placeholder="Enter HSN code"
+                       className={inputClassName} />
+                  </Field>
 
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Field label="Weight (kg)">
-         <input
-           name="weight"
-           type="number"
-           value={formData.weight}
-           onChange={onChange}
-           placeholder="0"
-           className={inputClassName}
-          />
-      </Field>
+                  <Field label="Tax Class">
+                    <select
+                      name="tax_class"
+                      value={formData.tax_class}
+                      onChange={onChange}
+                      className={inputClassName}
+                    >
+                      <option value="">Select Tax Class</option>
+                      <option value="standard">Standard</option>
+                      <option value="gst_0">GST 0%</option>
+                      <option value="gst_0_25">GST 0.25%</option>
+                      <option value="gst_3">GST 3%</option>
+                      <option value="gst_5">GST 5%</option>
+                      <option value="gst_12">GST 12%</option>
+                      <option value="gst_18">GST 18%</option>
+                      <option value="gst_18_standard">GST 18% (Standard)</option>
+                      <option value="gst_28">GST 28%</option>
+                    </select>
+                  </Field>
 
-     <Field label="Length (cm)">
-        <input
-          name="length"
-          type="number"
-          value={formData.length}
-          onChange={onChange}
-          placeholder="0"
-          className={inputClassName}
-        />
-     </Field>
+                  <Field label="Tax Status">
+                    <select
+                      name="tax_status"
+                      value={formData.tax_status}
+                      onChange={onChange}
+                      className={inputClassName}
+                    >
+                      <option value="taxable">Taxable</option>
+                      <option value="shipping">Shipping Only</option>
+                      <option value="none">None</option>
+                    </select>
+                  </Field>
 
-  <Field label="Width (cm)">
-    <input
-      name="width"
-      type="number"
-      value={formData.width}
-      onChange={onChange}
-      placeholder="0"
-      className={inputClassName}
-    />
-  </Field>
+                  <Field label="Color">
+                    <input name="color" value={formData.color} onChange={onChange} placeholder="Example: Red, Green, Blue" className={inputClassName} />
+                  </Field>
 
-  <Field label="Height (cm)">
-    <input
-      name="height"
-      type="number"
-      value={formData.height}
-      onChange={onChange}
-      placeholder="0"
-      className={inputClassName}
-    />
-  </Field>
-</div>
+                  <Field label="Size">
+                    <input name="size" value={formData.size} onChange={onChange} placeholder="Example: 28, 30, 32" className={inputClassName} />
+                  </Field>
 
-      <Field label="Description">
-       <textarea
-         name="description"
-          value={formData.description}
-          onChange={onChange}
-          rows="7"
-          placeholder="Write a polished product description..."
-          className={`${inputClassName} resize-none`}
-       />
-       </Field>
-     </GlassCard>
+                  <Field label="Brand Name">
+                    <input name="brand" value={formData.brand} onChange={onChange} placeholder="Enter brand name" className={inputClassName} />
+                  </Field>
 
-        <GlassCard
-          icon={<ImagePlus className="h-5 w-5 text-fuchsia-600" />}
-         title="Media"
-        description="Use a product image URL to give the catalog a polished visual identity."
-       >
+                </div>
 
-      <Field label="Upload Image">
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => handleImageUpload(e)}
-          className="w-full text-sm"
-        />
-        </Field>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+
+                <Field label="Weight (kg)">
+                  <input
+                    name="weight"
+                    type="number"
+                    value={formData.weight}
+                    onChange={onChange}
+                    placeholder="0"
+                    className={inputClassName}
+                  />
+                </Field>
+
+                <Field label="Length (cm)">
+                  <input
+                    name="length"
+                    type="number"
+                    value={formData.length}
+                    onChange={onChange}
+                    placeholder="0"
+                    className={inputClassName}
+                  />
+                </Field>
+
+                <Field label="Width (cm)">
+                  <input
+                    name="width"
+                    type="number"
+                    value={formData.width}
+                    onChange={onChange}
+                    placeholder="0"
+                    className={inputClassName}
+                  />
+                </Field>
+
+                <Field label="Height (cm)">
+                  <input
+                    name="height"
+                    type="number"
+                    value={formData.height}
+                    onChange={onChange}
+                    placeholder="0"
+                    className={inputClassName}
+                  />
+                </Field>
+              </div>
+
+              <Field label="Description">
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={onChange}
+                  rows="7"
+                  placeholder="Write a polished product description..."
+                  className={`${inputClassName} resize-none`}
+                />
+              </Field>
+            </GlassCard>
+
+            <GlassCard
+              icon={<ImagePlus className="h-5 w-5 text-fuchsia-600" />}
+              title="Media"
+              description="Use a product image URL to give the catalog a polished visual identity."
+            >
+
+              <Field label="Upload Image">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e)}
+                  className="w-full text-sm"
+                />
+              </Field>
 
               <div className="overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50">
                 {formData.image_preview ? (
@@ -386,7 +476,7 @@ const handleImageUpload = (e) => {
               title="Inventory"
               description="Manage stock levels and control product visibility from here."
             >
-              <div className="grid gap-5">
+              <div className="grid gap-3 grid-cols-1">
                 <Field label="Stock">
                   <input
                     name="stock"
@@ -400,16 +490,16 @@ const handleImageUpload = (e) => {
                 </Field>
 
                 <Field label="Stock Status">
-             <select
-             name="stock_status"
-             value={formData.stock_status}
-             onChange={onChange}
-             className={inputClassName}
-             >
-             <option value="in_stock">In Stock</option>
-             <option value="out_of_stock">Out of Stock</option>
-             </select>
-           </Field>
+                  <select
+                    name="stock_status"
+                    value={formData.stock_status}
+                    onChange={onChange}
+                    className={inputClassName}
+                  >
+                    <option value="in_stock">In Stock</option>
+                    <option value="out_of_stock">Out of Stock</option>
+                  </select>
+                </Field>
 
                 <Field label="Status">
                   <select
@@ -438,12 +528,12 @@ const handleImageUpload = (e) => {
                 <SummaryRow
                   label="Price"
                   value={
-                formData.sale_price
-              ? `₹${formData.sale_price} (Sale)`
-             : formData.regular_price
-            ? `₹${formData.regular_price}`
-            : "₹0.00"
-           }
+                    formData.sale_price
+                      ? `₹${formData.sale_price} (Sale)`
+                      : formData.regular_price
+                        ? `₹${formData.regular_price}`
+                        : "₹0.00"
+                  }
                 />
                 <SummaryRow
                   label="Stock"
@@ -500,7 +590,7 @@ function GlassCard({ icon, title, description, children }) {
 
 function Field({ label, required, children }) {
   return (
-    <label className="block">
+    <label className="block w-full">
       <div className="mb-2 text-sm font-medium text-slate-700">
         {label}
         {required ? <span className="ml-1 text-rose-500">*</span> : null}
@@ -520,4 +610,4 @@ function SummaryRow({ label, value }) {
 }
 
 const inputClassName =
-  "w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100";
+  "h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100";
