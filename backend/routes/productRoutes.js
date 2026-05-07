@@ -241,23 +241,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ---------------- GET SINGLE ----------------
-router.get("/:id", async (req, res) => {
-  try {
-    const product = await Product.findByPk(req.params.id);
-
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-
-    return res.json({
-      success: true,
-      product: serializeProduct(product),
-    });
-  } catch (error) {
-    return res.status(500).json({ error: "Error fetching product" });
-  }
-});
 
 // ---------------- CREATE ----------------
 router.post("/", async (req, res) => {
@@ -609,6 +592,24 @@ const existingProduct = await Product.findOne({
     return res.status(500).json({
       error: "Webhook failed",
     });
+  }
+});
+
+// ---------------- GET SINGLE ----------------
+router.get("/:id", async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    return res.json({
+      success: true,
+      product: serializeProduct(product),
+    });
+  } catch (error) {
+    return res.status(500).json({ error: "Error fetching product" });
   }
 });
 
