@@ -522,13 +522,20 @@ router.get("/sync-woocommerce", async (req, res) => {
 router.post("/woocommerce/webhook", async (req, res) => {
   try {
 
-    const data = req.body;
+   const data = req.body;
 
-    const existingProduct = await Product.findOne({
-      where: {
-        woocommerce_id: data.id,
-      },
-    });
+if (!data.id) {
+  return res.status(200).json({
+    success: true,
+    message: "Webhook validation success",
+  });
+}
+
+const existingProduct = await Product.findOne({
+  where: {
+    woocommerce_id: data.id,
+  },
+});
 
     const productData = {
       woocommerce_id: data.id,

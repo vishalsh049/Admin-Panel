@@ -1,5 +1,5 @@
 import { FaArrowLeft } from "react-icons/fa";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { BASE_URL } from "../utils/api";
@@ -34,12 +34,17 @@ export default function OrderDetails() {
           },
 
           items: o.items.map((i) => ({
-            name: i.name,
-            qty: i.qty,
-            price: Number(i.price),
+          name: i.name,
+          qty: i.qty,
+          price: Number(i.price),
           })),
 
-          total: Number(o.items.reduce((sum, i) => sum + Number(i.line_total || 0), 0)),
+shipping: parseFloat(o.shipping_total || 0),
+
+total:
+  Number(o.items.reduce((sum, i) => sum + Number(i.line_total || 0), 0)) +
+  Number(o.shipping_total || 0),
+
         });
       })
       .catch((err) => {
@@ -63,13 +68,45 @@ export default function OrderDetails() {
           <FaArrowLeft /> Back to Orders
         </Link>
 
-        {/* ✅ Invoice Button (unchanged) */}
+        {/* ✅ Invoice Button */}
         <Link
           to={`/invoice/${order.id}`}
-          className="bg-green-600 text-white px-4 py-2 rounded"
-        >
-          View Invoice
-        </Link>
+          state={{
+     billing: {
+      firstName: order.customer.name?.split(" ")[0],
+      lastName: order.customer.name?.split(" ")[1] || "",
+      address: order.customer.address,
+      phone: order.customer.phone,
+      email: order.customer.email,
+    },
+
+     shipping: {
+      firstName: order.customer.name?.split(" ")[0],
+      lastName: order.customer.name?.split(" ")[1] || "",
+      address: order.customer.address,
+      phone: order.customer.phone,
+      state: order.customer.country,
+    },
+
+    items: order.items.map((i) => ({
+      description: i.name,
+      qty: i.qty,
+      rate: i.price,
+      gst: 18,
+    })),
+
+    subtotal: order.total - order.shipping,
+    shippingCharge: order.shipping,
+    discount: 0,
+    grandTotal: order.total,
+    paymentMethod: order.payment,
+    status: order.status,
+    date: order.date,
+    }}
+    className="bg-green-600 text-white px-4 py-2 rounded"
+    >
+     View Invoice
+    </Link>
       </div>
 
       <h2 className="text-3xl font-semibold mb-4">Order Details</h2>
@@ -82,9 +119,9 @@ export default function OrderDetails() {
           <b>Status:</b>{" "}
           <span className="text-green-600">{order.status}</span>
         </p>
-        <p><b>Payment Method:</b> {order.payment}</p>
-
-        <p><b>Total Order Items:</b> {totalItems}</p>
+       <p><b>Payment Method:</b> {order.payment}</p>
+      <p><b>Shipping:</b> ₹{Number(order.shipping).toFixed(2)}</p>
+       <p><b>Total Order Items:</b> {totalItems}</p>
         <p><b>Total Quantity:</b> {totalQuantity}</p>
       </div>
 
@@ -156,9 +193,30 @@ export default function OrderDetails() {
           </tbody>
         </table>
 
-        <p className="text-right font-bold mt-3">
-          Grand Total: ₹{order.total}
-        </p>
+       <div className="flex justify-end mt-4">
+  <div className="w-[260px] space-y-2">
+
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-slate-600">Items Subtotal:</span>
+      <span className="font-medium">
+        ₹{order.total - order.shipping}
+      </span>
+    </div>
+
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-slate-600">Shipping:</span>
+      <span className="font-medium">
+        ₹{order.shipping}
+      </span>
+    </div>
+
+    <div className="border-t pt-2 flex items-center justify-between text-lg font-bold">
+      <span>Grand Total:</span>
+      <span>₹{order.total}</span>
+    </div>
+
+  </div>
+</div>
       </div>
     </>
   );

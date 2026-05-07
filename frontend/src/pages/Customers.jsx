@@ -115,7 +115,7 @@ export default function Customers() {
   }, [safePage, totalPages]);
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative overflow-x-hidden">
       <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-[260px] w-[720px] bg-gradient-to-r from-indigo-400/20 via-purple-300/10 to-emerald-300/20 blur-3xl pointer-events-none" />
       <div className="absolute top-32 -left-16 h-[240px] w-[360px] bg-gradient-to-b from-emerald-400/15 to-transparent blur-3xl pointer-events-none" />
       <div className="absolute bottom-24 -right-24 h-[280px] w-[420px] bg-gradient-to-b from-purple-400/15 to-transparent blur-3xl pointer-events-none" />

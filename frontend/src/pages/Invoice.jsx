@@ -1,364 +1,520 @@
 import React, { useRef } from "react";
-import { useParams, Link } from "react-router-dom";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-import { useLocation } from "react-router-dom";
+import html2pdf from "html2pdf.js";
+import { Link, useLocation, useParams } from "react-router-dom";
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
+
+const formatLine = (...parts) => parts.filter(Boolean).join(", ");
 
 export default function Invoice() {
-
-
   const location = useLocation();
-
-const billing = location.state?.billing || {};
-const shipping = location.state?.shipping || {};
-const items = location.state?.items || [];
-const grandTotal = location.state?.grandTotal || 0;
-const date = location.state?.date || "";
-
-const shippingCharge = location.state?.shippingCharge || 0;
-const subtotal = location.state?.subtotal || 0;
-const discount = location.state?.discount || 0;
-const paymentMethod = location.state?.paymentMethod || "";
-const status = location.state?.status || "";
-
-  // ✅ GET ORDER ID FROM URL
   const { id } = useParams();
-  const printRef = useRef();
+  const printRef = useRef(null);
 
-  const amountInWords = `Rupees ${Math.round(grandTotal)} Only`;
-  const safeSubtotal = Number(subtotal) || 0;
-const safeDiscount = Number(discount) || 0;
-const safeShipping = Number(shippingCharge) || 0;
-const safeGrandTotal = Number(grandTotal) || 0;
+  const billing = location.state?.billing || {};
+  const shipping = location.state?.shipping || {};
+  const items = location.state?.items || [];
 
-const gstAmount =
-  safeGrandTotal - safeShipping - (safeSubtotal - safeDiscount);
+  const grandTotal = Number(location.state?.grandTotal) || 0;
+  const subtotal = Number(location.state?.subtotal) || 0;
+  const shippingCharge = Number(location.state?.shippingCharge) || 0;
+  const discount = Number(location.state?.discount) || 0;
 
-  // 🔹 PDF FUNCTION
-  
-const generatePDF = async () => {
-  const element = printRef.current;
+  const paymentMethod = location.state?.paymentMethod || "-";
+  const date = location.state?.date || "-";
 
-  if (!element) {
-    alert("Invoice not loaded yet");
-    return;
+  const invoiceNumber = `INV-${id}`;
+
+  const taxableAmount = subtotal - discount;
+  const gstAmount = grandTotal - shippingCharge - taxableAmount;
+
+  const amountInWords = `Rupees ${Math.round(
+    grandTotal
+  )} Only`;
+
+  const generatePDF = async () => {
+    const element = printRef.current;
+
+    const options = {
+      margin: 0,
+      filename: `invoice-${id}.pdf`,
+      image: { type: "jpeg", quality: 1 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+      },
+      jsPDF: {
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait",
+      },
+    };
+
+    await html2pdf().set(options).from(element).save();
+  };
+
+  if (!location.state) {
+    return (
+      <div className="p-10 text-center">
+        <h2 className="text-2xl font-bold text-red-500">
+          Invoice Data Not Found
+        </h2>
+
+        <Link
+          to="/sale-bills"
+          className="mt-5 inline-block bg-black text-white px-5 py-3 rounded-xl"
+        >
+          Go Back
+        </Link>
+      </div>
+    );
   }
 
-  // 🔥 Hide buttons before PDF
-  const noPrintElements = document.querySelectorAll(".no-print");
-  noPrintElements.forEach(el => el.style.display = "none");
-
- const canvas = await html2canvas(element, {
-  scale: 3,
-  useCORS: true,
-  scrollY: 0,
-   backgroundColor: "#ffffff", 
-  windowWidth: element.scrollWidth,
-  windowHeight: element.scrollHeight
-});
-
-  const imgData = canvas.toDataURL("image/png");
-
-  const pdf = new jsPDF("p", "mm", "a4");
-
-  const imgWidth = 210; // A4 width
-const pageHeight = 297;
-
-const imgHeight = (canvas.height * imgWidth) / canvas.width;
-let heightLeft = imgHeight;
-let position = 0;
-
-pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-heightLeft -= pageHeight;
-
-while (heightLeft > 0) {
-  position = heightLeft - imgHeight;
-  pdf.addPage();
-  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight;
-}
-
-  pdf.save(`invoice-${id}.pdf`);
-
-  // 🔥 Show buttons again after PDF
-  noPrintElements.forEach(el => el.style.display = "block");
-};
-
-if (!location.state) {
   return (
-    <div className="p-10 text-center">
-      <h2 className="text-xl font-semibold text-red-600">
-        Invoice data not found
-      </h2>
+    <div className="min-h-screen">
 
-      <Link
-        to="/sale-bills"
-        className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        Go Back
-      </Link>
-    </div>
-  );
-}
+      {/* TOP BAR */}
+      <div className="max-w-3xl mx-auto flex items-center justify-between mb-4 no-print">
 
-  return (
-    <div
-  ref={printRef}
-  className="print-area mx-auto p-6 rounded-2xl"
-style={{
-  width: "794px",   // ✅ EXACT A4 WIDTH
-  background: "#fff",
-  border: "2px solid #d4af37",
-  boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
-  fontSize: "11px",   // ✅ CONTROL SIZE
-  lineHeight: "1.3"
-}}
->
-
-      {/* 🔙 BACK BUTTON */}
-      <div className="flex justify-between mb-6 no-print">
-        <Link to={`/sale-bills`} className="text-blue-600">
-          ← Back to Order
+        <Link
+          to="/sale-bills"
+          className="text-sm font-semibold text-blue-600"
+        >
+          Back to Order
         </Link>
 
-       <button
-         onClick={generatePDF} 
-         className="bg-green-600 text-white px-4 py-2 rounded invoice-btn no-print"
-         >
+        <button
+          onClick={generatePDF}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-semibold transition-all"
+        >
           Download PDF
         </button>
       </div>
 
-      {/* 🔹 HEADER */}
- <div className="flex justify-between items-center mb-4 border-b pb-4">
+      {/* INVOICE */}
+      <div
+        ref={printRef}
+        className="max-w-3xl mx-auto bg-white rounded-3xl border border-gray-200 shadow-sm px-5 py-2"
+      >
 
-  <div className="flex items-center gap-4">
-    <img src="/logo.png" style={{ height: "55px" }} />
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-gray-200 mb-3">
 
-  </div>
+          <div>
+            <img
+              src="/logo.png"
+              alt="logo"
+              className="w-24 h-24 object-contain"
+            />
+          </div>
 
-  <div>
-    <h1 className="text-2xl font-serif tracking-wide text-gray-800">
-      TAX INVOICE
-    </h1>
-  </div>
-
-</div>
-
-      {/* 🔹 BILLING + SHIPPING */}
-      <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-        <div className="border p-2 rounded text-xs">
-          <p className="font-bold">Billing Address</p>
-         <p>{billing?.firstName} {billing?.lastName}</p>
-         <p>{billing?.address}</p>
-         <p>{billing?.phone}</p>
-         <p>{billing?.email}</p>
+          <div className="flex-1 text-right">
+            <h1 className="text-xl md:text-xl font-bold tracking-[6px] text-gray-900">
+              TAX INVOICE
+            </h1>
+          </div>
         </div>
 
-        <div className="border p-2 rounded text-xs">
-          <p className="font-bold">Shipping Address</p>
-          <p>{shipping?.firstName} {shipping?.lastName}</p>
-          <p>{shipping?.address}</p>
-          <p>{shipping?.phone}</p>
-          <p>{shipping?.state}</p>
-          <p>{shipping?.phone}</p>
-        </div>     
+        {/* ADDRESS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
 
-      </div>
+          {/* BILLING */}
+          <div className="border border-gray-200 rounded-2xl overflow-hidden">
 
-      {/* ✅ INVOICE INFO */}
-<div className="flex justify-between items-center mb-4 border rounded-lg p-2 text-xs">
-  <p><b>Invoice No:</b> INV-{Date.now()}</p>
-  <p><b>Order ID:</b> {id}</p>
-  <p><b>Date:</b> {date}</p>
+            <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+              <h3 className="text-xs font-medium uppercase tracking-wider">
+                Billing Address
+              </h3>
+            </div>
+
+            <div className="py-2 px-4 text-gray-700 leading-6">
+
+              <p className="font-medium text-xs text-gray-900">
+                {[billing?.firstName, billing?.lastName]
+                  .filter(Boolean)
+                  .join(" ")}
+              </p>
+
+              <p className="text-xs">{billing?.address}</p>
+
+              <p className="text-xs">
+                {formatLine(
+                  billing?.city,
+                  billing?.state,
+                  billing?.pincode
+                )}
+              </p>
+
+              <p className="text-xs">{billing?.phone}</p>
+
+              <p className="text-xs">{billing?.email}</p>
+
+            </div>
+          </div>
+
+          {/* SHIPPING */}
+          <div className="border border-gray-200 rounded-2xl overflow-hidden">
+
+            <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+              <h3 className="text-xs font-medium uppercase tracking-wider">
+                Shipping Address
+              </h3>
+            </div>
+
+            <div className="py-2 px-4 text-gray-700 leading-6">
+
+              <p className="text-xs font-medium text-gray-900">
+                {[shipping?.firstName, shipping?.lastName]
+                  .filter(Boolean)
+                  .join(" ")}
+              </p>
+
+              <p className="text-xs">{shipping?.address}</p>
+
+              <p className="text-xs">
+                {formatLine(
+                  shipping?.city,
+                  shipping?.state,
+                  shipping?.pincode
+                )}
+              </p>
+
+              <p className="text-xs">{shipping?.phone}</p>
+
+              <p className="text-xs">{shipping?.email}</p>
+
+            </div>
+          </div>
+        </div>
+
+        {/* Invoice, payment method */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-3">
+
+          <div className="md:col-span-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2">
+            <p className="text-xs uppercase text-gray-500 ">
+              Invoice No.
+            </p>
+
+            <h4 className="font-medium text-xs text-gray-900">
+              {invoiceNumber}
+            </h4>
+          </div>
+
+          <div className="md:col-span-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2">
+            <p className="text-xs uppercase text-gray-500">
+              Invoice Date
+            </p>
+
+            <h4 className="font-medium text-xs text-gray-900">
+              {date}
+            </h4>
+          </div>
+
+          <div className="md:col-span-2 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2">
+            <p className="text-xs uppercase text-gray-500">
+              Payment Method
+            </p>
+
+            <h4 className="font-medium text-xs text-gray-900">
+              {paymentMethod}
+            </h4>
+          </div>
+        </div>
+
+       {/* TABLE */}
+<div className="overflow-x-auto mb-3">
+
+  <table className="w-full border border-gray-200 border-collapse">
+
+    <thead className="bg-slate-900 text-white">
+
+      <tr>
+
+        <th className="border border-gray-300 px-3 py-2 text-xs">
+          #
+        </th>
+
+        <th className="border border-gray-300 px-3 py-2 text-left text-xs">
+          Product
+        </th>
+
+        <th className="border border-gray-300 px-3 py-2 text-xs">
+          SKU
+        </th>
+
+        <th className="border border-gray-300 px-3 py-2 text-xs">
+          HSN
+        </th>
+
+        <th className="border border-gray-300 px-3 py-2 text-xs">
+          Qty
+        </th>
+
+        <th className="border border-gray-300 px-3 py-2 text-xs">
+          Price
+        </th>
+
+        <th className="border border-gray-300 px-3 py-2 text-xs">
+          GST%
+        </th>
+
+        <th className="border border-gray-300 px-3 py-2 text-xs">
+          Tax
+        </th>
+
+        <th className="border border-gray-300 px-3 py-2 text-xs">
+          Total
+        </th>
+
+      </tr>
+
+    </thead>
+
+    <tbody>
+
+      {items.map((item, index) => {
+
+        const qty = Number(item.qty) || 0;
+        const rate = Number(item.rate) || 0;
+        const gst = Number(item.gst) || 0;
+
+        const base = qty * rate;
+        const tax = (base * gst) / 100;
+        const total = base + tax;
+
+        return (
+
+          <tr
+            key={index}
+            className="border border-gray-200"
+          >
+
+            <td className="border border-gray-200 px-3 py-2 text-sm text-center">
+              {index + 1}
+            </td>
+
+            <td className="border border-gray-200 px-3 py-2 text-xs text-left">
+              {item.description || "-"}
+            </td>
+
+            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+              {item.sku || "-"}
+            </td>
+
+            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+              {item.hsn || "-"}
+            </td>
+
+            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+              {qty}
+            </td>
+
+            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+              {formatCurrency(rate)}
+            </td>
+
+            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+              {gst}%
+            </td>
+
+            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+              {formatCurrency(tax)}
+            </td>
+
+            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+              {formatCurrency(total)}
+            </td>
+
+          </tr>
+        );
+      })}
+
+    </tbody>
+
+  </table>
+
 </div>
 
-      {/* 🔹 ITEMS TABLE */}
-     <table 
-  className="w-full text-sm border rounded-xl overflow-hidden"
-  style={{ tableLayout: "fixed", pageBreakInside: "avoid" }}
->
-  <thead style={{ background: "#0f172a", color: "#fff" }}>
-    <tr>
-      <th className="border p-[4px]">#</th>
-      <th 
-  className="border p-[4px] text-left"
-  style={{ width: "40%" }}   // 🔥 control width
->
-  Product
-</th>
-      <th className="border p-[4px] text-[10px] text-center">Qty</th>
-      <th className="border p-[4px] text-[10px]">Price</th>
-      <th className="border p-[4px] text-[10px]">Tax</th>
-      <th className="border p-[4px] text-[10px]">Total</th>
-    </tr>
-  </thead>
+        {/* SUMMARY */}
+        <div className="flex justify-end mb-3">
 
-     <tbody>
-  {items?.map((item, i) => {
-    const base = item.qty * item.rate;
-    const tax = (base * item.gst) / 100;
+          <div className="w-full md:w-[380px] border border-gray-200 rounded-2xl bg-gray-50 px-4 py-2">
 
-    return (
-      <tr key={i} style={{ height: "26px" }}>
-        <td className="border p-[4px] text-center align-middle text-[10px]">{i + 1}</td>
+            <div className="space-y-1">
 
-       <td 
-  className="border p-[4px] align-middle text-[10px]"
-  style={{
-    whiteSpace: "nowrap",      // ✅ single line
-    overflow: "hidden",        // ✅ hide extra text
-    textOverflow: "ellipsis"   // ✅ show ...
-  }}
->
-  {item.description}
-</td>
+              <div className="flex justify-between text-xs">
+                <span>Subtotal</span>
 
-       <td className="border p-[4px] text-center align-middle text-[10px]">
-  {item.qty}
-</td>
+                <span>
+                  {formatCurrency(subtotal)}
+                </span>
+              </div>
 
-<td className="border p-[4px] text-center align-middle text-[10px]">
-  ₹{item.rate}
-</td>
+              <div className="flex justify-between text-xs">
+                <span>Discount</span>
 
-<td className="border p-[4px] text-center align-middle text-[10px]">
-  ₹{tax.toFixed(2)}
-</td>
+                <span className="font-small">
+                  {formatCurrency(discount)}
+                </span>
+              </div>
 
-<td className="border p-[4px] text-center align-middle text-[10px]">
-  ₹{(base + tax).toFixed(2)}
-</td>
-      </tr>
-    );
-  })}
-</tbody>
-      </table>
+              <div className="flex justify-between text-xs">
+                <span>Taxable Amount</span>
 
-      {/* 🔹 ORDER SUMMARY */}
-<div className="mt-6">
-  <div
-  style={{
-    width: "260px",
-    marginLeft: "auto",
-    border: "1px solid #ddd",
-    padding: "8px",
-    fontSize: "11px"
-  }}
->
+                <span>
+                  {formatCurrency(taxableAmount)}
+                </span>
+              </div>
 
-    <div className="flex justify-between mb-2">
-      <span>Subtotal</span>
-      <span>₹{safeSubtotal.toFixed(2)}</span>
-    </div>
+              <div className="flex justify-between text-xs">
+                <span>Shipping</span>
 
-    <div className="flex justify-between mb-2">
-      <span>Discount</span>
-      <span>₹{safeDiscount.toFixed(2)}</span>
-    </div>
+                <span>
+                  {formatCurrency(shippingCharge)}
+                </span>
+              </div>
 
-    <div className="flex justify-between mb-2 font-semibold">
-      <span>Taxable Amount</span>
-      <span>₹{(safeSubtotal - safeDiscount).toFixed(2)}</span>
-    </div>
+              <div className="flex justify-between text-xs">
+                <span>GST</span>
 
-    <div className="flex justify-between mb-2">
-      <span>Shipping</span>
-      <span>₹{safeShipping.toFixed(2)}</span>
-    </div>
+                <span>
+                  {formatCurrency(gstAmount)}
+                </span>
+              </div>
 
-    <div className="flex justify-between mb-2">
-      <span>GST</span>
-      <span>₹{gstAmount.toFixed(2)}</span>
-    </div>
+              <div className="border-t border-gray-300 pt-1 flex justify-between text-sm font-semibold">
+                <span>Total</span>
 
-    <hr className="my-3" />
+                <span>
+                  {formatCurrency(grandTotal)}
+                </span>
+              </div>
 
-    <div className="flex justify-between font-bold text-green-600 text-sm">
-      <span>Total Payable</span>
-      <span>₹{safeGrandTotal.toFixed(2)}</span>
-    </div>
+            </div>
 
-  </div>
-</div>
+          </div>
+        </div>
 
-{/* 🔹 SUPPLIER + BANK SIDE BY SIDE */}
-<div className="mt-6 grid grid-cols-2 gap-3 text-xs">
+        {/* FOOTER */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
 
-  {/* ✅ LEFT - SUPPLIER */}
-  <div className="border">
-    <div className="bg-[#dbe5f1] font-bold px-2 py-1">
-      SUPPLIER DETAILS
-    </div>
+          {/* SUPPLIER */}
+          <div className="border border-gray-200 rounded-2xl overflow-hidden">
 
-    <div className="px-2 py-1">Pingoria Enterprises</div>
-    <div className="px-2 py-1">Address: Sector-71, Mohali</div>
-    <div className="px-2 py-1">GSTIN: 03DPIPP8445E1ZR</div>
-    <div className="px-2 py-1">
-      State: Punjab | State Code: 03
-    </div>
-    <div className="px-2 py-1">
-      Email: info@divyadarshnam.com | Phone: +91-8386977271
-    </div>
+            <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wider">
+                Supplier Details
+              </h3>
+            </div>
+
+            <div className="px-4 py-2 leading-6 text-gray-700">
+
+              <p className="text-sm text-gray-900">
+                Pingoria Enterprises
+              </p>
+
+              <p className="text-sm">Address: Sector-71, Mohali</p>
+
+              <p className="text-sm">GSTIN: 03DPIPP8445E1ZR</p>
+
+              <p className="text-sm">State: Punjab | State Code: 03</p>
+
+              <p className="text-sm">
+                Email: info@divyadarshnam.com
+              </p>
+
+            </div>
+          </div>
+
+            {/* TERMS & CONDITIONS */}
+
+<div className="border border-gray-200 rounded-2xl overflow-hidden">
+
+  <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+    <h3 className="text-xs font-semibold uppercase tracking-wider">
+      Terms & Conditions
+    </h3>
   </div>
 
-  {/* ✅ RIGHT - BANK */}
-  <div className="border">
-    <div className="bg-[#dbe5f1] font-bold px-2 py-1">
-      BANK DETAILS FOR PAYMENT
-    </div>
+  <div className="px-4 py-2 text-gray-700 leading-6">
 
-    <table className="w-full text-xs">
-      <tr>
-        <td className="border p-1">Bank: Kotak Mahindra Bank</td>
-      </tr>
-      <tr>
-        <td className="border p-1">A/C: 3247602211</td>
-      </tr>
-      <tr>
-        <td className="border p-1">IFSC: KKBK0004089</td>
-      </tr>
-      <tr>
-        <td className="border p-1">Branch: Sector 70, Mohali</td>
-      </tr>
-    </table>
+    <p className="text-sm">
+      1. We do not accept returns or exchanges for custom or puja items.
+    </p>
+
+    <p className="text-sm">
+      2. All prices are in INR (₹) including taxes unless stated otherwise.
+    </p>
+
+    <p className="text-sm">
+      3. Goods once dispatched will not be taken back.
+    </p>
+
+    <p className="text-sm">
+      4. Contact: info@divyadarshnam.com
+    </p>
+
   </div>
 
 </div>
 
-{/* 🔹 TERMS + SIGNATURE */}
-  <div className="w-full border mt-4 text-xs flex">
+       {/* SIGNATURE */}
 
-  {/* LEFT - TERMS */}
-  <div style={{ width: "65%", borderRight: "1px solid #ddd" }}>
-    <div className="bg-[#dbe5f1] font-bold px-2 py-[3px]">
-      TERMS & CONDITIONS
-    </div>
+<div className="md:col-span-2 border border-gray-200 rounded-2xl overflow-hidden">
 
-    <div style={{ padding: "8px", fontSize: "11px" }}>
-      <p>1. We do not accept returns or exchanges for custom or puja items.</p>
-      <p>2. All prices are in INR (₹) including taxes unless stated.</p>
-      <p>3. Goods once dispatched will not be taken back.</p>
-      <p>4. Contact: info@divyadarshnam.com</p>
-    </div>
+  <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+    <h3 className="text-xs font-semibold uppercase tracking-wider">
+      Authorized Signature
+    </h3>
   </div>
 
-  {/* RIGHT - SIGNATURE */}
-  <div style={{ width: "35%", textAlign: "center" }}>
-    <div className="bg-[#dbe5f1] font-bold px-2 py-[3px]">
-      FOR Pingoria ENTERPRISES
-    </div>
+  <div className="flex items-end justify-between px-4 py-4 min-h-[130px]">
 
-    <div style={{ padding: "20px 0" }}>
-      <img src="/signature.png" style={{ height: "45px" }} />
-      <p style={{ fontSize: "11px", fontWeight: "bold" }}>
+    {/* LEFT SIDE */}
+    <div className="w-[250px]">
+
+      <div className="border-b border-black mb-1"></div>
+
+      <p className="text-sm font-semibold">
         Authorized Signatory
       </p>
+
+      <p className="text-sm text-gray-600">
+        Pingoria Enterprises
+      </p>
+
     </div>
+
+    {/* RIGHT SIDE */}
+    <div className="flex flex-col items-center">
+
+      <img
+        src="/signature.png"
+        alt="signature"
+        className="w-32 object-contain mb-2"
+      />
+
+      <p className="text-xs text-gray-500">
+        Digitally Signed
+      </p>
+
+    </div>
+
   </div>
 
 </div>
+          
 
+        </div>
+
+      
+
+      </div>
     </div>
   );
 }

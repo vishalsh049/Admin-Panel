@@ -179,7 +179,7 @@ export default function SaleBills() {
   };
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative overflow-x-hidden">
       {/* soft luxury background */}
       <div className="absolute -top-28 left-1/2 -translate-x-1/2 h-[300px] w-[780px] bg-gradient-to-r from-indigo-400/20 via-purple-300/10 to-emerald-300/20 blur-3xl pointer-events-none" />
       <div className="absolute top-40 -left-20 h-[240px] w-[420px] bg-gradient-to-b from-emerald-400/12 to-transparent blur-3xl pointer-events-none" />
