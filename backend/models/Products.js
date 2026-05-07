@@ -53,6 +53,14 @@ const Product = sequelize.define(
       defaultValue: "admin",
       field: "source",
     },
+    
+    woocommerce_id: {
+  type: DataTypes.INTEGER,
+  allowNull: true,
+  unique: true,
+  field: "woocommerce_id",
+},
+
     image: {
       type: DataTypes.STRING,
    },

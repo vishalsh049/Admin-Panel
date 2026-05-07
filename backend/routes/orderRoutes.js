@@ -59,10 +59,12 @@ res.json({
 success: true,
 data: {
 
+id: order.id,
+
 date: order.date_created,
 status: order.status,
 paymentMethod: order.payment_method_title,
-shippingCharge: order.shipping_total,
+shipping_total: Number(order.shipping_total || 0),
 discount: order.discount_total,
 
 billing: {
