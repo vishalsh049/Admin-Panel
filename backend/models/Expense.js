@@ -6,9 +6,9 @@ const Expense = sequelize.define(
   {
     /* BASIC INFO */
 
-    expenseCode: {
-      type: DataTypes.STRING,
-      unique: true
+   expenseCode: {
+    type: DataTypes.STRING,
+     unique: true,
     },
 
     date: {
@@ -90,9 +90,11 @@ const Expense = sequelize.define(
       type: DataTypes.STRING,
     },
   },
-  {
-    timestamps: true,
-  },
+
+ {
+  timestamps: true,
+  tableName: "expenses",
+},
 
 );
 
