@@ -266,8 +266,8 @@ export default function Dashboard() {
         </div>
 
         {showExportPopup && (
-          <div className="fixed inset-0 bg-slate-950/20 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white border border-slate-200 p-6 rounded-2xl w-[340px] shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/20 p-4 backdrop-blur-sm">
+            <div className="responsive-modal-panel w-full max-w-[340px] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
               <h3 className="text-lg font-semibold mb-4 text-center text-slate-900">Select Export Type</h3>
 
               <button

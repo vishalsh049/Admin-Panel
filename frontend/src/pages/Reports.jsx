@@ -118,31 +118,31 @@ export default function Reports() {
 
   // ---------- UI ----------
   return (
-    <div className="p-6">
+    <div className="px-0 py-2 sm:px-2">
 
       {/* ===== HEADER ===== */}
-      <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
+      <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
 
-        <div className="bg-white px-4 py-3 rounded shadow flex gap-3">
+        <div className="flex flex-col gap-3 rounded bg-white px-4 py-3 shadow sm:flex-row sm:flex-wrap">
 
-          <input type="date" onChange={e=>setFrom(e.target.value)} className="border rounded px-2"/>
-          <input type="date" onChange={e=>setTo(e.target.value)} className="border rounded px-2"/>
-          <input placeholder="Search..." onChange={e=>setSearch(e.target.value)} className="border rounded px-2"/>
+          <input type="date" onChange={e=>setFrom(e.target.value)} className="w-full rounded border px-2 py-2 sm:w-auto"/>
+          <input type="date" onChange={e=>setTo(e.target.value)} className="w-full rounded border px-2 py-2 sm:w-auto"/>
+          <input placeholder="Search..." onChange={e=>setSearch(e.target.value)} className="w-full rounded border px-2 py-2 sm:min-w-[220px]"/>
 
         </div>
 
-        <div className="flex gap-2">
-          <button onClick={printPage} className="px-3 py-2 bg-gray-800 text-white rounded">Print</button>
-          <button onClick={exportPDF} className="px-3 py-2 bg-red-600 text-white rounded">PDF</button>
-          <button onClick={downloadCSV} className="px-3 py-2 bg-orange-500 text-white rounded">CSV</button>
-          <button onClick={downloadExcel} className="px-3 py-2 bg-green-600 text-white rounded">Excel</button>
-          <button onClick={downloadChart} className="px-3 py-2 bg-blue-600 text-white rounded">Chart PNG</button>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={printPage} className="rounded bg-gray-800 px-3 py-2 text-white">Print</button>
+          <button onClick={exportPDF} className="rounded bg-red-600 px-3 py-2 text-white">PDF</button>
+          <button onClick={downloadCSV} className="rounded bg-orange-500 px-3 py-2 text-white">CSV</button>
+          <button onClick={downloadExcel} className="rounded bg-green-600 px-3 py-2 text-white">Excel</button>
+          <button onClick={downloadChart} className="rounded bg-blue-600 px-3 py-2 text-white">Chart PNG</button>
         </div>
 
       </div>
 
       {/* ===== TABS ===== */}
-      <div className="flex gap-4 mb-3 text-sm">
+      <div className="mb-3 flex flex-wrap gap-4 text-sm">
         <button onClick={()=>setView("sales")} className={view==="sales"?"text-blue-600 font-bold":"text-gray-500"}>Sales Report</button>
         <button onClick={()=>setView("product")} className={view==="product"?"text-blue-600 font-bold":"text-gray-500"}>Product Report</button>
         <button onClick={()=>setView("customer")} className={view==="customer"?"text-blue-600 font-bold":"text-gray-500"}>Customer Report</button>
@@ -156,14 +156,15 @@ export default function Reports() {
 
             <h1 className="text-2xl font-bold mb-4">Sales Report</h1>
 
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <div className="bg-white shadow p-4 rounded"><p>Total Sales</p><h2>₹ {totalSales}</h2></div>
               <div className="bg-white shadow p-4 rounded"><p>Total Orders</p><h2>{totalOrders}</h2></div>
               <div className="bg-white shadow p-4 rounded"><p>Average Order</p><h2>₹ {avgOrder}</h2></div>
               <div className="bg-white shadow p-4 rounded"><p>IGST</p><h2>₹ {igst.toFixed(2)}</h2></div>
             </div>
 
-            <table className="w-full bg-white rounded shadow">
+            <div className="responsive-table rounded bg-white shadow">
+            <table className="w-full min-w-[520px] bg-white rounded shadow">
               <thead><tr className="bg-gray-100">
                 <th className="p-2">Date</th><th className="p-2">Month</th><th className="p-2">Sales</th><th className="p-2">Orders</th>
               </tr></thead>
@@ -178,6 +179,7 @@ export default function Reports() {
                 ))}
               </tbody>
             </table>
+            </div>
 
             <div className="mt-6 bg-white rounded shadow p-4">
               <Bar ref={chartRef} data={chartData}/>
@@ -189,7 +191,8 @@ export default function Reports() {
         {view === "product" && (
           <>
             <h2 className="text-xl font-bold mb-2">Product Report</h2>
-            <table className="w-full bg-white rounded shadow">
+            <div className="responsive-table rounded bg-white shadow">
+            <table className="w-full min-w-[320px] bg-white rounded shadow">
               <thead><tr><th>Product</th><th>Sales</th></tr></thead>
               <tbody>
                 {filteredData.map((r,i)=>(
@@ -197,13 +200,15 @@ export default function Reports() {
                 ))}
               </tbody>
             </table>
+            </div>
           </>
         )}
 
         {view === "customer" && (
           <>
             <h2 className="text-xl font-bold mb-2">Customer Report</h2>
-            <table className="w-full bg-white rounded shadow">
+            <div className="responsive-table rounded bg-white shadow">
+            <table className="w-full min-w-[320px] bg-white rounded shadow">
               <thead><tr><th>Customer</th><th>Orders</th></tr></thead>
               <tbody>
                 {filteredData.map((r,i)=>(
@@ -211,6 +216,7 @@ export default function Reports() {
                 ))}
               </tbody>
             </table>
+            </div>
           </>
         )}
 

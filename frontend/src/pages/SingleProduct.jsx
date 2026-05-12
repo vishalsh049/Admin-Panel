@@ -98,25 +98,25 @@ useEffect(() => {
 
 
   return (
-    <div className="p-6 max-w-full">
+    <div className="max-w-full p-4 sm:p-6">
 
       {/* HEADER */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
             onClick={() => navigate(-1)}
             className="px-3 py-2 border rounded hover:bg-gray-100"
           >
             ← Back
           </button>
-          <h1 className="text-3xl font-bold">Product Details</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Product Details</h1>
         </div>
 
         <select
           name="status"
           value={product.status}
           onChange={handleChange}
-          className="border rounded px-3 py-2"
+          className="border rounded px-3 py-2 w-full sm:w-auto"
         >
           <option>Active</option>
           <option>Draft</option>
@@ -135,7 +135,7 @@ useEffect(() => {
       </div>
 
       {/* SKU / HSN / GTIN */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
         <input
           name="sku"
           placeholder="SKU Code"
@@ -160,7 +160,7 @@ useEffect(() => {
       </div>
 
       {/* PRICE & TAX */}
-      <div className="grid grid-cols-4 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <input
           name="regularPrice"
           placeholder="Regular Price ₹"
@@ -200,7 +200,7 @@ useEffect(() => {
       </div>
 
       {/* STOCK / STATUS / BRAND */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <div>
           <label className="font-semibold text-sm block mb-1">Stock</label>
           <input
@@ -246,21 +246,21 @@ useEffect(() => {
       <label className="font-semibold">Images</label>
       <input type="file" multiple onChange={handleImages} className="mt-2" />
 
-      <div className="flex gap-2 mt-3 flex-wrap">
+      <div className="mt-3 flex flex-wrap gap-2">
         {product.images.length === 0 && (
           <div className="w-16 h-16 border rounded flex items-center justify-center text-xs text-gray-400">
             No Image
           </div>
         )}
         {product.images.map((img, i) => (
-          <img key={i} src={img} className="w-16 h-16 border rounded" />
+          <img key={i} src={img} className="h-16 w-16 rounded border object-cover" />
         ))}
       </div>
 
       {/* SAVE */}
      <button
   onClick={saveProduct}
-  className="mt-6 px-6 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+  className="mt-6 rounded bg-blue-600 px-6 py-2 text-white hover:bg-blue-700 w-full sm:w-auto"
 >
   Save Changes
 </button>

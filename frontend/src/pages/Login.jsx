@@ -76,8 +76,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-[480px] bg-white rounded-3xl shadow-xl p-10">
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-8">
+      <div className="w-full max-w-[480px] rounded-3xl bg-white p-6 shadow-xl sm:p-10">
       
         <h1 className="text-2xl font-semibold mb-6">{getTitle()}</h1>
 
@@ -132,9 +132,9 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="flex justify-between mt-10 text-sm text-gray-500">
+        <div className="mt-10 flex flex-col gap-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
           <span>© 2026 Pingoria Enterprises</span>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-4 sm:gap-6">
             <span>Contact Us</span>
             <span>English</span>
           </div>

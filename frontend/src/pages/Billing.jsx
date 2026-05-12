@@ -6,7 +6,7 @@ const Billing = () => {
       <h1 className="text-2xl font-bold">Billing</h1>
 
       {/* CURRENT PLAN */}
-      <div className="bg-white rounded-xl shadow p-6 flex justify-between items-center">
+      <div className="flex flex-col gap-4 rounded-xl bg-white p-4 shadow sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <h2 className="text-lg font-semibold">Current Plan</h2>
           <p className="text-gray-500">Premium Plan</p>
@@ -15,7 +15,7 @@ const Billing = () => {
           </p>
         </div>
 
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+        <button className="rounded-lg bg-blue-600 px-4 py-2 text-white w-full sm:w-auto">
           Upgrade Plan
         </button>
       </div>
@@ -40,14 +40,14 @@ const Billing = () => {
       </div>
 
       {/* PAYMENT METHOD */}
-      <div className="bg-white rounded-xl shadow p-6 flex justify-between items-center">
+      <div className="flex flex-col gap-4 rounded-xl bg-white p-4 shadow sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <h2 className="text-lg font-semibold">Payment Method</h2>
           <p className="text-gray-500">Visa ending in 4242</p>
           <p className="text-sm text-gray-600">Expires 08/27</p>
         </div>
 
-        <button className="px-4 py-2 border rounded-lg">
+        <button className="w-full rounded-lg border px-4 py-2 sm:w-auto">
           Change Method
         </button>
       </div>
@@ -56,7 +56,8 @@ const Billing = () => {
       <div className="bg-white rounded-xl shadow p-6">
         <h2 className="text-lg font-semibold mb-4">Billing History</h2>
 
-        <table className="w-full text-sm">
+        <div className="responsive-table">
+        <table className="w-full min-w-[520px] text-sm">
           <thead>
             <tr className="border-b text-left">
               <th className="py-2">Invoice</th>
@@ -89,6 +90,7 @@ const Billing = () => {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
     </div>

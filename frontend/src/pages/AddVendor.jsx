@@ -297,7 +297,7 @@ navigate("/vendors");
 
 
      return (
-          <div className="bg-white p-6 rounded shadow">
+          <div className="rounded shadow bg-white p-4 sm:p-6">
                {/* BACK */}
                <Link
                     to="/vendors"
@@ -309,7 +309,7 @@ navigate("/vendors");
                <h2 className="text-2xl font-semibold mb-6">Add Vendor</h2>
 
                {/* TABS */}
-               <div className="flex gap-6 border-b mb-6 text-sm">
+               <div className="mb-6 flex flex-wrap gap-3 border-b pb-2 text-sm">
                     {tabs.map((tab) => (
                          <button
                               key={tab}
@@ -326,7 +326,7 @@ navigate("/vendors");
 
                {/* ================== OTHER DETAILS ================== */}
                {activeTab === "Other Details" && (
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                          <div>
 <Input
   label="First Name"
@@ -421,7 +421,7 @@ navigate("/vendors");
 </div>
 
                          {/* MSME REGISTERED */}
-<div className="col-span-2">
+<div className="md:col-span-2">
   <label className="flex items-center gap-2 text-sm">
     <input
       type="checkbox"
@@ -665,7 +665,7 @@ billing.state
                {activeTab === "Contact Persons" && (
                     <div className="space-y-6">
                          {contacts.map((c, index) => (
-                              <div key={index} className="border rounded p-4 grid grid-cols-3 gap-4 relative">
+                              <div key={index} className="relative grid grid-cols-1 gap-4 rounded border p-4 md:grid-cols-3">
                                    <input value={c.name} onChange={(e) => updateContact(index, "name", e.target.value)} placeholder="Contact Name" className="border px-3 py-2 rounded text-sm" />
                                    <input value={c.email} onChange={(e) => updateContact(index, "email", e.target.value)} placeholder="Email" className="border px-3 py-2 rounded text-sm" />
                                    <input value={c.phone} onChange={(e) => updateContact(index, "phone", e.target.value)} placeholder="Phone" className="border px-3 py-2 rounded text-sm" />
@@ -685,7 +685,7 @@ billing.state
 
                {/* ================== BANK DETAILS ================== */}
                {activeTab === "Bank Details" && (
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                          <Input label="Bank Name" name="bankName" value={bank.bankName} onChange={handleBankChange} />
                          <Input label="Account Holder Name" name="accountName" value={bank.accountName} onChange={handleBankChange} />
                          <Input label="Account Number" name="accountNumber" value={bank.accountNumber} onChange={handleBankChange} />
@@ -740,14 +740,14 @@ billing.state
                )}
 
                {/* STEP ACTIONS */}
-               <div className="flex justify-between mt-8">
+               <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     {currentTabIndex > 0 && (
                          <button onClick={goPrevious} className="border px-5 py-2 rounded">
                               Previous
                          </button>
                     )}
 
-                    <div className="ml-auto flex gap-3">
+                    <div className="flex gap-3 sm:ml-auto">
                          {currentTabIndex < tabs.length - 1 && (
                               <button onClick={goNext} className="bg-blue-600 text-white px-5 py-2 rounded">
                                    Next

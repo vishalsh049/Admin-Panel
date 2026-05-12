@@ -74,25 +74,26 @@ export default function Inventory() {
   };
 
   return (
-    <div className="p-6" id="inv">
+    <div className="p-4 sm:p-6" id="inv">
 
       <h1 className="text-2xl font-bold mb-3">Inventory Management</h1>
 
       <input
         placeholder="Search products"
-        className="border px-3 py-2 mb-3"
+        className="mb-3 w-full rounded border px-3 py-2 sm:max-w-sm"
         onChange={e => setSearch(e.target.value)}
       />
 
-      <div className="bg-white shadow p-3 rounded mb-4 flex gap-2">
-        <input placeholder="Name" onChange={e=>setForm({...form,name:e.target.value})}/>
-        <input placeholder="SKU" onChange={e=>setForm({...form,sku:e.target.value})}/>
-        <input placeholder="Stock" onChange={e=>setForm({...form,stock:e.target.value})}/>
-        <input placeholder="Category" onChange={e=>setForm({...form,category:e.target.value})}/>
-        <button className="bg-blue-600 text-white px-3 rounded" onClick={addItem}>Add</button>
+      <div className="mb-4 grid gap-2 rounded bg-white p-3 shadow sm:grid-cols-2 xl:grid-cols-5">
+        <input className="rounded border px-3 py-2" placeholder="Name" onChange={e=>setForm({...form,name:e.target.value})}/>
+        <input className="rounded border px-3 py-2" placeholder="SKU" onChange={e=>setForm({...form,sku:e.target.value})}/>
+        <input className="rounded border px-3 py-2" placeholder="Stock" onChange={e=>setForm({...form,stock:e.target.value})}/>
+        <input className="rounded border px-3 py-2" placeholder="Category" onChange={e=>setForm({...form,category:e.target.value})}/>
+        <button className="rounded bg-blue-600 px-3 py-2 text-white" onClick={addItem}>Add</button>
       </div>
 
-      <table className="w-full bg-white shadow rounded">
+      <div className="responsive-table rounded bg-white shadow">
+      <table className="w-full min-w-[560px] bg-white shadow rounded">
         <thead className="bg-gray-100 text-left">
           <tr>
             <th>Name</th><th>SKU</th><th>Stock</th><th>Status</th>
@@ -107,7 +108,7 @@ export default function Inventory() {
               <td>{i.sku}</td>
               <td>
                 <input
-                  className="border w-16"
+                  className="w-16 rounded border"
                   value={i.stock}
                   onChange={e => updateStock(i.id, e.target.value)}
                 />
@@ -121,11 +122,12 @@ export default function Inventory() {
           ))}
         </tbody>
       </table>
+      </div>
 
-      <div className="mt-3 flex gap-2">
-        <button className="bg-red-500 text-white px-2" onClick={downloadPDF}>PDF</button>
-        <button className="bg-orange-500 text-white px-2" onClick={downloadCSV}>CSV</button>
-        <button className="bg-green-600 text-white px-2" onClick={downloadExcel}>Excel</button>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button className="bg-red-500 text-white px-3 py-2 rounded" onClick={downloadPDF}>PDF</button>
+        <button className="bg-orange-500 text-white px-3 py-2 rounded" onClick={downloadCSV}>CSV</button>
+        <button className="bg-green-600 text-white px-3 py-2 rounded" onClick={downloadExcel}>Excel</button>
       </div>
     </div>
   );

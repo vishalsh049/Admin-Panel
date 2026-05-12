@@ -80,21 +80,28 @@ function AppRoutes({ token }) {
   const location = useLocation();
   const hideSidebar = false;
   const auth = isAuthenticated();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   return (
-    <div className={`flex ${auth && !hideSidebar ? "pl-56" : ""}`}>
+    <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      {auth && !hideSidebar && <Sidebar />}
+      {auth && !hideSidebar && (
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      )}
 
       {/* Main Content */}
-      <div className="flex-1 min-h-screen bg-gray-50">
+      <div className="min-h-screen lg:pl-56">
         {/* Navbar */}
-        {auth && <TopNavbar />}
+        {auth && <TopNavbar onMenuClick={() => setSidebarOpen(true)} />}
 
         <main
           className={
             auth && !hideSidebar
-              ? "max-w-7xl mx-auto p-6"
+              ? "mx-auto w-full max-w-7xl px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6"
               : "p-4"
           }
         >

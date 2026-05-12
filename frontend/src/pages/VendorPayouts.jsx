@@ -10,8 +10,9 @@ export default function VendorPayouts() {
 
       <h1 className="text-2xl font-bold">Vendor Payouts</h1>
 
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <table className="w-full">
+      <div className="overflow-hidden rounded-xl bg-white shadow">
+        <div className="responsive-table">
+        <table className="w-full min-w-[420px]">
           <thead className="bg-gray-50">
             <tr>
               <th className="p-4 text-left">Vendor</th>
@@ -30,6 +31,7 @@ export default function VendorPayouts() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
     </div>

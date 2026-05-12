@@ -510,24 +510,24 @@ alert("Order not found. You can create bill manually.");
 
           <div className="">
 
-               <div className="bg-white rounded-xl shadow-md p-6">
+               <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
 
-                    <div className="flex justify-between items-center mb-6">
-                         <h2 className="text-2xl font-semibold">Create Sale Bill</h2>
+                    <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                         <h2 className="text-2xl font-semibold break-words">Create Sale Bill</h2>
 
-                         <div className="text-sm text-gray-500">
+                         <div className="text-sm text-gray-500 break-words">
                               Create New Sale Bill
                          </div>
                     </div>
 
                     {/* Customer Section */}
 
-                    <div className="grid grid-cols-4 gap-4 mb-6">
+                    <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
 
                          <div>
                               <label className="text-sm text-gray-600">Order ID</label>
 
-                              <div className="flex gap-2">
+                              <div className="flex flex-col gap-2 sm:flex-row">
                                    <input
                                         type="text"
                                         className="mt-1 border border-gray-300 px-3 py-2 rounded-md w-full text-sm"
@@ -539,7 +539,7 @@ alert("Order not found. You can create bill manually.");
                                    <button
                                         type="button"
                                         onClick={fetchOrder}
-                                        className="bg-blue-600 text-white px-3 py-2 mt-1 rounded-md text-sm"
+                                        className="mt-1 rounded-md bg-blue-600 px-3 py-2 text-sm text-white sm:mt-0"
                                    >
                                         Fetch
                                    </button>
@@ -555,7 +555,7 @@ alert("Order not found. You can create bill manually.");
 
                     {/* Order Details Section */}
 
-                    <div className="grid grid-cols-3 gap-6 mb-6 items-start">
+                    <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-3 xl:items-start">
 
                          {/* GENERAL */}
                          <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-sm">
@@ -612,7 +612,7 @@ className="border border-gray-300 px-3 py-2 rounded-md w-full text-sm bg-white"
                                              className="border border-gray-300 px-3 py-2 rounded-md w-full text-sm mb-2"
                                         />
 
-                                        <div className="grid grid-cols-3 gap-2">
+                                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
 
                                              <input
                                                   placeholder="Length"
@@ -643,7 +643,7 @@ className="border border-gray-300 px-3 py-2 rounded-md w-full text-sm bg-white"
 
 <h3 className="text-lg font-semibold text-gray-800 mb-4">Billing Details</h3>
 
-<div className="grid grid-cols-2 gap-3">
+<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 
 <input
 placeholder="First Name"
@@ -677,21 +677,21 @@ className="border px-3 py-2 rounded-md text-sm w-full"
 placeholder="Email"
 value={billing.email}
 onChange={(e)=>setBilling({...billing, email:e.target.value})}
-className="border px-3 py-2 rounded-md text-sm w-full col-span-2"
+className="border px-3 py-2 rounded-md text-sm w-full sm:col-span-2"
 />
 
 <input
 placeholder="Address"
 value={billing.address}
 onChange={(e)=>setBilling({...billing, address:e.target.value})}
-className="border px-3 py-2 rounded-md text-sm w-full col-span-2"
+className="border px-3 py-2 rounded-md text-sm w-full sm:col-span-2"
 />
 
 <input
 placeholder="Landmark"
 value={billing.landmark}
 onChange={(e)=>setBilling({...billing, landmark:e.target.value})}
-className="border px-3 py-2 rounded-md text-sm w-full col-span-2"
+className="border px-3 py-2 rounded-md text-sm w-full sm:col-span-2"
 />
 
 <select
@@ -739,14 +739,14 @@ className="border px-3 py-2 rounded-md text-sm w-full"
 placeholder="Company Name"
 value={billing.company}
 onChange={(e)=>setBilling({...billing, company:e.target.value})}
-className="border px-3 py-2 rounded-md text-sm w-full col-span-2"
+className="border px-3 py-2 rounded-md text-sm w-full sm:col-span-2"
 />
 
 <input
 placeholder="GSTIN Number"
 value={billing.gstin}
 onChange={(e)=>setBilling({...billing, gstin:e.target.value})}
-className="border px-3 py-2 rounded-md text-sm w-full col-span-2"
+className="border px-3 py-2 rounded-md text-sm w-full sm:col-span-2"
 />
 
 </div>
@@ -776,7 +776,7 @@ Shipping address same as Billing address
 
 <h3 className="font-semibold text-gray-700 mb-4">Shipping Address</h3>
 
-<div className="grid grid-cols-2 gap-3">
+<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 
 <input
 placeholder="First Name"
@@ -810,21 +810,21 @@ className="border px-3 py-2 rounded-md text-sm w-full"
 placeholder="Email"
 value={shipping.email || ""}
 onChange={(e)=>setShipping({...shipping, email:e.target.value})}
-className="border px-3 py-2 rounded-md text-sm w-full col-span-2"
+className="border px-3 py-2 rounded-md text-sm w-full sm:col-span-2"
 />
 
 <input
 placeholder="Address"
 value={shipping.address}
 onChange={(e)=>setShipping({...shipping, address:e.target.value})}
-className="border px-3 py-2 rounded-md text-sm w-full col-span-2"
+className="border px-3 py-2 rounded-md text-sm w-full sm:col-span-2"
 />
 
 <input
 placeholder="Landmark"
 value={shipping.landmark}
 onChange={(e)=>setShipping({...shipping, landmark:e.target.value})}
-className="border px-3 py-2 rounded-md text-sm w-full col-span-2"
+className="border px-3 py-2 rounded-md text-sm w-full sm:col-span-2"
 />
 
 <select
@@ -872,14 +872,14 @@ className="border px-3 py-2 rounded-md text-sm w-full"
 placeholder="Company Name"
 value={shipping.company || ""}
 onChange={(e)=>setShipping({...shipping, company:e.target.value})}
-className="border px-3 py-2 rounded-md text-sm w-full col-span-2"
+className="border px-3 py-2 rounded-md text-sm w-full sm:col-span-2"
 />
 
 <input
 placeholder="GSTIN Number"
 value={shipping.gstin || ""}
 onChange={(e)=>setShipping({...shipping, gstin:e.target.value})}
-className="border px-3 py-2 rounded-md text-sm w-full col-span-2"
+className="border px-3 py-2 rounded-md text-sm w-full sm:col-span-2"
 />
 
 
@@ -896,9 +896,9 @@ className="border px-3 py-2 rounded-md text-sm w-full col-span-2"
 <div className="mt-8 border-t pt-6">
 
   {/* ---------- TABLE CARD ---------- */}
-  <div className="border border-gray-200 rounded-xl shadow-sm overflow-visible">
+  <div className="responsive-table border border-gray-200 rounded-xl shadow-sm overflow-x-auto overflow-y-visible">
 
-    <table className="w-full text-sm">
+    <table className="w-full min-w-[980px] text-sm">
 
       {/* ===================================================== */}
       {/* ================= TABLE HEADER ====================== */}
@@ -949,7 +949,7 @@ onChange={(e)=>handleChange(index,"description",e.target.value)}
               {/* ---------- SKU ---------- */}
               <td className="p-2">
                <input
-className="border p-2 w-40 rounded"
+className="border p-2 w-full min-w-[10rem] rounded"
 value={row.sku}
 onChange={(e)=>handleChange(index,"sku",e.target.value)}
 />
@@ -958,7 +958,7 @@ onChange={(e)=>handleChange(index,"sku",e.target.value)}
               {/* ---------- HSN ---------- */}
               <td className="p-2">
                <input
-className="border p-2 w-32 rounded"
+className="border p-2 w-full min-w-[8rem] rounded"
 value={row.hsn}
 onChange={(e)=>handleChange(index,"hsn",e.target.value)}
 />
@@ -968,7 +968,7 @@ onChange={(e)=>handleChange(index,"hsn",e.target.value)}
               <td className="p-2">
                 <input
 type="number"
-className="border p-2 w-20 rounded text-center"
+className="border p-2 w-full min-w-[5rem] rounded text-center"
 value={row.qty}
 onChange={(e)=>handleChange(index,"qty",e.target.value)}
 />
@@ -978,7 +978,7 @@ onChange={(e)=>handleChange(index,"qty",e.target.value)}
               <td className="p-2">
  <input
 type="number"
-className="border p-2 w-28 rounded text-center"
+className="border p-2 w-full min-w-[7rem] rounded text-center"
 value={row.rate}
 onChange={(e)=>handleChange(index,"rate",e.target.value)}
 />
@@ -987,7 +987,7 @@ onChange={(e)=>handleChange(index,"rate",e.target.value)}
               {/* ---------- GST ---------- */}
               <td className="p-2">
 <select
-className="border p-2 w-20 rounded text-center"
+className="border p-2 w-full min-w-[5rem] rounded text-center"
 value={row.gst}
 onChange={(e)=>handleChange(index,"gst",e.target.value)}
 >
@@ -1099,11 +1099,11 @@ onChange={(e)=>handleChange(index,"gst",e.target.value)}
 {/* ============ NOTES + ORDER SUMMARY SECTION ========== */}
 {/* ===================================================== */}
 
-<div className="grid grid-cols-3 gap-6 mt-6">
+<div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
 
   {/* ================= NOTES LEFT SIDE ================= */}
 
-  <div className="col-span-2">
+  <div className="xl:col-span-2">
 
     <label className="text-sm font-medium text-gray-700">
       Notes
@@ -1122,7 +1122,7 @@ rows="3"
 
   <div>
 
-   <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm sticky top-6">
+   <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm xl:sticky xl:top-6">
 
       <h3 className="text-lg font-semibold mb-4 text-gray-800">
         Order Summary
@@ -1135,11 +1135,11 @@ rows="3"
           <span>₹{subtotal.toFixed(2)}</span>
         </div>
 
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 
 <span className="text-gray-600">Discount</span>
 
-<div className="flex items-center gap-2">
+<div className="flex items-center gap-2 self-end sm:self-auto">
 
 <select
 value={discountType}
@@ -1154,7 +1154,7 @@ className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white"
 type="number"
 value={discount}
 onChange={(e)=>setDiscount(Number(e.target.value))}
-className="border border-gray-300 rounded-md px-3 py-1 w-20 text-right"
+className="border border-gray-300 rounded-md px-3 py-1 w-20 max-w-full text-right"
 />
 
 </div>
@@ -1166,13 +1166,13 @@ className="border border-gray-300 rounded-md px-3 py-1 w-20 text-right"
           <span>₹{taxableAmount.toFixed(2)}</span>
         </div>
 
-       <div className="flex justify-between items-center">
+       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <span>Shipping</span>
             <input
             type="number"
              value={shippingCharge}
                 onChange={(e) => setShippingCharge(Number(e.target.value))}
-               className="border border-gray-300 rounded-md px-3 py-1 w-24 text-right"
+               className="border border-gray-300 rounded-md px-3 py-1 w-full sm:w-24 text-right"
               />
            </div>
 
@@ -1217,18 +1217,18 @@ className="border border-gray-300 rounded-md px-3 py-1 w-20 text-right"
 
                     {/* Save Button */}
 
-                    <div className="mt-8 flex gap-4 border-t pt-6">
+                    <div className="mt-8 flex flex-col gap-4 border-t pt-6 sm:flex-row">
                          <button
                               type="button"
                               onClick={saveBill}
-                              className="bg-green-600 text-white px-6 py-3 rounded-lg"
+                              className="rounded-lg bg-green-600 px-6 py-3 text-white sm:w-auto"
                          >
                               Save Bill
                          </button>
 
                          <button
                               onClick={() => window.location.href = "/sale-bills"}
-                              className="bg-gray-400 text-white px-6 py-3 rounded-lg"
+                              className="rounded-lg bg-gray-400 px-6 py-3 text-white sm:w-auto"
                          >
                               Cancel
                          </button>

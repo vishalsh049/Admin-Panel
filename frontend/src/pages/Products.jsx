@@ -252,13 +252,14 @@ const handleImport = async (e) => {
 
   return (
     <div className="min-h-screen">
-     <div className="mx-auto max-w-7xl space-y-6">
-      <section className="rounded-[32px] border border-white/60 bg-white/70 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-8">
+     <div className="mx-auto max-w-7xl space-y-3">
+      <section className="rounded-[32px] border border-white/60 bg-white/70 p-4 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-8">
        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-violet-700">
-          <Sparkles className="h-3.5 w-3.5" />
-               SMART PRODUCT MANAGEMENT
+         <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-200
+          bg-violet-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-violet-700">
+          <Sparkles className="h-3 w-3" />
+                PRODUCT MANAGEMENT
          </div>
          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3 xl">
           Product Dashboard

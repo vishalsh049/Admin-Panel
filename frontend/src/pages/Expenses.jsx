@@ -164,10 +164,10 @@ const [openRowMenu, setOpenRowMenu] = useState(null);
   });
 
   return (
-    <div className="bg-white p-8 rounded shadow relative min-h-[80vh]">
+    <div className="relative min-h-[80vh] rounded bg-white p-4 shadow sm:p-6 lg:p-8">
 
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-xl font-semibold">Expenses</h2>
           <p className="text-sm text-gray-500">
@@ -175,10 +175,10 @@ const [openRowMenu, setOpenRowMenu] = useState(null);
           </p>
         </div>
 
-        <div className="flex gap-2 relative">
+        <div className="relative flex flex-wrap gap-2">
           <Link
             to="/expenses/add"
-            className="bg-blue-600 text-white px-4 py-2 rounded"
+            className="w-full rounded bg-blue-600 px-4 py-2 text-white sm:w-auto"
           >
             + Add Expense
           </Link>
@@ -188,7 +188,7 @@ const [openRowMenu, setOpenRowMenu] = useState(null);
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
-            className="border px-3 py-2 rounded"
+            className="w-full rounded border px-3 py-2 sm:w-auto"
           >
             ⋮
           </button>
@@ -239,14 +239,14 @@ const [openRowMenu, setOpenRowMenu] = useState(null);
 
       {/* FILTERS */}
 
-      <div className="flex justify-between items-center mb-4 pt-2">
+      <div className="mb-4 flex flex-col gap-3 pt-2 lg:flex-row lg:items-center lg:justify-between">
 
         {/* MONTH FILTER (LEFT) */}
         <input
           type="month"
           value={monthFilter}
           onChange={(e) => setMonthFilter(e.target.value)}
-          className="border p-2 rounded"
+          className="w-full rounded border p-2 sm:w-auto"
         />
 
         {/* SEARCH BOX (RIGHT) */}
@@ -255,14 +255,14 @@ const [openRowMenu, setOpenRowMenu] = useState(null);
   placeholder="Search: Expense ID, Vendor or Person ..."
   value={search}
   onChange={(e) => setSearch(e.target.value)}
-  className="border p-2 rounded-lg w-80 shadow-sm"
+  className="w-full rounded-lg border p-2 shadow-sm sm:max-w-xs"
 />
 
       </div>
 
       {/* TABLE */}
       <div className="pt-2 w-full overflow-x-auto relative">
-        <table className=" w-full text-sm border">
+        <table className="w-full min-w-[1080px] text-sm border">
           <thead>
             <tr className="bg-gray-100">
               <th className="p-2 border text-center">
@@ -485,14 +485,14 @@ const [openRowMenu, setOpenRowMenu] = useState(null);
       {selectedExpense && (
         <div
           onClick={() => setSelectedExpense(null)}
-          className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4 backdrop-blur-sm"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-           className="bg-white w-[1200px] max-w-[97%] max-h-[92vh] overflow-y-auto rounded-2xl p-10 shadow-2xl"
+           className="responsive-modal-panel w-full max-w-6xl rounded-2xl bg-white p-4 shadow-2xl sm:p-6 lg:p-8"
           >
             {/* Header */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="mb-6 flex items-start justify-between gap-4">
               <h3 className="text-2xl font-semibold">
                 Expense Details
               </h3>
@@ -506,7 +506,7 @@ const [openRowMenu, setOpenRowMenu] = useState(null);
             </div>
 
             {/* Main Content */}
-            <div className="grid grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
 
               {/* LEFT SIDE */}
               <div className="space-y-3 text-sm">
@@ -616,7 +616,7 @@ const [openRowMenu, setOpenRowMenu] = useState(null);
                   {selectedExpense.ExpenseItems.map((item, index) => (
                     <div
                       key={index}
-                      className="flex justify-between px-6 py-3 text-base"
+                      className="flex flex-col gap-2 px-4 py-3 text-base sm:flex-row sm:items-start sm:justify-between sm:px-6"
                     >
                    <span className="break-words max-w-[70%]">
   <b>

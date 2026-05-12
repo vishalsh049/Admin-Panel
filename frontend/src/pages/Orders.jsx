@@ -139,7 +139,7 @@ const fetchOrders = async (page = 1) => {
 
   return (
     <div
-  className="flex min-h-screen"
+  className="flex min-h-full w-full max-w-full"
   style={{
     fontFamily: "'DM Sans', sans-serif",
     
@@ -150,8 +150,8 @@ const fetchOrders = async (page = 1) => {
       <div className="flex-1 flex flex-col min-h-screen">
 
         {/* TOPBAR */}
-        <header className="bg-white border-b border-slate-200 rounded-2xl flex items-center px-2 py-3 top-0 z-40">
-         <div className="w-full mx-auto flex items-center gap-4 px-4">
+        <header className="sticky top-0 z-20 flex items-center rounded-2xl border-b border-slate-200 bg-white px-2 py-3">
+         <div className="mx-auto flex w-full flex-col gap-4 px-4 lg:flex-row lg:items-center">
 
           <div className="flex-1">
             <h1 className="text-[20px] font-bold leading-tight">Orders Dashboard</h1>
@@ -159,7 +159,7 @@ const fetchOrders = async (page = 1) => {
           </div>
 
           {/* Search */}
-          <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 w-56">
+          <div className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 sm:max-w-xs">
             <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="w-3.5 h-3.5 text-slate-400 flex-shrink-0">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
@@ -169,7 +169,7 @@ const fetchOrders = async (page = 1) => {
           </div>
 
           {/* Create Button */}
-          <button className="flex items-center gap-2 text-white text-[13.5px] font-semibold px-4 py-2.5 rounded-xl transition-colors whitespace-nowrap"
+          <button className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors sm:w-auto"
             style={{ backgroundColor: "#6c63ff" }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor = "#5a52e0"}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = "#6c63ff"}>
@@ -187,7 +187,7 @@ const fetchOrders = async (page = 1) => {
        <main className="p-3 flex-1 w-full max-w-[1400px] mx-auto">
 
           {/* FILTER BAR */}
-          <div className="bg-white rounded-2xl px-5 py-5 shadow-sm mb-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="mb-5 grid grid-cols-1 gap-4 rounded-2xl bg-white px-4 py-5 shadow-sm md:grid-cols-2 lg:grid-cols-5 lg:px-5">
             {/* Search Order */}
             <div className="flex flex-col gap-1.5 flex-1 min-w-48">
               <div className="relative">
@@ -225,7 +225,7 @@ const fetchOrders = async (page = 1) => {
                   <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
                 <input type="text" defaultValue="May 20, 2024 – Jun 20, 2024" readOnly
-                  className="bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[13px] outline-none cursor-pointer text-slate-700 w-56"
+                  className="w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 py-2.5 text-[13px] text-slate-700 outline-none sm:max-w-xs"
                   style={{ fontFamily: "inherit" }}/>
               </div>
             </div>
@@ -243,7 +243,7 @@ const fetchOrders = async (page = 1) => {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2.5 ml-auto">
+            <div className="ml-auto flex flex-wrap gap-2.5">
               <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-[13px] font-medium transition-colors hover:text-[#6c63ff]"
                 onMouseEnter={e => e.currentTarget.style.borderColor = "#6c63ff"}
                 onMouseLeave={e => e.currentTarget.style.borderColor = "#e2e8f0"}>
@@ -268,9 +268,9 @@ const fetchOrders = async (page = 1) => {
           {/* ORDERS TABLE */}
           <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden">
             {/* Table Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <h2 className="text-[15px] font-bold">Orders List</h2>
-              <div className="flex items-center gap-2 text-[13px] text-slate-400">
+              <div className="flex flex-wrap items-center gap-2 text-[13px] text-slate-400">
                 Sort by:
                 <select value={sortBy} onChange={e => setSortBy(e.target.value)}
                   className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-[13px] bg-slate-50 text-slate-700 outline-none cursor-pointer"
@@ -282,7 +282,7 @@ const fetchOrders = async (page = 1) => {
 
             {/* Table */}
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[860px]">
                 <thead>
                   <tr className="border-b border-slate-100">
                     {["Order ID","Customer","Date","Items","Total Amount","Status","Payment","Action"].map(h => (

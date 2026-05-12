@@ -8,13 +8,13 @@ export default function Vendors() {
   const vendors = vendorContext?.vendors || [];
 
   return (
-    <div className="bg-white p-6 rounded shadow">
-      <div className="flex justify-between items-center mb-4">
+    <div className="rounded bg-white p-4 shadow sm:p-6">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-semibold">Vendors</h2>
 
         <Link
           to="/vendors/add"
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          className="rounded bg-blue-600 px-4 py-2 text-white w-full sm:w-auto"
         >
           + Add Vendor
         </Link>
@@ -23,7 +23,8 @@ export default function Vendors() {
       {vendors.length === 0 ? (
         <p className="text-gray-500">No vendors added yet</p>
       ) : (
-        <table className="w-full border text-sm">
+        <div className="responsive-table">
+        <table className="w-full min-w-[640px] border text-sm">
           <thead className="bg-gray-100">
             <tr>
               <th className="border p-2">Name</th>
@@ -61,6 +62,7 @@ export default function Vendors() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

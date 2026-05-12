@@ -16,10 +16,11 @@ import {
   FaUsersCog,
   FaUserTie,
   FaMoneyBillWave,
+  FaTimes,
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const [openInventory, setOpenInventory] = useState(false);
   const [openCustomers, setOpenCustomers] = useState(false);
   const [openVendors, setOpenVendors] = useState(false);
@@ -39,26 +40,39 @@ export default function Sidebar() {
 
         .sb-root {
           font-family: 'Inter', sans-serif;
-          width: 228px;
+          width: min(86vw, 228px);
+          max-width: 228px;
           height: 100vh;
           position: fixed;
           left: 0;
           top: 0;
-          z-index: 40;
+          z-index: 50;
           display: flex;
           flex-direction: column;
           background: #ffffff;
           border-right: 1px solid #e8eaf0;
           overflow: hidden;
+          transform: translateX(-100%);
+          transition: transform 0.25s ease;
+        }
+        .sb-root.open {
+          transform: translateX(0);
         }
 
         /* Logo */
         .sb-logo {
           display: flex;
           align-items: center;
+          justify-content: space-between;
           gap: 12px;
           padding: 22px 20px 18px;
           border-bottom: 1px solid #f0f1f5;
+        }
+        .sb-logo-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
         }
         .sb-logo-icon {
           width: 44px;
@@ -228,16 +242,62 @@ export default function Sidebar() {
           background: #fdecea;
           border-color: #f9b5b2;
         }
+
+        .sb-close {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 999px;
+          border: 1px solid #e5e7eb;
+          background: #ffffff;
+          color: #475569;
+          flex-shrink: 0;
+        }
+
+        .sb-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 45;
+          background: rgba(15, 23, 42, 0.45);
+          backdrop-filter: blur(2px);
+        }
+
+        @media (min-width: 1024px) {
+          .sb-root {
+            width: 228px;
+            transform: translateX(0);
+          }
+
+          .sb-overlay,
+          .sb-close {
+            display: none;
+          }
+        }
       `}</style>
 
-      <aside className="sb-root">
+      {isOpen && (
+        <button
+          type="button"
+          className="sb-overlay lg:hidden"
+          onClick={onClose}
+          aria-label="Close sidebar"
+        />
+      )}
+
+      <aside className={`sb-root ${isOpen ? "open" : ""}`}>
         {/* Logo */}
         <div className="sb-logo">
-         
-          <div className="sb-logo-text">
-            <h1>Divya Darshnam</h1>
-            <p>Admin Panel</p>
+          <div className="sb-logo-row">
+            <div className="sb-logo-text">
+              <h1>Divya Darshnam</h1>
+              <p>Admin Panel</p>
+            </div>
           </div>
+          <button type="button" className="sb-close lg:hidden" onClick={onClose} aria-label="Close sidebar">
+            <FaTimes />
+          </button>
         </div>
 
         {/* Navigation */}
@@ -373,4 +433,3 @@ function SubNavItem({ to, label, active }) {
     </Link>
   );
 }
-

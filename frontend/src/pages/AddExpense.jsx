@@ -355,8 +355,8 @@ if (isEdit) {
 };
 
   return (
-    <div className="p-6">
-      <div className="bg-white rounded-2xl shadow-xl max-w-7xl mx-auto p-10">
+    <div className="px-0 py-2 sm:px-2">
+      <div className="mx-auto max-w-7xl rounded-2xl bg-white p-4 shadow-xl sm:p-6 lg:p-8">
 
       <h2 className="text-2xl font-semibold mb-10">
   {isEdit ? "Edit Expense" : "Record Expense"}
@@ -366,15 +366,15 @@ if (isEdit) {
 
 
           {/* ================= MAIN SECTION ================= */}
-<div className="grid grid-cols-12 gap-10">
+<div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
 
   {/* LEFT SIDE - FULL EXPENSE CONTENT */}
-  <div className="col-span-9">
+  <div className="xl:col-span-9">
 
     {/* HEADER SECTION */}
-<div className="grid grid-cols-12 gap-10 mb-14 items-end">
+<div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-12 xl:items-end">
 
-  <div className="col-span-3">
+  <div className="xl:col-span-3">
   <label className="text-sm font-medium text-gray-600">Date</label>
   <input
     type="date"
@@ -386,7 +386,7 @@ if (isEdit) {
   />
 </div>
 
-<div className="col-span-3">
+<div className="xl:col-span-3">
   <label className="text-sm font-medium text-gray-600">Paid Through</label>
   <select
     name="paidThrough"
@@ -403,7 +403,7 @@ if (isEdit) {
   </select>
 </div>
 
-<div className="col-span-3">
+<div className="xl:col-span-3">
   <label className="text-sm font-medium text-gray-600">Vendor</label>
   <input
     type="text"
@@ -414,7 +414,7 @@ if (isEdit) {
   />
 </div>
 
-<div className="col-span-3">
+<div className="xl:col-span-3">
   <label className="text-sm font-medium text-gray-600">
     Purchase Person
   </label>
@@ -427,7 +427,7 @@ if (isEdit) {
   />
 </div>
 
-<div className="col-span-3">
+<div className="xl:col-span-3">
   <label className="text-sm font-medium text-gray-600">
     Place of Purchase
   </label>
@@ -440,7 +440,7 @@ if (isEdit) {
   />
 </div>
 
-<div className="col-span-3">
+<div className="xl:col-span-3">
   <label className="text-sm font-medium text-gray-600">
     Invoice No
   </label>
@@ -453,7 +453,7 @@ if (isEdit) {
   />
 </div>
 
-<div className="col-span-3">
+<div className="xl:col-span-3">
   <label className="text-sm font-medium text-gray-600">Currency</label>
   <select
     name="currency"
@@ -471,7 +471,7 @@ if (isEdit) {
 <div className="border border-gray-200 rounded-2xl bg-white shadow-sm">
 
   {/* HEADER */}
-  <div className="grid grid-cols-12 bg-gray-100 px-6 py-4 text-sm font-semibold text-gray-700">
+  <div className="hidden grid-cols-12 bg-gray-100 px-6 py-4 text-sm font-semibold text-gray-700 md:grid">
     <div className="col-span-4">Expense Account</div>
     <div className="col-span-5">Notes</div>
     <div className="col-span-2 text-right">Amount</div>
@@ -482,11 +482,11 @@ if (isEdit) {
   {items.map((item, index) => (
     <div
       key={index}
-      className="grid grid-cols-12 gap-6 px-6 py-5 border-t items-center hover:bg-gray-50 transition"
+      className="grid grid-cols-1 gap-4 border-t px-4 py-5 transition hover:bg-gray-50 md:grid-cols-12 md:gap-6 md:px-6 md:items-center"
     >
 
       {/* ACCOUNT */}
-      <div className="col-span-4">
+      <div className="md:col-span-4">
        <SearchableAccountDropdown
   value={item.account?.name || ""}
   accounts={accounts}
@@ -522,7 +522,7 @@ if (isEdit) {
       </div>
 
       {/* NOTES */}
-      <div className="col-span-5">
+      <div className="md:col-span-5">
         <textarea
           rows="1"
           placeholder="Max. 500 characters"
@@ -535,7 +535,7 @@ if (isEdit) {
       </div>
 
       {/* AMOUNT */}
-      <div className="col-span-2">
+      <div className="md:col-span-2">
        <input
   type="number"
   min="0"
@@ -551,7 +551,7 @@ if (isEdit) {
       </div>
 
       {/* 3 DOT MENU */}
-      <div className="col-span-1 flex justify-end relative">
+      <div className="relative flex justify-end md:col-span-1">
         <button
           type="button"
           onClick={() =>
@@ -615,7 +615,7 @@ if (isEdit) {
   </div>
 
   {/* TOTAL */}
-  <div className="flex justify-end items-center px-6 py-6 border-t bg-gray-50">
+  <div className="flex flex-col items-end gap-2 border-t bg-gray-50 px-4 py-6 sm:px-6 sm:flex-row sm:justify-end sm:items-center">
     <span className="text-lg font-medium text-gray-700">
       Expense Total (₹)
     </span>
@@ -627,9 +627,9 @@ if (isEdit) {
   {/* GST SECTION */}
 <div className="mt-6 bg-gray-50 p-6 rounded-xl border">
 
-  <div className="grid grid-cols-12 gap-6">
+  <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-12">
 
-    <div className="col-span-3">
+    <div className="xl:col-span-3">
       <label className="text-sm text-gray-600">
         Total Before GST
       </label>
@@ -641,7 +641,7 @@ if (isEdit) {
 />
     </div>
 
-    <div className="col-span-3">
+    <div className="xl:col-span-3">
       <label className="text-sm text-gray-600">
         GST Amount
       </label>
@@ -654,7 +654,7 @@ if (isEdit) {
       />
     </div>
 
-    <div className="col-span-3">
+    <div className="xl:col-span-3">
       <label className="text-sm text-gray-600">
         Transport Charges
       </label>
@@ -667,7 +667,7 @@ if (isEdit) {
       />
     </div>
 
-    <div className="col-span-3">
+    <div className="xl:col-span-3">
       <label className="text-sm text-gray-600">
         Total After GST
       </label>
@@ -684,9 +684,9 @@ if (isEdit) {
 
 {/* PAYMENT SECTION */}
 <div className="mt-6 bg-white p-6 rounded-xl border">
-  <div className="grid grid-cols-12 gap-6">
+  <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-12">
 
-    <div className="col-span-3">
+    <div className="xl:col-span-3">
       <label className="text-sm text-gray-600">
         Amount Paid
       </label>
@@ -699,7 +699,7 @@ if (isEdit) {
       />
     </div>
 
-    <div className="col-span-3">
+    <div className="xl:col-span-3">
       <label className="text-sm text-gray-600">
         Pending Amount
       </label>
@@ -715,7 +715,7 @@ if (isEdit) {
 />
     </div>
 
-    <div className="col-span-3">
+    <div className="xl:col-span-3">
       <label className="text-sm text-gray-600">
         Status
       </label>
@@ -742,7 +742,7 @@ if (isEdit) {
   </div>
 
   {/* RIGHT SIDE - FILE UPLOAD */}
-<div className="col-span-3 space-y-6">
+<div className="space-y-6 xl:col-span-3">
 
   {/* IMAGE UPLOAD */}
   <div className="border-2 border-dashed border-blue-300 rounded-2xl p-6 bg-blue-50 text-center">
@@ -797,7 +797,7 @@ if (isEdit) {
           </div>
 
           {/* BUTTONS */}
-          <div className="flex justify-end gap-4 mt-10">
+          <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={() => navigate("/expenses")}

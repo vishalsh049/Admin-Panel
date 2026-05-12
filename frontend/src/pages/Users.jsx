@@ -143,11 +143,11 @@ alert(error.response?.data?.message || "Failed to update user");
 
 return(
 
-<div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+<div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6">
 
 {/* Header */}
 
-<div className="flex justify-between items-center mb-6">
+<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 <h2 className="text-xl font-semibold text-gray-800">Users</h2>
 
 <button
@@ -161,7 +161,7 @@ role:"sales"
 setCustomRole("");
 setShowAddModal(true);
 }}
-className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm"
+className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm w-full sm:w-auto"
 >
 + Add User
 </button>
@@ -171,7 +171,7 @@ className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg tex
 
 <div className="overflow-x-auto">
 
-<table className="w-full text-sm">
+<table className="w-full min-w-[760px] text-sm">
 
 <thead>
 <tr className="text-left text-gray-500 border-b">
@@ -272,9 +272,9 @@ Delete
 
 {resetUser && (
 
-<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
 
-<div className="bg-white p-6 rounded-xl w-96 shadow-lg">
+<div className="responsive-modal-panel bg-white p-6 rounded-xl w-full max-w-md shadow-lg">
 
 <h2 className="text-lg font-semibold mb-4">
 Reset Password
@@ -318,9 +318,9 @@ Update
 
 {showAddModal && (
 
-<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
 
-<div className="bg-white w-[420px] p-6 rounded-xl shadow-xl">
+<div className="responsive-modal-panel bg-white w-full max-w-[420px] p-6 rounded-xl shadow-xl">
 
 <h2 className="text-lg font-semibold mb-4">
 Add New User
@@ -382,7 +382,7 @@ onChange={(e)=>setCustomRole(e.target.value)}
 
 </div>
 
-<div className="flex justify-end gap-2 mt-5">
+<div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
 
 <button
 onClick={()=>setShowAddModal(false)}
@@ -408,9 +408,9 @@ Create User
 
 {editUser && (
 
-<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
 
-<div className="bg-white w-[420px] p-6 rounded-xl shadow-xl">
+<div className="responsive-modal-panel bg-white w-full max-w-[420px] p-6 rounded-xl shadow-xl">
 
 <h2 className="text-lg font-semibold mb-4">
 Edit User
@@ -465,7 +465,7 @@ className="w-full border rounded-lg px-3 py-2"
 
 </div>
 
-<div className="flex justify-end gap-2 mt-5">
+<div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
 
 <button
 onClick={()=>setEditUser(null)}

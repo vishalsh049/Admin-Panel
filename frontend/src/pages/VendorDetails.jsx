@@ -14,7 +14,7 @@ export default function VendorDetails() {
 
   if (!vendor) {
     return (
-      <div className="bg-white p-6 rounded shadow text-red-600">
+      <div className="rounded bg-white p-4 shadow text-red-600 sm:p-6">
         Vendor not found
       </div>
     );
@@ -32,20 +32,20 @@ export default function VendorDetails() {
   return (
 
 
-    <div className="bg-white p-6 rounded shadow">
+    <div className="rounded bg-white p-4 shadow sm:p-6">
 
       <Link to="/vendors" className="text-blue-600">
         ← Back to Vendors
       </Link>
 
 
-      <div className="flex justify-between items-center mb-6 pt-4">
+      <div className="mb-6 flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
 
 
         <h2 className="text-2xl font-semibold">Vendor Details</h2>
         <Link
           to={`/vendors/edit/${vendor.id}`}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          className="rounded bg-blue-600 px-4 py-2 text-white w-full sm:w-auto"
         >
           Edit Vendor
         </Link>
@@ -67,7 +67,7 @@ export default function VendorDetails() {
       <p><b>PAN:</b> {vendorDetails.pan || "Not provided"}</p>
 
       {/* ADDRESS */}
-      <div className="grid grid-cols-2 gap-10 mt-6">
+      <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div>
           <h3 className="font-semibold mb-2">Billing Address</h3>
 

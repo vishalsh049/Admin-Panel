@@ -5,6 +5,53 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+table,
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+.responsive-modal-panel {
+  width: min(100%, 42rem);
+  max-height: min(90vh, 900px);
+  overflow-y: auto;
+}
+
+.responsive-table {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ===================================== */
  /* PREMIUM SAAS STYLES - ORDERS DASHBOARD */
  /* ===================================== */
@@ -447,6 +494,42 @@
 
 @media screen and (max-width: 900px) {
   .invoice-sheet {
-    width: 794px;
+    width: 100%;
+    min-height: auto;
+    padding: 20px 16px;
+    border-radius: 20px;
+    box-shadow: 0 14px 40px rgba(15, 23, 42, 0.1);
+  }
+
+  .invoice-header {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .invoice-brand,
+  .invoice-header-copy {
+    justify-content: center;
+  }
+
+  .invoice-logo {
+    margin: 0 auto;
+  }
+
+  .invoice-two-col,
+  .invoice-meta,
+  .invoice-footer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-summary-wrap {
+    justify-content: stretch;
+  }
+
+  .invoice-summary-card {
+    width: 100%;
+  }
+
+  .invoice-table {
+    min-width: 720px;
   }
 }
