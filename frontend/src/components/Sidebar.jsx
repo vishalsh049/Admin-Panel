@@ -38,23 +38,24 @@ export default function Sidebar({ isOpen, onClose }) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        .sb-root {
-          font-family: 'Inter', sans-serif;
-          width: min(86vw, 228px);
-          max-width: 228px;
-          height: 100vh;
-          position: fixed;
-          left: 0;
-          top: 0;
-          z-index: 50;
-          display: flex;
-          flex-direction: column;
-          background: #ffffff;
-          border-right: 1px solid #e8eaf0;
-          overflow: hidden;
-          transform: translateX(-100%);
-          transition: transform 0.25s ease;
-        }
+       .sb-root {
+  font-family: 'Inter', sans-serif;
+  width: 260px;
+  max-width: 85vw;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid #e8eaf0;
+  overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
         .sb-root.open {
           transform: translateX(0);
         }
@@ -305,7 +306,7 @@ export default function Sidebar({ isOpen, onClose }) {
           <ul>
             <p className="sb-section">Main</p>
 
-            <NavItem to="/dashboard" iconClass="purple" icon={<FaHome />} label="Dashboard" active={isActive("/dashboard")} />
+            <NavItem to="/dashboard" onClose={onClose} iconClass="purple" icon={<FaHome />} label="Dashboard" active={isActive("/dashboard")} />
             {role === "admin" && (
               <NavItem to="/analytics" iconClass="indigo" icon={<FaChartLine />} label="Analytics" active={isActive("/analytics")} />
             )}
@@ -396,10 +397,14 @@ export default function Sidebar({ isOpen, onClose }) {
   );
 }
 
-function NavItem({ to, icon, label, active, iconClass }) {
+function NavItem({ to, icon, label, active, iconClass, onClose }) {
   return (
     <li>
-      <Link to={to} className={`sb-item${active ? " active" : ""}`}>
+      <Link
+       to={to}
+       onClick={onClose}
+       className={`sb-item${active ? " active" : ""}`} 
+       >
         <span className={`sb-icon ${iconClass}`}>
           {React.cloneElement(icon, { style: { width: 13, height: 13 } })}
         </span>

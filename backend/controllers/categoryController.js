@@ -59,18 +59,56 @@ exports.addCategory = async (req, res) => {
 exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
 
-    await Category.update(
-      { name },
-      { where: { id } }
-    );
+    let {
+      name,
+      slug,
+      description,
+      parent_id
+    } = req.body;
 
-    const updatedCategory = await Category.findByPk(id);
+    if (!name || name.trim() === "") {
+      return res.status(400).json({
+        error: "Category name required",
+      });
+    }
 
-    res.json(updatedCategory);
+    // ✅ AUTO GENERATE SLUG
+    if (!slug || slug.trim() === "") {
+      slug = name
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-");
+    }
+
+    const category = await Category.findByPk(id);
+
+    if (!category) {
+      return res.status(404).json({
+        error: "Category not found",
+      });
+    }
+
+    await category.update({
+      name,
+      slug,
+      description: description || null,
+      parent_id: parent_id || null,
+    });
+
+    res.json({
+      success: true,
+      category,
+    });
+
   } catch (err) {
-    res.status(400).json({ error: "Update failed" });
+    console.error(err);
+
+    res.status(400).json({
+      error: "Update failed",
+    });
   }
 };
 
@@ -79,13 +117,20 @@ exports.deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await Category.update(
-      { status: "Inactive" },
-      { where: { id } }
-    );
+    await Category.destroy({
+      where: { id }
+    });
 
-    res.json({ success: true });
+    res.json({
+      success: true,
+      message: "Category deleted permanently",
+    });
+
   } catch (err) {
-    res.status(400).json({ error: "Delete failed" });
+    console.error(err);
+
+    res.status(400).json({
+      error: "Delete failed",
+    });
   }
 };

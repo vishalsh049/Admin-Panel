@@ -7,6 +7,7 @@ export default function Categories() {
   const [slug, setSlug] = useState("");
   const [parentId, setParentId] = useState("");
   const [description, setDescription] = useState("");
+  const [editingId, setEditingId] = useState(null);
 
   const buildTree = (data) => {
     const map = {};
@@ -54,23 +55,64 @@ export default function Categories() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ❌ DELETE CATEGORY
+const handleDelete = async (id) => {
+  if (!window.confirm("Delete this category?")) return;
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/categories/${id}`, {
+      method: "DELETE",
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "Delete failed");
+      return;
+    }
+
+    alert("Category Deleted ✅");
+
+    fetchCategories();
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong");
+  }
+};
+
+// ✏️ EDIT CATEGORY
+const handleEdit = (category) => {
+  setEditingId(category.id);
+
+  setName(category.name || "");
+  setSlug(category.slug || "");
+  setDescription(category.description || "");
+  setParentId(category.parent_id || "");
+};
+
   // ➕ ADD CATEGORY
   const handleAdd = async () => {
     if (!name.trim()) return alert("Name required");
 
     try {
-      const res = await fetch(`${BASE_URL}/api/categories`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          slug,
-          description: description || "",
-          parent_id: parentId ? Number(parentId) : null,
-        }),
-      });
+      const url = editingId
+  ? `${BASE_URL}/api/categories/${editingId}`
+  : `${BASE_URL}/api/categories`;
+
+const method = editingId ? "PUT" : "POST";
+
+const res = await fetch(url, {
+  method,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    name,
+    slug,
+    description: description || "",
+    parent_id: parentId ? Number(parentId) : null,
+  }),
+});
 
       const data = await res.json();
       console.log("Backend response:", data);
@@ -80,15 +122,20 @@ export default function Categories() {
         return;
       }
 
-      alert("Category Added ✅");
+      alert(
+      editingId
+    ? "Category Updated ✅"
+    : "Category Added ✅"
+);
 
       // reset form
       setName("");
       setSlug("");
       setDescription("");
       setParentId("");
+      setEditingId(null);
 
-      fetchCategories();
+   fetchCategories();
     } catch (err) {
       console.error("Error:", err);
     }
@@ -152,19 +199,21 @@ export default function Categories() {
 
           <td className="py-3">
             <div className="flex items-center gap-2">
-              <button
-                className="inline-flex items-center justify-center rounded-lg border border-indigo-100 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50/70 transition"
-                type="button"
-              >
-                Edit
-              </button>
+             <button
+             onClick={() => handleEdit(node)}
+            className="inline-flex items-center justify-center rounded-lg border border-indigo-100 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50/70 transition"
+            type="button"
+                >
+              Edit
+          </button>
 
-              <button
-                className="inline-flex items-center justify-center rounded-lg border border-red-100 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50/70 transition"
-                type="button"
-              >
-                Delete
-              </button>
+            <button
+  onClick={() => handleDelete(node.id)}
+  className="inline-flex items-center justify-center rounded-lg border border-red-100 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50/70 transition"
+  type="button"
+>
+  Delete
+</button>
             </div>
           </td>
         </tr>
@@ -286,7 +335,7 @@ export default function Categories() {
             className="w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:shadow-md transition focus:ring-2 focus:ring-indigo-500/25"
             type="button"
           >
-            Add Category
+           {editingId ? "Update Category" : "Add Category"}
           </button>
         </section>
 
