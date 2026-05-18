@@ -12,6 +12,7 @@ export default function ViewSaleBill() {
      const navigate = useNavigate();
      const [date, setDate] = useState("");
      const [paymentMethod, setPaymentMethod] = useState("Prepaid");
+     const [fetching, setFetching] = useState(false);
      const [shippingCharge, setShippingCharge] = useState(0);
      const [status, setStatus] = useState("Pending");
      const invoiceRef = useRef();

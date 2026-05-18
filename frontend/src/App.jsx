@@ -12,7 +12,6 @@ import Analytics from "./pages/Analytics";
 import Customers from "./pages/Customers";
 import SaleBills from "./pages/SaleBills";
 import AddSaleBill from "./pages/AddSaleBill";
-import ViewSaleBill from "./pages/ViewSaleBill";
 import EditSaleBill from "./pages/EditSaleBill";
 
 import Orders from "./pages/Orders";
@@ -118,8 +117,11 @@ function AppRoutes({ token }) {
 
               <Route path="/sale-bills" element={<SaleBills />} />
               <Route path="/add-sale-bill" element={<AddSaleBill />} />
-              <Route path="/sale-bills/:id" element={<ViewSaleBill />} />
-              <Route path="/edit-sale-bill/:id" element={<EditSaleBill />} />
+              <Route path="/sale-bills/:id" element={<EditSaleBill />} />
+              <Route
+                path="/edit-sale-bill/:id"
+                element={<Navigate to={location.pathname.replace("/edit-sale-bill/", "/sale-bills/")} replace />}
+              />
 
               <Route path="/orders" element={<Orders />} />
               <Route path="/orders/:id" element={<OrderDetails />} />

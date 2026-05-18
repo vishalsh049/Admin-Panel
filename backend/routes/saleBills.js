@@ -250,12 +250,31 @@ router.put("/:id", async (req, res) => {
 
     const sql = `
     UPDATE sale_bills
-    SET customer = ?, phone = ?, email = ?, address = ?, city = ?, state = ?, pincode = ?,
-        shipping_first_name = ?, shipping_last_name = ?, shipping_phone = ?, shipping_email = ?,
-        shipping_address = ?, shipping_city = ?, shipping_state = ?, shipping_pincode = ?,
-        date = ?, status = ?, payment_method = ?, subtotal = ?, discount = ?, shipping_charge = ?,
-         cgst = ?, sgst = ?, igst = ?, total = ?
-    WHERE id = ?
+   SET billing_name = ?, 
+billing_phone = ?, 
+billing_email = ?, 
+billing_address = ?, 
+billing_city = ?, 
+billing_state = ?, 
+billing_pincode = ?,
+
+shipping_name = ?, 
+shipping_phone = ?, 
+shipping_address = ?, 
+shipping_city = ?, 
+shipping_state = ?, 
+shipping_pincode = ?,
+
+order_date = ?, 
+status = ?, 
+payment_method = ?, 
+subtotal = ?, 
+discount = ?, 
+shipping_charge = ?,
+gst_amount = ?, 
+total_amount = ?
+
+WHERE id = ?
     `;
 
     await sequelize.query(sql, {
@@ -267,10 +286,8 @@ router.put("/:id", async (req, res) => {
         bill.city || null,
         bill.state || null,
         bill.pincode || null,
-        bill.shipping?.firstName || null,
-        bill.shipping?.lastName || null,
+        `${bill.shipping?.firstName || ""} ${bill.shipping?.lastName || ""}`.trim() || null,
         bill.shipping?.phone || null,
-        bill.shipping?.email || null,
         bill.shipping?.address || null,
         bill.shipping?.city || null,
         bill.shipping?.state || null,
@@ -281,9 +298,7 @@ router.put("/:id", async (req, res) => {
         bill.subtotal || 0,
         bill.discount || 0,
         bill.shippingCharge || bill.shipping_charge || 0,
-        bill.cgst || 0,
-        bill.sgst || 0,
-        bill.igst || 0,
+        (bill.igst || 0) + (bill.cgst || 0) + (bill.sgst || 0),
         bill.total || bill.grandTotal || 0,
         billId
       ],

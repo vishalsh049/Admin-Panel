@@ -317,7 +317,7 @@ export default function Dashboard() {
           <div className="xl:col-span-2 bg-white/70 rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-[0_35px_90px_-60px_rgba(99,102,241,0.28)] backdrop-blur">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">Revenue & Expenses</h3>
+                <h3 className="text-xl sm:text-xl font-extrabold text-slate-900">Revenue & Expenses</h3>
                 <p className="text-sm text-slate-500 mt-1">
                   {filterPeriod === "today"
                     ? "Today's breakdown"

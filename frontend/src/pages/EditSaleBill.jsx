@@ -12,6 +12,7 @@ export default function EditSaleBill() {
      const [date, setDate] = useState("");
      const [orderId, setOrderId] = useState("");
      const [paymentMethod, setPaymentMethod] = useState("Prepaid");
+     const [fetching, setFetching] = useState(false);
      const [shippingCharge, setShippingCharge] = useState(0);
      const [status, setStatus] = useState("Pending");
 
@@ -115,26 +116,54 @@ fetch(`${BASE_URL}/api/sale-bills/${id}`)
 .then(res => res.json())
 .then(data => {
 
-const bill = data.bill;
-const items = data.items;
+console.log("EDIT API DATA", data);
 
-setDate(bill.date ? bill.date.split("T")[0] : "");
-setStatus(bill.status);
-setPaymentMethod(bill.payment_method);
+const bill = data.bill || {};
+const items = data.items || [];
+const billingNameParts = (bill.billing_name || "").trim().split(/\s+/).filter(Boolean);
+const shippingNameParts = (bill.shipping_name || "").trim().split(/\s+/).filter(Boolean);
+
+setDate(
+  bill.order_date
+    ? bill.order_date.split("T")[0]
+    : ""
+);
+
+setCustomer(bill.billing_name || "");
+setStatus(bill.status || "Pending");
+setPaymentMethod(bill.payment_method || "Prepaid");
+setShippingCharge(Number(bill.shipping_charge) || 0);
+setDiscount(Number(bill.discount) || 0);
 
 setBilling({
-firstName: bill.customer?.split(" ")[0] || "",
-lastName: bill.customer?.split(" ")[1] || "",
-phone: bill.phone || "",
-email: bill.email || "",
-address: bill.address || "",
-city: bill.city || "",
-state: bill.state || "",
-pincode: bill.pincode || "",
-country:"IN",
-landmark:"",
-company:"",
-gstin:""
+  firstName: billingNameParts[0] || "",
+  lastName: billingNameParts.slice(1).join(" "),
+  phone: bill.billing_phone || "",
+  email: bill.billing_email || "",
+  address: bill.billing_address || "",
+  city: bill.billing_city || "",
+  state: bill.billing_state || "",
+  pincode: bill.billing_pincode || "",
+  country: "IN",
+  landmark: "",
+  company: "",
+  gstin: ""
+});
+
+setShipping({
+  firstName: shippingNameParts[0] || "",
+  lastName: shippingNameParts.slice(1).join(" "),
+  phone: bill.shipping_phone || "",
+  altPhone: "",
+  email: bill.shipping_email || "",
+  address: bill.shipping_address || "",
+  city: bill.shipping_city || "",
+  country: "IN",
+  state: bill.shipping_state || "",
+  pincode: bill.shipping_pincode || "",
+  company: "",
+  gstin: "",
+  landmark: ""
 });
 
 setItems(
@@ -375,6 +404,7 @@ const billData = {
   paymentMethod: paymentMethod,
   subtotal: subtotal,
   discount: discount,
+  shippingCharge: shippingCharge,
   cgst: cgst,
   sgst: sgst,
   igst: igst,
@@ -409,8 +439,11 @@ navigate("/sale-bills");
 
 const fetchOrder = async () => {
 
+setFetching(true);
+
 if (!orderId) {
 alert("Enter Order ID");
+setFetching(false);
 return;
 }
 
@@ -501,6 +534,7 @@ total: rate * qty
 );
 
 alert("Order loaded successfully");
+setFetching(false);
 
 } catch (error) {
 
@@ -535,10 +569,43 @@ alert("Order not found. You can create bill manually.");
                <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
 
                     <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                         <h2 className="text-2xl font-semibold break-words">Edit Sale Bill</h2>
+                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                              <button
+                                   type="button"
+                                   onClick={() => navigate("/sale-bills")}
+                                   className="rounded-md bg-gray-200 px-4 py-2 text-sm text-gray-800"
+                              >
+                                   Back
+                              </button>
+                              <h2 className="text-2xl font-semibold break-words">View Sale Bill</h2>
+                         </div>
 
-                         <div className="text-sm text-gray-500 break-words">
-                              Edit Existing Sale Bill
+                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                              <div className="text-sm text-gray-500 break-words">
+                                   Review and update this sale bill
+                              </div>
+                              <button
+                                   type="button"
+                                   onClick={() =>
+                                        navigate(`/invoice/${id}`, {
+                                             state: {
+                                                  billing,
+                                                  shipping,
+                                                  items,
+                                                  grandTotal,
+                                                  date,
+                                                  shippingCharge,
+                                                  subtotal,
+                                                  discount,
+                                                  paymentMethod,
+                                                  status
+                                             }
+                                        })
+                                   }
+                                   className="rounded-lg bg-green-600 px-4 py-2 text-sm text-white sm:w-auto"
+                              >
+                                   Generate Invoice
+                              </button>
                          </div>
                     </div>
 
@@ -557,14 +624,14 @@ alert("Order not found. You can create bill manually.");
                                         value={orderId}
                                         onChange={(e) => setOrderId(e.target.value)}
                                    />
-
-                                   <button
-                                        type="button"
-                                        onClick={fetchOrder}
-                                        className="mt-1 rounded-md bg-blue-600 px-3 py-2 text-sm text-white sm:mt-0"
-                                   >
-                                        Fetch
-                                   </button>
+<button
+type="button"
+onClick={fetchOrder}
+disabled={fetching}
+className="mt-1 rounded-md bg-blue-600 px-3 py-2 text-sm text-white sm:mt-0 disabled:bg-gray-400"
+>
+{fetching ? "Fetching..." : "Fetch"}
+</button>
 
                               </div>
                          </div>
@@ -1229,6 +1296,29 @@ className="border border-gray-300 rounded-md px-3 py-1 w-20 max-w-full text-righ
                     {/* Save Button */}
 
                     <div className="mt-8 flex flex-col gap-4 border-t pt-6 sm:flex-row">
+                         <button
+                              type="button"
+                              onClick={() =>
+                                   navigate(`/invoice/${id}`, {
+                                        state: {
+                                             billing,
+                                             shipping,
+                                             items,
+                                             grandTotal,
+                                             date,
+                                             shippingCharge,
+                                             subtotal,
+                                             discount,
+                                             paymentMethod,
+                                             status
+                                        }
+                                   })
+                              }
+                              className="rounded-lg bg-emerald-600 px-6 py-3 text-white sm:w-auto"
+                         >
+                              Generate Invoice
+                         </button>
+
                          <button
                               type="button"
                               onClick={saveBill}

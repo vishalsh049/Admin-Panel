@@ -392,58 +392,17 @@ export default function SaleBills() {
                             ₹{Number(bill.total_amount || 0).toFixed(2)}
                           </span>
                         </td>
-
-                        <td className="px-4 py-2 text-center w-24" onClick={(e) => e.stopPropagation()}>
-                          <div className="relative inline-block" ref={menuRef}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenu(openMenu === bill.id ? null : bill.id);
-                              }}
-                              className=" h-9 rounded-full hover:bg-slate-50 transition-colors flex items-center justify-center text-slate-600"
-                              aria-label="Row menu"
-                            >
-                              ⋮
-                            </button>
-
-                            {openMenu === bill.id && (
-                              <div className="absolute right-0 mt-2 w-32 bg-white border border-slate-200 rounded-2xl shadow-[0_20px_60px_-35px_rgba(2,6,23,0.35)] z-20 overflow-hidden">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/sale-bills/${bill.id}`);
-                                    setOpenMenu(null);
-                                  }}
-                                  className="block w-full text-left px-2 py-2 hover:bg-slate-50 text-slate-800 font-semibold text-sm"
-                                >
-                                  View
-                                </button>
-
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/edit-sale-bill/${bill.id}`);
-                                    setOpenMenu(null);
-                                  }}
-                                  className="block w-full text-left px-2 py-2 hover:bg-slate-50 text-slate-800 font-semibold text-sm"
-                                >
-                                  Edit
-                                </button>
-
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(bill.id);
-                                    setOpenMenu(null);
-                                  }}
-                                  className="block w-full text-left px-2 py-2 hover:bg-slate-50 text-rose-700 font-semibold text-sm"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </td>
+<td className="px-4 py-2 text-center w-24">
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      handleDelete(bill.id);
+    }}
+    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
+  >
+    Delete
+  </button>
+</td>
                       </tr>
                     ))
                   )}

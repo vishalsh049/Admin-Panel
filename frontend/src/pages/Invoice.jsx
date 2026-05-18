@@ -99,8 +99,8 @@ export default function Invoice() {
       {/* INVOICE */}
       <div
         ref={printRef}
-        className="max-w-3xl mx-auto bg-white rounded-3xl border border-gray-200 shadow-sm px-5 py-2"
-      >
+         className="max-w-3xl mx-auto bg-white rounded-3xl px-5 py-2"
+           >
 
         {/* HEADER */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-gray-200 mb-3">
@@ -126,13 +126,13 @@ export default function Invoice() {
           {/* BILLING */}
           <div className="border border-gray-200 rounded-2xl overflow-hidden">
 
-            <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
-              <h3 className="text-xs font-medium uppercase tracking-wider">
+            <div className="bg-gray-50 border-b border-gray-200 px-4">
+              <h3 className="text-xs font-medium uppercase tracking-wider pb-3">
                 Billing Address
               </h3>
             </div>
 
-            <div className="py-2 px-4 text-gray-700 leading-6">
+            <div className=" px-4 text-gray-700 leading-6 pb-3">
 
               <p className="font-medium text-xs text-gray-900">
                 {[billing?.firstName, billing?.lastName]
@@ -160,13 +160,13 @@ export default function Invoice() {
           {/* SHIPPING */}
           <div className="border border-gray-200 rounded-2xl overflow-hidden">
 
-            <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
-              <h3 className="text-xs font-medium uppercase tracking-wider">
+            <div className="bg-gray-50 border-b border-gray-200 px-4">
+              <h3 className="text-xs font-medium uppercase tracking-wider pb-3">
                 Shipping Address
               </h3>
             </div>
 
-            <div className="py-2 px-4 text-gray-700 leading-6">
+            <div className="pb-1 px-4 text-gray-700 leading-6">
 
               <p className="text-xs font-medium text-gray-900">
                 {[shipping?.firstName, shipping?.lastName]
@@ -193,34 +193,34 @@ export default function Invoice() {
         </div>
 
         {/* Invoice, payment method */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2 ">
 
-          <div className="md:col-span-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2">
-            <p className="text-xs uppercase text-gray-500 ">
+          <div className="md:col-span-1 bg-gray-50 border border-gray-200 rounded-2xl px-4">
+            <p className="text-xs uppercase text-gray-500  ">
               Invoice No.
             </p>
 
-            <h4 className="font-medium text-xs text-gray-900">
+            <h4 className="font-medium text-xs text-gray-900 pb-2">
               {invoiceNumber}
             </h4>
           </div>
 
-          <div className="md:col-span-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2">
+          <div className="md:col-span-1 bg-gray-50 border border-gray-200 rounded-2xl px-4">
             <p className="text-xs uppercase text-gray-500">
               Invoice Date
             </p>
 
-            <h4 className="font-medium text-xs text-gray-900">
+            <h4 className="font-medium text-xs text-gray-900 pb-2">
               {date}
             </h4>
           </div>
 
-          <div className="md:col-span-2 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2">
+          <div className="md:col-span-2 bg-gray-50 border border-gray-200 rounded-2xl px-4">
             <p className="text-xs uppercase text-gray-500">
               Payment Method
             </p>
 
-            <h4 className="font-medium text-xs text-gray-900">
+            <h4 className="font-medium text-xs text-gray-900 pb-2">
               {paymentMethod}
             </h4>
           </div>
@@ -231,43 +231,43 @@ export default function Invoice() {
 
   <table className="w-full border border-gray-200 border-collapse">
 
-    <thead className="bg-slate-900 text-white">
+    <thead className="bg-gray-200 text-slate uppercase">
 
       <tr>
 
-        <th className="border border-gray-300 px-3 py-2 text-xs">
+        <th className="border border-gray-300 px-3 pb-3 text-xs">
           #
         </th>
 
-        <th className="border border-gray-300 px-3 py-2 text-left text-xs">
+        <th className="border border-gray-300 px-3 pb-3 text-left text-xs">
           Product
         </th>
 
-        <th className="border border-gray-300 px-3 py-2 text-xs">
+        <th className="border border-gray-300 px-3 pb-3 text-xs">
           SKU
         </th>
 
-        <th className="border border-gray-300 px-3 py-2 text-xs">
+        <th className="border border-gray-300 px-3 pb-3 text-xs">
           HSN
         </th>
 
-        <th className="border border-gray-300 px-3 py-2 text-xs">
-          Qty
+        <th className="border border-gray-300 px-3 pb-3 text-xs">
+          Qty 
         </th>
 
-        <th className="border border-gray-300 px-3 py-2 text-xs">
+        <th className="border border-gray-300 px-3 pb-3 text-xs">
           Price
         </th>
 
-        <th className="border border-gray-300 px-3 py-2 text-xs">
+        <th className="border border-gray-300 px-3 pb-3 text-xs">
           GST%
         </th>
 
-        <th className="border border-gray-300 px-3 py-2 text-xs">
+        <th className="border border-gray-300 px-3 pb-3 text-xs">
           Tax
         </th>
 
-        <th className="border border-gray-300 px-3 py-2 text-xs">
+        <th className="border border-gray-300 px-3 pb-3 text-xs">
           Total
         </th>
 
@@ -294,39 +294,39 @@ export default function Invoice() {
             className="border border-gray-200"
           >
 
-            <td className="border border-gray-200 px-3 py-2 text-sm text-center">
+            <td className="border border-gray-200 px-3 pb-3 text-sm text-center">
               {index + 1}
             </td>
 
-            <td className="border border-gray-200 px-3 py-2 text-xs text-left">
+            <td className="border border-gray-200 px-3 pb-3 text-xs text-left">
               {item.description || "-"}
             </td>
 
-            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+            <td className="border border-gray-200 px-3 pb-3 text-xs text-center">
               {item.sku || "-"}
             </td>
 
-            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+            <td className="border border-gray-200 px-3 pb-3 text-xs text-center">
               {item.hsn || "-"}
             </td>
 
-            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+            <td className="border border-gray-200 px-3 pb-3 text-xs text-center">
               {qty}
             </td>
 
-            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+            <td className="border border-gray-200 px-3 pb-3 text-xs text-center">
               {formatCurrency(rate)}
             </td>
 
-            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+            <td className="border border-gray-200 px-3 pb-3 text-xs text-center">
               {gst}%
             </td>
 
-            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+            <td className="border border-gray-200 px-3 pb-3 text-xs text-center">
               {formatCurrency(tax)}
             </td>
 
-            <td className="border border-gray-200 px-3 py-2 text-xs text-center">
+            <td className="border border-gray-200 px-3 pb-3 text-xs text-center">
               {formatCurrency(total)}
             </td>
 
@@ -341,90 +341,84 @@ export default function Invoice() {
 </div>
 
         {/* SUMMARY */}
-        <div className="flex justify-end mb-3">
+       <div className="flex justify-end mb-3">
 
-          <div className="w-full md:w-[380px] border border-gray-200 rounded-2xl bg-gray-50 px-4 py-2">
+  <div className="w-full border border-gray-200 rounded-2xl bg-gray-50 px-4">
 
-            <div className="space-y-1">
+     <div className="flex flex-wrap items-center justify-between pb-3 text-xs gap-4">
 
-              <div className="flex justify-between text-xs">
-                <span>Subtotal</span>
+  <div className="flex items-center gap-1">
+    <span>Subtotal</span>
+    <span className="font-semibold">
+      {formatCurrency(subtotal)}
+    </span>
+  </div>
 
-                <span>
-                  {formatCurrency(subtotal)}
-                </span>
-              </div>
+  <div className="flex items-center gap-1">
+    <span>Discount</span>
+    <span className="font-semibold">
+      {formatCurrency(discount)}
+    </span>
+  </div>
 
-              <div className="flex justify-between text-xs">
-                <span>Discount</span>
+  <div className="flex items-center gap-1">
+    <span>Taxable Amount</span>
+    <span className="font-semibold">
+      {formatCurrency(taxableAmount)}
+    </span>
+  </div>
 
-                <span className="font-small">
-                  {formatCurrency(discount)}
-                </span>
-              </div>
+  <div className="flex items-center gap-1">
+    <span>Shipping</span>
+    <span className="font-semibold">
+      {formatCurrency(shippingCharge)}
+    </span>
+  </div>
 
-              <div className="flex justify-between text-xs">
-                <span>Taxable Amount</span>
+  <div className="flex items-center gap-1">
+    <span>GST</span>
+    <span className="font-semibold">
+      {formatCurrency(gstAmount)}
+    </span>
+  </div>
 
-                <span>
-                  {formatCurrency(taxableAmount)}
-                </span>
-              </div>
+  <div className="flex items-center gap-1 text-xs font-semibold">
+    <span>Total</span>
+    <span>
+      {formatCurrency(grandTotal)}
+    </span>
+  </div>
 
-              <div className="flex justify-between text-xs">
-                <span>Shipping</span>
-
-                <span>
-                  {formatCurrency(shippingCharge)}
-                </span>
-              </div>
-
-              <div className="flex justify-between text-xs">
-                <span>GST</span>
-
-                <span>
-                  {formatCurrency(gstAmount)}
-                </span>
-              </div>
-
-              <div className="border-t border-gray-300 pt-1 flex justify-between text-sm font-semibold">
-                <span>Total</span>
-
-                <span>
-                  {formatCurrency(grandTotal)}
-                </span>
-              </div>
-
-            </div>
+</div>
 
           </div>
         </div>
 
-        {/* FOOTER */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+     {/* FOOTER */}
+<div className="grid grid-cols-1 md:grid-cols-[0.8fr_1.2fr] gap-2">
 
           {/* SUPPLIER */}
-          <div className="border border-gray-200 rounded-2xl overflow-hidden">
+          <div className="border border-gray-200 rounded-2xl overflow-hidden pb-2">
 
-            <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider">
+            <div className="bg-gray-50 border-b border-gray-200 px-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider pb-2">
                 Supplier Details
               </h3>
             </div>
 
-            <div className="px-4 py-2 leading-6 text-gray-700">
+            <div className="px-4 leading-6 text-gray-700">
 
-              <p className="text-sm text-gray-900">
+              <p className="text-xs text-gray-900">
                 Pingoria Enterprises
               </p>
 
-              <p className="text-sm">Address: Sector-71, Mohali</p>
+              <p className="text-xs">Address: Sector-71, Mohali</p>
 
-              <p className="text-sm">GSTIN: 03DPIPP8445E1ZR</p>
+              <p className="text-xs">GSTIN: 03DPIPP8445E1ZR</p>
 
-              <p className="text-sm">State: Punjab | State Code: 03</p>
+              <p className="text-xs">State: Punjab | State Code: 03</p>
 
-              <p className="text-sm">
+              <p className="text-xs">
                 Email: info@divyadarshnam.com
               </p>
 
@@ -433,29 +427,29 @@ export default function Invoice() {
 
             {/* TERMS & CONDITIONS */}
 
-<div className="border border-gray-200 rounded-2xl overflow-hidden">
+<div className="border border-gray-200 rounded-2xl overflow-hidden ">
 
-  <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
-    <h3 className="text-xs font-semibold uppercase tracking-wider">
+  <div className="bg-gray-50 border-b border-gray-200 px-4">
+    <h3 className="text-xs font-semibold uppercase tracking-wider pb-2">
       Terms & Conditions
     </h3>
   </div>
 
-  <div className="px-4 py-2 text-gray-700 leading-6">
+  <div className="px-4 text-gray-700 leading-6">
 
-    <p className="text-sm">
+    <p className="text-xs">
       1. We do not accept returns or exchanges for custom or puja items.
     </p>
 
-    <p className="text-sm">
+    <p className="text-xs">
       2. All prices are in INR (₹) including taxes unless stated otherwise.
     </p>
 
-    <p className="text-sm">
+    <p className="text-xs">
       3. Goods once dispatched will not be taken back.
     </p>
 
-    <p className="text-sm">
+    <p className="text-xs">
       4. Contact: info@divyadarshnam.com
     </p>
 
@@ -467,8 +461,8 @@ export default function Invoice() {
 
 <div className="md:col-span-2 border border-gray-200 rounded-2xl overflow-hidden">
 
-  <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
-    <h3 className="text-xs font-semibold uppercase tracking-wider">
+  <div className="bg-gray-50 border-b border-gray-200 px-4 py-1">
+    <h3 className="text-xs font-semibold uppercase tracking-wider pb-2">
       Authorized Signature
     </h3>
   </div>
