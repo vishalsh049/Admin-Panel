@@ -1,147 +1,180 @@
 const express = require("express");
-const router = express.Router();
-const sequelize = require("../config/db");
 const bcrypt = require("bcryptjs");
 const { QueryTypes } = require("sequelize");
+const sequelize = require("../config/db");
+const ensureUserColumns = require("../utils/ensureUserColumns");
 
-/* GET ALL USERS */
+const router = express.Router();
+
+const normalizeEmail = (email) => email?.trim().toLowerCase() || "";
+const normalizeName = (name, email) => {
+  const trimmed = name?.trim();
+  if (trimmed) return trimmed;
+  return normalizeEmail(email).split("@")[0] || "User";
+};
+const normalizeRole = (role) => role?.trim().toLowerCase() || "staff";
 
 router.get("/", async (req, res) => {
-
   try {
+    await ensureUserColumns(sequelize);
 
     const users = await sequelize.query(
-      "SELECT id,name,email,password,role FROM users",
+      `
+      SELECT id, name, email, role, created_at
+      FROM users
+      ORDER BY id DESC
+      `,
       {
-        type: QueryTypes.SELECT
+        type: QueryTypes.SELECT,
       }
     );
 
     res.json(users);
-
   } catch (error) {
-
-    console.log(error);
-    res.status(500).json({ message: "Server error" });
-
+    console.error("GET USERS ERROR:", error);
+    res.status(500).json({ message: "Failed to load users" });
   }
-
 });
 
-router.put("/:id", async (req,res)=>{
+router.post("/", async (req, res) => {
+  try {
+    await ensureUserColumns(sequelize);
 
-try{
+    const email = normalizeEmail(req.body.email);
+    const password = req.body.password?.trim();
+    const name = normalizeName(req.body.name, email);
+    const role = normalizeRole(req.body.role);
 
-const { id } = req.params;
-const { name,email,role,password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: "Name, email, password, and role are required" });
+    }
 
-/* check if email already exists for another user */
+    const existing = await sequelize.query(
+      "SELECT id FROM users WHERE LOWER(email) = LOWER(:email)",
+      {
+        replacements: { email },
+        type: QueryTypes.SELECT,
+      }
+    );
 
-const existing = await sequelize.query(
-"SELECT id FROM users WHERE email=:email AND id!=:id",
-{
-replacements:{ email,id },
-type:QueryTypes.SELECT
-}
-);
+    if (existing.length > 0) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
 
-if(existing.length > 0){
-return res.status(400).json({message:"Email already used by another user"});
-}
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-let query = `
-UPDATE users
-SET name=:name,email=:email,role=:role
-`;
+    await sequelize.query(
+      `
+      INSERT INTO users (name, email, password, role)
+      VALUES (:name, :email, :password, :role)
+      `,
+      {
+        replacements: {
+          name,
+          email,
+          password: hashedPassword,
+          role,
+        },
+        type: QueryTypes.INSERT,
+      }
+    );
 
-let replacements = { name,email,role,id };
-
-if(password && password.trim() !== ""){
-const hash = await bcrypt.hash(password,10);
-query += ", password=:password";
-replacements.password = hash;
-}
-
-query += " WHERE id=:id";
-
-await sequelize.query(query,{
-replacements,
-type:QueryTypes.UPDATE
+    res.json({ message: "User created successfully" });
+  } catch (error) {
+    console.error("CREATE USER ERROR:", error);
+    res.status(500).json({ message: error.message || "Failed to create user" });
+  }
 });
 
-res.json({message:"User updated successfully"});
+router.put("/reset-password/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const password = req.body.password?.trim();
 
-}catch(error){
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
 
-console.error("UPDATE USER ERROR:", error);
-res.status(500).json({message:"Failed to update user"});
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-}
+    await sequelize.query("UPDATE users SET password = :password WHERE id = :id", {
+      replacements: { id, password: hashedPassword },
+      type: QueryTypes.UPDATE,
+    });
 
+    res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("RESET PASSWORD ERROR:", error);
+    res.status(500).json({ message: "Failed to update password" });
+  }
 });
 
-router.post("/", async (req,res)=>{
+router.put("/:id", async (req, res) => {
+  try {
+    await ensureUserColumns(sequelize);
 
-try{
+    const { id } = req.params;
+    const email = normalizeEmail(req.body.email);
+    const name = normalizeName(req.body.name, email);
+    const role = normalizeRole(req.body.role);
+    const password = req.body.password?.trim();
 
-const { name,email,password,role } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
 
-console.log("Incoming Data:", req.body);
+    const existing = await sequelize.query(
+      "SELECT id FROM users WHERE LOWER(email) = LOWER(:email) AND id != :id",
+      {
+        replacements: { email, id },
+        type: QueryTypes.SELECT,
+      }
+    );
 
-if(!name || !email || !password || !role){
- return res.status(400).json({message:"All fields required"});
-}
+    if (existing.length > 0) {
+      return res.status(400).json({ message: "Email already used by another user" });
+    }
 
-const hash = await bcrypt.hash(password,10);
+    let query = `
+      UPDATE users
+      SET name = :name, email = :email, role = :role
+    `;
 
-await sequelize.query(
-`INSERT INTO users (name,email,password,role)
-VALUES (:name,:email,:password,:role)`,
-{
-replacements:{
-name,
-email,
-password:hash,
-role
-},
-type:QueryTypes.INSERT
-}
-);
+    const replacements = { id, name, email, role };
 
-res.json({message:"User created successfully"});
+    if (password) {
+      query += ", password = :password";
+      replacements.password = await bcrypt.hash(password, 10);
+    }
 
-}catch(error){
+    query += " WHERE id = :id";
 
-console.error("CREATE USER ERROR:", error);
-res.status(500).json({message:error.message});
+    await sequelize.query(query, {
+      replacements,
+      type: QueryTypes.UPDATE,
+    });
 
-}
-
+    res.json({ message: "User updated successfully" });
+  } catch (error) {
+    console.error("UPDATE USER ERROR:", error);
+    res.status(500).json({ message: "Failed to update user" });
+  }
 });
 
-router.delete("/:id", async (req,res)=>{
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
 
-try{
+    await sequelize.query("DELETE FROM users WHERE id = :id", {
+      replacements: { id },
+      type: QueryTypes.DELETE,
+    });
 
-const { id } = req.params;
-
-await sequelize.query(
-"DELETE FROM users WHERE id=:id",
-{
-replacements:{ id },
-type:QueryTypes.DELETE
-}
-);
-
-res.json({message:"User deleted"});
-
-}catch(error){
-
-console.error("DELETE ERROR:", error);
-res.status(500).json({message:"Delete failed"});
-
-}
-
+    res.json({ message: "User deleted" });
+  } catch (error) {
+    console.error("DELETE USER ERROR:", error);
+    res.status(500).json({ message: "Delete failed" });
+  }
 });
 
 module.exports = router;

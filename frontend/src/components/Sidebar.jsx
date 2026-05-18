@@ -371,6 +371,7 @@ export default function Sidebar({ isOpen, onClose }) {
             onClick={() => {
               localStorage.removeItem("token");
               localStorage.removeItem("user");
+              sessionStorage.removeItem("session-auth-active");
               window.dispatchEvent(new Event("auth-changed"));
               window.location.href = "/login";
             }}

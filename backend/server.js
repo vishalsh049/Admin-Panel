@@ -8,6 +8,7 @@ require("./models");
 const Category = require("./models/Category");
 const Product = require("./models/Products");
 const ensureProductSourceColumn = require("./utils/ensureProductSourceColumn");
+const ensureUserColumns = require("./utils/ensureUserColumns");
 
 const authRoutes = require("./routes/auth");
 const expenseRoutes = require("./routes/expenseRoutes");
@@ -94,6 +95,9 @@ async function startServer() {
 
     await ensureProductSourceColumn(sequelize);
     console.log("Product source column verified");
+
+    await ensureUserColumns(sequelize);
+    console.log("users table columns verified");
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

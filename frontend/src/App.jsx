@@ -43,7 +43,7 @@ import Support from "./pages/Support";
 
 /* ================= AUTH CHECK ================= */
 const isAuthenticated = () => {
-  return !!localStorage.getItem("token");
+  return !!localStorage.getItem("token") && sessionStorage.getItem("session-auth-active") === "true";
 };
 
 /* ================= PROTECTED ROUTE ================= */
