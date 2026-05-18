@@ -7,7 +7,6 @@ import TopNavbar from "./components/TopNavbar";
 /* Pages */
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import Analytics from "./pages/Analytics";
 
 import Customers from "./pages/Customers";
 import SaleBills from "./pages/SaleBills";
@@ -19,7 +18,6 @@ import OrderDetails from "./pages/OrderDetails";
 import Invoice from "./pages/Invoice";
 
 import Reports from "./pages/Reports";
-import YourStore from "./pages/YourStore";
 import Products from "./pages/Products";
 
 import Inventory from "./pages/Inventory";
@@ -111,7 +109,6 @@ function AppRoutes({ token }) {
             {/* Protected Routes */}
             <Route element={<PrivateRoute token={token} />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/analytics" element={<Analytics />} />
 
               <Route path="/customers" element={<Customers />} />
 
@@ -147,7 +144,6 @@ function AppRoutes({ token }) {
               <Route path="/expense-bills" element={<ExpenseBill />} />
 
               <Route path="/reports" element={<Reports />} />
-              <Route path="/yourstore" element={<YourStore />} />
 
               <Route path="/billing" element={<Billing />} />
 

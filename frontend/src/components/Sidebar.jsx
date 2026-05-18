@@ -307,9 +307,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <p className="sb-section">Main</p>
 
             <NavItem to="/dashboard" onClose={onClose} iconClass="purple" icon={<FaHome />} label="Dashboard" active={isActive("/dashboard")} />
-            {role === "admin" && (
-              <NavItem to="/analytics" iconClass="indigo" icon={<FaChartLine />} label="Analytics" active={isActive("/analytics")} />
-            )}
+            
 
             {(role === "admin" || role === "sales" || role === "inventory") && (
               <p className="sb-section">Management</p>
@@ -334,8 +332,6 @@ export default function Sidebar({ isOpen, onClose }) {
               <NavItem to="/orders" iconClass="orange" icon={<FaShoppingBag />} label="Orders" active={isActive("/orders")} />
             )}
 
-            <NavItem to="/yourstore" iconClass="violet" icon={<FaStore />} label="Your Store" active={isActive("/yourstore")} />
-
             {(role === "admin" || role === "inventory") && (
               <DropdownItem label="Vendors" iconClass="teal" icon={<FaUserTie />} open={openVendors} onClick={() => setOpenVendors(!openVendors)}>
                 <SubNavItem to="/vendors" label="Vendor List" active={isActive("/vendors")} />
@@ -354,13 +350,6 @@ export default function Sidebar({ isOpen, onClose }) {
               </DropdownItem>
             )}
 
-            {(role === "admin" || role === "accounts") && (
-              <NavItem to="/billing" iconClass="indigo" icon={<FaFileInvoice />} label="Billing" active={isActive("/billing")} />
-            )}
-            {(role === "admin" || role === "accounts") && (
-              <NavItem to="/reports" iconClass="indigo" icon={<FaChartBar />} label="Reports" active={isActive("/reports")} />
-            )}
-
             {role === "admin" && (
               <p className="sb-section">Administration</p>
             )}
@@ -372,8 +361,6 @@ export default function Sidebar({ isOpen, onClose }) {
             )}
 
             <NavItem to="/profile" iconClass="blue" icon={<FaUser />} label="Profile" active={isActive("/profile")} />
-            <NavItem to="/settings" iconClass="gray" icon={<FaCogs />} label="Settings" active={isActive("/settings")} />
-            <NavItem to="/support" iconClass="cyan" icon={<FaHeadset />} label="Support" active={isActive("/support")} />
           </ul>
         </nav>
 
