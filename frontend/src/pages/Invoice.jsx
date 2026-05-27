@@ -28,7 +28,7 @@ export default function Invoice() {
   const paymentMethod = location.state?.paymentMethod || "-";
   const date = location.state?.date || "-";
 
-  const invoiceNumber = `INV-${id}`;
+  const invoiceNumber = `DD202627${String(id || 1).padStart(3, "0")}`;
 
   const taxableAmount = subtotal - discount;
   const gstAmount = grandTotal - shippingCharge - taxableAmount;

@@ -1,5 +1,4 @@
 const express = require("express");
-const bcrypt = require("bcryptjs");
 const { QueryTypes } = require("sequelize");
 const sequelize = require("../config/db");
 const ensureUserColumns = require("../utils/ensureUserColumns");
@@ -12,6 +11,7 @@ const normalizeName = (name, email) => {
   if (trimmed) return trimmed;
   return normalizeEmail(email).split("@")[0] || "User";
 };
+
 const normalizeRole = (role) => role?.trim().toLowerCase() || "staff";
 
 router.get("/", async (req, res) => {
@@ -20,7 +20,7 @@ router.get("/", async (req, res) => {
 
     const users = await sequelize.query(
       `
-      SELECT id, name, email, role, created_at
+      SELECT id, name, email, password, role, created_at
       FROM users
       ORDER BY id DESC
       `,
@@ -46,7 +46,9 @@ router.post("/", async (req, res) => {
     const role = normalizeRole(req.body.role);
 
     if (!email || !password) {
-      return res.status(400).json({ message: "Name, email, password, and role are required" });
+      return res.status(400).json({
+        message: "Name, email, password, and role are required",
+      });
     }
 
     const existing = await sequelize.query(
@@ -61,8 +63,6 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     await sequelize.query(
       `
       INSERT INTO users (name, email, password, role)
@@ -72,7 +72,7 @@ router.post("/", async (req, res) => {
         replacements: {
           name,
           email,
-          password: hashedPassword,
+          password: password,
           role,
         },
         type: QueryTypes.INSERT,
@@ -82,7 +82,9 @@ router.post("/", async (req, res) => {
     res.json({ message: "User created successfully" });
   } catch (error) {
     console.error("CREATE USER ERROR:", error);
-    res.status(500).json({ message: error.message || "Failed to create user" });
+    res.status(500).json({
+      message: error.message || "Failed to create user",
+    });
   }
 });
 
@@ -92,20 +94,28 @@ router.put("/reset-password/:id", async (req, res) => {
     const password = req.body.password?.trim();
 
     if (!password) {
-      return res.status(400).json({ message: "Password is required" });
+      return res.status(400).json({
+        message: "Password is required",
+      });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    await sequelize.query("UPDATE users SET password = :password WHERE id = :id", {
-      replacements: { id, password: hashedPassword },
-      type: QueryTypes.UPDATE,
-    });
+    await sequelize.query(
+      "UPDATE users SET password = :password WHERE id = :id",
+      {
+        replacements: {
+          id,
+          password: password,
+        },
+        type: QueryTypes.UPDATE,
+      }
+    );
 
     res.json({ message: "Password updated successfully" });
   } catch (error) {
     console.error("RESET PASSWORD ERROR:", error);
-    res.status(500).json({ message: "Failed to update password" });
+    res.status(500).json({
+      message: "Failed to update password",
+    });
   }
 });
 
@@ -120,7 +130,9 @@ router.put("/:id", async (req, res) => {
     const password = req.body.password?.trim();
 
     if (!email) {
-      return res.status(400).json({ message: "Email is required" });
+      return res.status(400).json({
+        message: "Email is required",
+      });
     }
 
     const existing = await sequelize.query(
@@ -132,7 +144,9 @@ router.put("/:id", async (req, res) => {
     );
 
     if (existing.length > 0) {
-      return res.status(400).json({ message: "Email already used by another user" });
+      return res.status(400).json({
+        message: "Email already used by another user",
+      });
     }
 
     let query = `
@@ -144,7 +158,7 @@ router.put("/:id", async (req, res) => {
 
     if (password) {
       query += ", password = :password";
-      replacements.password = await bcrypt.hash(password, 10);
+      replacements.password = password;
     }
 
     query += " WHERE id = :id";
@@ -157,7 +171,9 @@ router.put("/:id", async (req, res) => {
     res.json({ message: "User updated successfully" });
   } catch (error) {
     console.error("UPDATE USER ERROR:", error);
-    res.status(500).json({ message: "Failed to update user" });
+    res.status(500).json({
+      message: "Failed to update user",
+    });
   }
 });
 
@@ -165,10 +181,13 @@ router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    await sequelize.query("DELETE FROM users WHERE id = :id", {
-      replacements: { id },
-      type: QueryTypes.DELETE,
-    });
+    await sequelize.query(
+      "DELETE FROM users WHERE id = :id",
+      {
+        replacements: { id },
+        type: QueryTypes.DELETE,
+      }
+    );
 
     res.json({ message: "User deleted" });
   } catch (error) {
