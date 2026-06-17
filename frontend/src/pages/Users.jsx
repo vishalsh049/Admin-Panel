@@ -3,11 +3,8 @@ import axios from "axios";
 import {
   Activity,
   AlertCircle,
-  Bell,
   CheckCircle2,
   ChevronDown,
-  Eye,
-  EyeOff,
   Gauge,
   LockKeyhole,
   MoreHorizontal,
@@ -183,21 +180,6 @@ function PageSkeleton() {
   );
 }
 
-function RoleChip({ role }) {
-  const meta = getRoleMeta(role);
-  const Icon = meta.icon;
-  return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ${meta.chip} shadow-[0_10px_25px_-18px_rgba(15,23,42,0.22)] transition duration-300 hover:-translate-y-0.5`}
-    >
-      <span className={`flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${meta.tone} text-slate-800`}>
-        <Icon className="h-3 w-3" />
-      </span>
-      {meta.label}
-    </span>
-  );
-}
-
 function StatusChip({ active }) {
   return (
     <span
@@ -296,87 +278,20 @@ function SelectField({ label, value, onChange, children }) {
   );
 }
 
-function MiniGraph() {
-  const bars = [32, 45, 54, 38, 68, 58, 74, 82];
-  return (
-    <div className="flex h-20 items-end gap-2 rounded-2xl border border-white/70 bg-gradient-to-b from-white/80 to-slate-50/70 p-4 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.22)]">
-      {bars.map((height, index) => (
-        <div key={index} className="flex h-full flex-1 items-end">
-          <div
-            className="w-full rounded-t-full bg-gradient-to-t from-violet-500 via-fuchsia-500 to-indigo-400 shadow-[0_12px_26px_-14px_rgba(91,79,207,0.55)] transition-all duration-300 hover:scale-y-110"
-            style={{ height: `${height}%`, opacity: 0.58 + index * 0.04 }}
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function CircularProgress({ value }) {
-  const radius = 44;
-  const stroke = 8;
-  const normalizedRadius = radius - stroke * 0.5;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (value / 100) * circumference;
-
-  return (
-    <div className="relative h-28 w-28">
-      <svg className="h-28 w-28 -rotate-90" viewBox="0 0 96 96">
-        <circle
-          cx="48"
-          cy="48"
-          r={normalizedRadius}
-          stroke="rgba(226,232,240,0.9)"
-          strokeWidth={stroke}
-          fill="transparent"
-        />
-        <circle
-          cx="48"
-          cy="48"
-          r={normalizedRadius}
-          stroke="url(#progressGradient)"
-          strokeWidth={stroke}
-          fill="transparent"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          className="transition-all duration-700 ease-out"
-        />
-        <defs>
-          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#8b5cf6" />
-            <stop offset="50%" stopColor="#6366f1" />
-            <stop offset="100%" stopColor="#d946ef" />
-          </linearGradient>
-        </defs>
-      </svg>
-
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-2xl font-semibold tracking-[-0.05em] text-slate-950">{value}%</div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-            Live
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function StatCard({ icon: Icon, title, value, subtitle, accent, gradient }) {
   return (
-    <div className="group relative overflow-hidden rounded-[26px] border border-white/70 bg-white/65 p-5 shadow-[0_18px_50px_-34px_rgba(15,23,42,0.22)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/80 hover:shadow-[0_24px_70px_-38px_rgba(91,79,207,0.22)]">
+    <div className="group relative overflow-hidden rounded-[26px] border border-white/70 bg-white/65 p-4 shadow-[0_18px_50px_-34px_rgba(15,23,42,0.22)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/80 hover:shadow-[0_24px_70px_-38px_rgba(91,79,207,0.22)]">
       <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
       <div className="relative flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{title}</p>
-          <h3 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
+          <h3 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-slate-950">
             {value}
           </h3>
-          <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
+          <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
         </div>
-        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 ${accent} text-white shadow-[0_14px_35px_-18px_rgba(91,79,207,0.55)]`}>
-          <Icon className="h-5 w-5" />
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl border border-white/70 ${accent} text-white shadow-[0_14px_35px_-18px_rgba(91,79,207,0.55)]`}>
+          <Icon className="h-4 w-4" />
         </div>
       </div>
     </div>
@@ -385,11 +300,11 @@ function StatCard({ icon: Icon, title, value, subtitle, accent, gradient }) {
 
 function EmptyState({ title, description, onClear }) {
   return (
-    <div className="rounded-[28px] border border-white/70 bg-white/70 px-6 py-16 text-center shadow-[0_18px_60px_-36px_rgba(15,23,42,0.22)] backdrop-blur-xl">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-[0_18px_45px_-24px_rgba(91,79,207,0.55)]">
-        <UsersIcon className="h-6 w-6" />
+    <div className="rounded-[28px] border border-white/70 bg-white/70 px-6 py-10 text-center shadow-[0_18px_60px_-36px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-[0_18px_45px_-24px_rgba(91,79,207,0.55)]">
+        <UsersIcon className="h-4 w-4" />
       </div>
-      <h3 className="mt-5 text-lg font-semibold tracking-[-0.02em] text-slate-950">{title}</h3>
+      <h3 className="mt-4 text-lg font-semibold tracking-[-0.02em] text-slate-950">{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">{description}</p>
       <button
         type="button"
@@ -511,8 +426,6 @@ export default function Users() {
   const [editCustomRole, setEditCustomRole] = useState("");
   const [resetUser, setResetUser] = useState(null);
   const [newPassword, setNewPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showResetPassword, setShowResetPassword] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -561,7 +474,6 @@ export default function Users() {
   const openAddModal = () => {
     setNewUser(DEFAULT_NEW_USER);
     setCustomRole("");
-    setShowNewPassword(false);
     setShowAddModal(true);
   };
 
@@ -670,42 +582,29 @@ export default function Users() {
 
   return (
     <div className="relative">
-      <div className="pointer-events-none absolute -left-16 top-0 h-56 w-56 rounded-full bg-violet-500/15 blur-3xl" />
-      <div className="pointer-events-none absolute right-0 top-24 h-72 w-72 rounded-full bg-fuchsia-500/12 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 left-1/3 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl" />
+      
 
-      <div className="relative space-y-2">
+      <div className="relative">
         {loading ? (
           <PageSkeleton />
         ) : (
           <>
-            <section className="rounded-[32px] border border-white/70 p-5 shadow-[0_24px_80px_-50px_rgba(15,23,42,0.26)] backdrop-blur-xl sm:p-6 lg:p-7">
+            <section className="rounded-[22px] border border-white/70 p-2 backdrop-blur-xl sm:p-2">
               <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-                <div className="min-w-0 space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-violet-200/80 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-700 shadow-[0_12px_26px_-18px_rgba(91,79,207,0.45)]">
-                      <span className="h-2 w-2 rounded-full bg-violet-500 shadow-[0_0_0_6px_rgba(139,92,246,0.12)]" />
-                      Live CRM module
-                    </span>
-                    <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-[0_12px_26px_-18px_rgba(15,23,42,0.25)]">
-                      <Sparkles className="h-3.5 w-3.5 text-violet-500" />
-                      {totalUsers} accounts
-                    </span>
-                  </div>
+                <div className="min-w-0">
 
                   <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="text-xl font-semibold tracking-[-0.06em] text-slate-950 sm:text-3xl">
+                    <h1 className="text-lg font-semibold tracking-[0.04em] text-slate-950 sm:text-xl">
                       Users
                     </h1>
-                    <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-semibold text-white shadow-[0_18px_40px_-22px_rgba(139,92,246,0.6)]">
-                      <span className="h-2 w-2 rounded-full bg-white/95 shadow-[0_0_0_6px_rgba(255,255,255,0.12)]" />
+                    <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-3 py-1 text-xs font-semibold text-white shadow-[0_18px_40px_-22px_rgba(139,92,246,0.6)]">
+                      <span className="h-1 w-1 rounded-full bg-white/95 shadow-[0_0_0_6px_rgba(255,255,255,0.12)]" />
                       {activeUsers} active now
                     </span>
                   </div>
 
-                  <p className="max-w-2xl text-sm leading-6 text-slate-500 sm:text-[15px]">
-                    A premium enterprise view for account management, role governance, password control,
-                    and secure team operations.
+                  <p className="max-w-2xl text-xs leading-6 text-slate-500 sm:text-[13px]">
+                    Manage users, roles, permissions, and secure access across your workspace.
                   </p>
                 </div>
 
@@ -717,25 +616,17 @@ export default function Users() {
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search users, email, role, or ID..."
-                        className="w-full rounded-2xl border border-white/70 bg-white/70 px-11 py-3 text-sm text-slate-900 shadow-[0_14px_36px_-22px_rgba(15,23,42,0.35)] outline-none transition duration-300 placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-500/10"
+                        placeholder="Search by name, email, role, or ID..."
+                        className="w-full rounded-xl border border-slate/100 bg-white/70 px-10 py-2 text-sm text-slate-900 shadow-[0_14px_36px_-22px_rgba(15,23,42,0.35)] outline-none transition duration-300 placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-500/10"
                       />
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 bg-white/70 text-slate-700 shadow-[0_14px_36px_-22px_rgba(15,23,42,0.28)] backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_18px_48px_-26px_rgba(15,23,42,0.34)] focus:outline-none focus:ring-4 focus:ring-violet-500/10"
-                        aria-label="Notifications"
-                      >
-                        <Bell className="h-4.5 w-4.5" />
-                        <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full border border-white bg-rose-500 shadow-[0_0_0_6px_rgba(244,63,94,0.14)]" />
-                      </button>
 
                       <button
                         type="button"
                         onClick={openAddModal}
-                        className="group inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-indigo-600 px-5 text-sm font-semibold text-white shadow-[0_18px_50px_-22px_rgba(91,79,207,0.65)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_70px_-26px_rgba(91,79,207,0.72)] focus:outline-none focus:ring-4 focus:ring-violet-500/20"
+                        className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_18px_50px_-22px_rgba(91,79,207,0.65)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_70px_-26px_rgba(91,79,207,0.72)] focus:outline-none focus:ring-4 focus:ring-violet-500/20"
                       >
                         <UserPlus className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
                         Add New User
@@ -745,12 +636,12 @@ export default function Users() {
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                 <StatCard
                   icon={UsersIcon}
                   title="Total Users"
                   value={totalUsers}
-                  subtitle="All verified accounts in your workspace"
+                  subtitle="Active workspace members"
                   gradient="from-violet-500/10 via-fuchsia-500/10 to-indigo-500/5"
                   accent="bg-gradient-to-br from-violet-500 to-fuchsia-500"
                 />
@@ -758,7 +649,7 @@ export default function Users() {
                   icon={CheckCircle2}
                   title="Active Users"
                   value={activeUsers}
-                  subtitle={`${activeRate}% of the platform is active`}
+                  subtitle="Accounts currently active"
                   gradient="from-emerald-500/10 via-teal-500/10 to-cyan-500/5"
                   accent="bg-gradient-to-br from-emerald-500 to-teal-500"
                 />
@@ -766,7 +657,7 @@ export default function Users() {
                   icon={ShieldCheck}
                   title="Role Types"
                   value={uniqueRoles.size}
-                  subtitle="Unique role clusters currently configured"
+                  subtitle="Configured access roles"
                   gradient="from-amber-500/10 via-orange-500/10 to-rose-500/5"
                   accent="bg-gradient-to-br from-amber-500 to-orange-500"
                 />
@@ -774,31 +665,28 @@ export default function Users() {
                   icon={AlertCircle}
                   title="Inactive Users"
                   value={inactiveUsers}
-                  subtitle="Accounts needing attention or reactivation"
+                  subtitle="Accounts requiring attention"
                   gradient="from-slate-500/10 via-zinc-500/10 to-stone-500/5"
                   accent="bg-gradient-to-br from-slate-700 to-slate-500"
                 />
               </div>
             </section>
 
-            <div className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
-              <section className="rounded-[32px] border border-white/70 bg-white/65 p-5 shadow-[0_24px_80px_-52px_rgba(15,23,42,0.26)] backdrop-blur-xl sm:p-6">
-                <div className="flex flex-col gap-4 border-b border-slate-200/70 pb-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="mt-2">
+              <section className="rounded-[22px] border border-white/70 bg-white/65 p-2 shadow-[0_24px_80px_-52px_rgba(15,23,42,0.26)] backdrop-blur-xl sm:p-4">
+                <div className="flex flex-col gap-4 border-b border-slate-200/70 lg:flex-row lg:items-end lg:justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                      Enterprise data grid
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
+                    <h2 className=" text-lg font-semibold tracking-[-0.04em] text-slate-950">
                       Team Users
                     </h2>
-                    <p className="mt-2 text-sm text-slate-500">
-                      Secure profile control, role governance, and password management in one polished view.
+                    <p className="text-sm text-slate-500">
+                      View and manage user accounts, roles, and access permissions.
                     </p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-600">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_6px_rgba(16,185,129,0.12)]" />
+                      <span className="h-1 w-1 rounded-full bg-emerald-500 shadow-[0_0_0_6px_rgba(16,185,129,0.12)]" />
                       {filteredUsers.length} visible
                     </span>
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-600">
@@ -832,7 +720,7 @@ export default function Users() {
                     />
                   </div>
                 ) : (
-                  <div className="responsive-table mt-6 overflow-x-auto">
+                  <div className="responsive-table overflow-x-auto">
                     <table className="min-w-[1080px] w-full border-separate border-spacing-y-3 text-sm">
                       <thead>
                         <tr>
@@ -869,7 +757,7 @@ export default function Users() {
 
                           return (
                             <tr key={user.id} className="group transition-all duration-300 hover:-translate-y-0.5">
-                              <td className="rounded-l-[24px] border border-white/70 bg-white/75 px-5 py-4 align-middle shadow-[0_14px_36px_-30px_rgba(15,23,42,0.22)] transition-all duration-300 group-hover:bg-white/92 group-hover:shadow-[0_18px_50px_-32px_rgba(15,23,42,0.26)]">
+                              <td className="rounded-l-[24px] border border-white/70 bg-white/75 px-4 py-2 align-middle shadow-[0_14px_36px_-30px_rgba(15,23,42,0.22)] transition-all duration-300 group-hover:bg-white/92 group-hover:shadow-[0_18px_50px_-32px_rgba(15,23,42,0.26)]">
                                 <div className="flex items-center gap-3">
                                   <TableCellAvatar user={user} />
                                   <div className="min-w-0">
@@ -881,22 +769,22 @@ export default function Users() {
                                 </div>
                               </td>
 
-                              <td className="border-y border-white/70 bg-white/75 px-5 py-4 align-middle text-slate-700 transition-all duration-300 group-hover:bg-white/92">
+                              <td className="border-y border-white/70 bg-white/75 px-4 py-2 align-middle text-slate-700 transition-all duration-300 group-hover:bg-white/92">
                                 <div className="max-w-[280px] truncate">{user.email}</div>
                               </td>
 
-                              <td className="border-y border-white/70 bg-white/75 px-5 py-4 align-middle text-center transition-all duration-300 group-hover:bg-white/92">
+                              <td className="border-y border-white/70 bg-white/75 px-4 py-2 align-middle text-center transition-all duration-300 group-hover:bg-white/92">
                                 <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-500/10 px-3 py-1.5 font-mono text-xs font-semibold tracking-[0.16em] text-emerald-700">
                                   <LockKeyhole className="h-3.5 w-3.5" />
                                   ••••••
                                 </span>
                               </td>
 
-                              <td className="border-y border-white/70 bg-white/75 px-5 py-4 align-middle text-center transition-all duration-300 group-hover:bg-white/92">
+                              <td className="border-y border-white/70 bg-white/75 px-4 py-2 align-middle text-center transition-all duration-300 group-hover:bg-white/92">
                                 <span
                                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ring-1 ring-inset shadow-[0_10px_25px_-18px_rgba(15,23,42,0.18)] ${roleMeta.chip}`}
                                 >
-                                  <span className={`flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${roleMeta.tone} text-slate-800`}>
+                                  <span className={`flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br ${roleMeta.tone} text-slate-800`}>
                                     <roleMeta.icon className="h-3 w-3" />
                                   </span>
                                   {roleLabel}

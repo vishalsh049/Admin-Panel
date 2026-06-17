@@ -5,17 +5,20 @@ import { BASE_URL } from "../utils/api";
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
+  const [totalCustomers, setTotalCustomers] = useState(0);
   const [query, setQuery] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     fetch(`${BASE_URL}/api/customers`)
-      .then((res) => res.json())
-      .then((data) => {
-        setCustomers(data);
-      })
-      .catch((err) => console.log(err));
+  .then((res) => res.json())
+  .then((data) => {
+    setCustomers(data.data || []);
+    setCustomers(data.data || []);
+    setTotalCustomers(data.total || 0);
+  })
+  .catch((err) => console.log(err));
   }, []);
 
   function formatDate(dateString) {
@@ -114,35 +117,33 @@ export default function Customers() {
       .sort((a, b) => a - b);
   }, [safePage, totalPages]);
 
+
+{/* main return */}
   return (
     <div className="w-full relative overflow-x-hidden">
-      <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-[260px] w-[720px] bg-gradient-to-r from-indigo-400/20 via-purple-300/10 to-emerald-300/20 blur-3xl pointer-events-none" />
-      <div className="absolute top-32 -left-16 h-[240px] w-[360px] bg-gradient-to-b from-emerald-400/15 to-transparent blur-3xl pointer-events-none" />
-      <div className="absolute bottom-24 -right-24 h-[280px] w-[420px] bg-gradient-to-b from-purple-400/15 to-transparent blur-3xl pointer-events-none" />
-
       <div className="relative">
         <div className="">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900">Customers</h2>
-              <p className="text-sm text-slate-500 mt-1">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900">Customers</h2>
+              <p className="text-sm text-slate-500">
                 Ultra-premium directory with luxury search, export and fixed pagination.
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur px-4 py-3 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur px-4 py-2 shadow-sm">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Customers</p>
-                <p className="text-md font-bold text-slate-900">{customers.length}</p>
+                <p className="text-md font-bold text-slate-900">{totalCustomers}</p>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+          <div className="mt-2 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
         </div>
 
-        <div className="bg-gradient-to-b from-white via-white to-slate-50 rounded-3xl border border-slate-200 shadow-[0_30px_90px_-70px_rgba(2,6,23,0.25)] overflow-hidden relative">
-          <div className="p-5 sm:p-6">
+        <div className="bg-gradient-to-b from-white via-white to-slate-50 rounded-xl border border-slate-200 shadow-[0_30px_90px_-70px_rgba(2,6,23,0.25)] overflow-hidden relative">
+          <div className="p-4">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-10">
               <div className="relative flex-1">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
@@ -153,7 +154,7 @@ export default function Customers() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search by name, email, username, role, city, country..."
-                  className="w-full h-10 rounded-2xl border border-slate-200 bg-white/85 backdrop-blur px-6 pr-8 text-slate-900 placeholder:text-slate-400 shadow-sm outline-none focus:border-indigo-200 focus:ring-4 focus:ring-indigo-100/40 transition-colors"
+                  className="w-full h-9 rounded-xl border border-slate-200 bg-white/85 backdrop-blur px-6 pr-8 text-slate-900 placeholder:text-slate-400 shadow-sm outline-none focus:border-indigo-200 focus:ring-4 focus:ring-indigo-100/40 transition-colors"
                 />
 
                 {query.trim().length > 0 && (
@@ -169,7 +170,7 @@ export default function Customers() {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
-                <label className="inline-flex items-center gap-2 cursor-pointer select-none rounded-2xl border border-slate-200 bg-white/70 backdrop-blur px-4 h-10 shadow-sm hover:bg-white transition-colors">
+                <label className="inline-flex items-center gap-2 cursor-pointer select-none rounded-xl border border-slate-200 bg-white/70 backdrop-blur px-4 py-2 shadow-sm hover:bg-white transition-colors">
                   <FaFileImport className="text-slate-700" />
                   <span className="text-sm font-semibold text-slate-800">Import</span>
                   <input
@@ -184,7 +185,7 @@ export default function Customers() {
 
                 <button
                   onClick={handleExportPDF}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 h-10 shadow-[0_14px_34px_-18px_rgba(79,70,229,0.75)] transition-all"
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 shadow-[0_14px_34px_-18px_rgba(79,70,229,0.75)] transition-all"
                 >
                   <FaFileExport />
                   <span className="text-sm font-semibold">Export PDF</span>
@@ -192,7 +193,7 @@ export default function Customers() {
 
                 <button
                   onClick={handleExportExcel}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 h-10 shadow-[0_14px_34px_-18px_rgba(16,185,129,0.75)] transition-all"
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 shadow-[0_14px_34px_-18px_rgba(16,185,129,0.75)] transition-all"
                 >
                   <FaFileExport />
                   <span className="text-sm font-semibold">Export Excel</span>
@@ -200,8 +201,8 @@ export default function Customers() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="text-sm text-slate-600">
+            <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="px-2 text-sm text-slate-600">
                 {filteredCustomers.length === 0 ? (
                   <span className="font-semibold text-slate-600">No results.</span>
                 ) : (
@@ -211,7 +212,7 @@ export default function Customers() {
                       {startIndex}-{endIndex}
                     </span>{" "}
                     of{" "}
-                    <span className="font-semibold text-slate-900">{filteredCustomers.length}</span>{" "}
+                    <span className="font-semibold text-slate-900">{totalCustomers}</span>{" "}
                     customers
                   </span>
                 )}
@@ -222,7 +223,7 @@ export default function Customers() {
                 <select
                   value={pageSize}
                   onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="h-8 rounded-2xl border border-slate-200 bg-white/80 px-2 text-slate-800 font-semibold shadow-sm outline-none focus:ring-4 focus:ring-indigo-100/40 transition-colors"
+                  className="h-6 rounded-md border border-slate-200 bg-white/80 px-2 text-slate-800 font-semibold shadow-sm outline-none focus:ring-4 focus:ring-indigo-100/40 transition-colors"
                 >
                   <option value={10}>10</option>
                   <option value={15}>15</option>
@@ -233,8 +234,8 @@ export default function Customers() {
             </div>
           </div>
 
-          <div className="px-5 sm:px-7 pb-4">
-            <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white/70 backdrop-blur shadow-[0_18px_50px_-40px_rgba(2,6,23,0.18)]">
+          <div className="">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white/70 backdrop-blur shadow-[0_18px_50px_-40px_rgba(2,6,23,0.18)]">
               <table className="w-full text-sm table-auto">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-200">

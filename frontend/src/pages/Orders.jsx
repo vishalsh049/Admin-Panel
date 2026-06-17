@@ -108,8 +108,10 @@ function ActionButtons({ orderId, navigate }) {
 export default function ShopHubDashboard() {
   const [activeSubNav, setActiveSubNav] = useState("All Orders");
   const [searchOrder, setSearchOrder] = useState("");
+  
   const [status, setStatus] = useState("All Status");
-  const [customer, setCustomer] = useState("All Customers");
+  const [customer, setCustomer] = useState("All Customers")
+
   const [sortBy, setSortBy] = useState("Newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
@@ -117,6 +119,21 @@ export default function ShopHubDashboard() {
   const totalPages = Math.ceil(totalOrders / perPage);
 
   const [orders, setOrders] = useState([]);
+  const statuses = [
+  "All Status",
+  ...new Set(orders.map((order) => order.status)),
+];
+
+const customers = [
+  "All Customers",
+  ...new Set(
+    orders.map(
+      (order) =>
+        `${order.billing?.first_name || ""} ${order.billing?.last_name || ""}`.trim()
+    )
+  ),
+];
+
   const navigate = useNavigate();
 
 useEffect(() => {
@@ -137,6 +154,25 @@ const fetchOrders = async (page = 1) => {
   }
 };
 
+     const filteredOrders = orders.filter((order) => {
+  const customerName =
+    `${order.billing?.first_name || ""} ${order.billing?.last_name || ""}`.trim();
+
+  const statusMatch =
+    status === "All Status" || order.status === status;
+
+  const customerMatch =
+    customer === "All Customers" || customerName === customer;
+
+  const searchMatch =
+    searchOrder === "" ||
+    String(order.id).includes(searchOrder) ||
+    customerName.toLowerCase().includes(searchOrder.toLowerCase());
+
+  return statusMatch && customerMatch && searchMatch;
+});
+
+
   return (
     <div
   className="flex min-h-full w-full max-w-full"
@@ -150,26 +186,16 @@ const fetchOrders = async (page = 1) => {
       <div className="flex-1 flex flex-col min-h-screen">
 
         {/* TOPBAR */}
-        <header className="sticky top-0 z-20 flex items-center rounded-2xl border-b border-slate-200 bg-white px-2 py-3">
-         <div className="mx-auto flex w-full flex-col gap-4 px-4 lg:flex-row lg:items-center">
+        <header className="sticky top-0 z-20 flex items-center rounded-xl border-b border-slate-200 bg-white p-3">
+         <div className="mx-auto flex w-full flex-col gap-4 px-2 lg:flex-row lg:items-center">
 
           <div className="flex-1">
-            <h1 className="text-[20px] font-bold leading-tight">Orders Dashboard</h1>
-            <p className="text-[12.5px] text-slate-400">Manage and track all customer orders</p>
+            <h1 className="text-[18px] font-semibold leading-tight">Orders Dashboard</h1>
+            <p className="text-[13px] tracking-wide text-slate-400">Manage and track all customer orders</p>
           </div>
 
-          {/* Search */}
-          <div className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 sm:max-w-xs">
-            <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="w-3.5 h-3.5 text-slate-400 flex-shrink-0">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input type="text" placeholder="Search anything..."
-              className="bg-transparent border-none outline-none text-[13px] w-full placeholder-slate-400"/>
-            <span className="bg-slate-200 text-slate-400 text-[10px] rounded px-1.5 py-0.5">⌘K</span>
-          </div>
-
-          {/* Create Button */}
-          <button className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors sm:w-auto"
+          {/* Create New Order Button */}
+          <button className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-[13px] font-semibold text-white transition-colors sm:w-auto"
             style={{ backgroundColor: "#6c63ff" }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor = "#5a52e0"}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = "#6c63ff"}>
@@ -184,10 +210,10 @@ const fetchOrders = async (page = 1) => {
         </header>
 
         {/* CONTENT */}
-       <main className="p-3 flex-1 w-full max-w-[1400px] mx-auto">
+       <main className="p-2 flex-1 w-full mx-auto">
 
           {/* FILTER BAR */}
-          <div className="mb-5 grid grid-cols-1 gap-4 rounded-2xl bg-white px-4 py-5 shadow-sm md:grid-cols-2 lg:grid-cols-5 lg:px-5">
+          <div className="mb-2 grid grid-cols-1 gap-4 rounded-xl bg-white p-1 shadow-sm md:grid-cols-2 lg:grid-cols-5">
             {/* Search Order */}
             <div className="flex flex-col gap-1.5 flex-1 min-w-48">
               <div className="relative">
@@ -196,7 +222,7 @@ const fetchOrders = async (page = 1) => {
                 </svg>
                 <input type="text" placeholder="Search by order ID, customer..."
                   value={searchOrder} onChange={e => setSearchOrder(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[13px] outline-none placeholder-slate-400 transition-colors"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-2 py-2 text-[13px] outline-none placeholder-slate-400 transition-colors"
                   style={{ fontFamily: "inherit" }}
                   onFocus={e => e.target.style.borderColor = "#6c63ff"}
                   onBlur={e => e.target.style.borderColor = "#e2e8f0"}/>
@@ -207,11 +233,11 @@ const fetchOrders = async (page = 1) => {
             <div className="flex flex-col gap-1.5">
               
               <select value={status} onChange={e => setStatus(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[13px] outline-none cursor-pointer text-slate-700 min-w-36 transition-colors"
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[13px] outline-none cursor-pointer text-slate-700 min-w-30 transition-colors"
                 style={{ fontFamily: "inherit" }}>
-                {["All Status","Pending","Processing","Shipped","Delivered","Cancelled"].map(s => (
-                  <option key={s}>{s}</option>
-                ))}
+              {statuses.map((s) => (
+              <option key={s}>{s}</option>
+               ))}
               </select>
             </div>
 
@@ -224,8 +250,10 @@ const fetchOrders = async (page = 1) => {
                   <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
                   <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
-                <input type="text" defaultValue="May 20, 2024 – Jun 20, 2024" readOnly
-                  className="w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 py-2.5 text-[13px] text-slate-700 outline-none sm:max-w-xs"
+                <input type="text" placeholder="Select Date Range"
+                 value="" 
+                 readOnly
+                  className="w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50 pl-8 pr-3 py-2 text-[13px] text-slate-700 outline-none "
                   style={{ fontFamily: "inherit" }}/>
               </div>
             </div>
@@ -234,16 +262,16 @@ const fetchOrders = async (page = 1) => {
             <div className="flex flex-col gap-1.5">
              
               <select value={customer} onChange={e => setCustomer(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[13px] outline-none cursor-pointer text-slate-700 min-w-40"
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[13px] outline-none cursor-pointer text-slate-700 min-w-40"
                 style={{ fontFamily: "inherit" }}>
-                {["All Customers","Rohan Sharma","Priya Singh","Amit Patel"].map(c => (
-                  <option key={c}>{c}</option>
-                ))}
+                {customers.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
               </select>
             </div>
 
             {/* Actions */}
-            <div className="ml-auto flex flex-wrap gap-2.5">
+            <div className="ml-auto flex flex-wrap gap-2">
               <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-[13px] font-medium transition-colors hover:text-[#6c63ff]"
                 onMouseEnter={e => e.currentTarget.style.borderColor = "#6c63ff"}
                 onMouseLeave={e => e.currentTarget.style.borderColor = "#e2e8f0"}>
@@ -290,9 +318,10 @@ const fetchOrders = async (page = 1) => {
                     ))}
                   </tr>
                 </thead>
+                
                <tbody>
 
-  {orders.map((order, i) => (
+  {filteredOrders.map((order, i) => (
 
     <tr key={order.id} className={`hover:bg-slate-50 text-sm ${i < orders.length - 1 ? "border-b" : ""}`}>
       

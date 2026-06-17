@@ -20,14 +20,32 @@ function isSameDay(dateA, dateB) {
 
 router.get("/", async (req, res) => {
   try {
-   const [expensesResult] = await Promise.allSettled([
+const [expensesResult, ordersResult, customersResult] = await Promise.allSettled([
   Expense.findAll(),
+  WooCommerce.get("orders", {
+    per_page: 100,
+  }),
+ WooCommerce.get("customers", {
+  per_page: 1,
+}),
 ]);
 
-const orders = [];
-const customers = [];
+const orders =
+  ordersResult.status === "fulfilled"
+    ? ordersResult.value.data
+    : [];
 
-  
+const customers =
+  customersResult.status === "fulfilled"
+    ? customersResult.value.data
+    : [];
+
+console.log("Orders Result Status:", ordersResult.status);
+console.log("Orders Count:", orders.length);
+
+console.log("Customers Result Status:", customersResult.status);
+console.log("Customers Count:", customers.length);
+
     const expenses = expensesResult.status === "fulfilled" ? expensesResult.value : [];
 
     if (expensesResult.status === "rejected") {
@@ -37,6 +55,18 @@ const customers = [];
     const today = new Date();
 
     const completedOrders = orders.filter((order) => order.status === "completed");
+    const uniqueCustomers = new Set();
+
+completedOrders.forEach((order) => {
+  const customerKey =
+    order.customer_id ||
+    order.billing?.email ||
+    order.id;
+
+  uniqueCustomers.add(customerKey);
+});
+
+const totalCustomers = uniqueCustomers.size;
     const totalSales = completedOrders.reduce(
       (sum, order) => sum + (parseFloat(order.total) || 0),
       0
@@ -180,8 +210,8 @@ const customers = [];
     res.json({
       kpis: {
         totalSales,
-        totalOrders: completedOrders.length,
-        totalCustomers: customers.length,
+        totalOrders: orders.length,
+        totalCustomers,
         totalExpenses,
         profit,
       },
