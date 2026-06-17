@@ -18,9 +18,9 @@ export default function Topbar({ onMenuClick }) {
           </button>
 
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-semibold text-gray-900 sm:text-xl">Dashboard</h2>
+            <h2 className="truncate text-sm font-semibold text-gray-900 sm:text-lg">Business Operations</h2>
             <p className="text-xs text-gray-500 sm:text-sm">
-              Welcome back! Here's what's happening today.
+             Manage products, inventory, orders, customers, vendors, and finances.
             </p>
           </div>
         </div>
@@ -36,9 +36,7 @@ export default function Topbar({ onMenuClick }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap sm:justify-end">
-            <button className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 text-sm text-white shadow sm:w-auto">
-              + New
-            </button>
+
 
             <div className="flex items-center gap-3 text-gray-500">
               <button type="button" className="rounded-full p-2 hover:bg-gray-100" aria-label="Theme">

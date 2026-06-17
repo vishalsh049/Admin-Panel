@@ -64,7 +64,7 @@ export default function Sidebar({ isOpen, onClose }) {
         .sb-logo {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: center;
           gap: 12px;
           padding: 22px 20px 18px;
           border-bottom: 1px solid #f0f1f5;
@@ -76,9 +76,10 @@ export default function Sidebar({ isOpen, onClose }) {
           min-width: 0;
         }
         .sb-logo-icon {
-          width: 44px;
-          height: 44px;
-          flex-shrink: 0;
+         width: 240px;
+         height: auto;
+         object-fit: contain;
+         padding:10px;
         }
         .sb-logo-text h1 {
           margin: 0;
@@ -289,17 +290,13 @@ export default function Sidebar({ isOpen, onClose }) {
 
       <aside className={`sb-root ${isOpen ? "open" : ""}`}>
         {/* Logo */}
-        <div className="sb-logo">
-          <div className="sb-logo-row">
-            <div className="sb-logo-text">
-              <h1>Divya Darshnam</h1>
-              <p>Admin Panel</p>
-            </div>
-          </div>
-          <button type="button" className="sb-close lg:hidden" onClick={onClose} aria-label="Close sidebar">
-            <FaTimes />
-          </button>
-        </div>
+        <div className="sb-logo-row">
+        <img
+        src="/logodd.png"
+        alt="Logo"
+        className="sb-logo-icon"
+       />
+     </div>
 
         {/* Navigation */}
         <nav className="sb-nav">

@@ -91,7 +91,7 @@ function AppRoutes({ token }) {
       )}
 
       {/* Main Content */}
-      <div className="min-h-screen lg:pl-56">
+      <div className={`min-h-screen ${auth ? "lg:pl-56" : ""}`}>
         {/* Navbar */}
         {auth && <TopNavbar onMenuClick={() => setSidebarOpen(true)} />}
 
@@ -99,7 +99,7 @@ function AppRoutes({ token }) {
           className={
             auth && !hideSidebar
               ? "mx-auto w-full max-w-7xl px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6"
-              : "p-4"
+             : "p-0"
           }
         >
           <Routes>
