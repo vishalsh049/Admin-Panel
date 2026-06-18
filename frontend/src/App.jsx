@@ -84,7 +84,7 @@ function AppRoutes({ token }) {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f5f6fa]">
       {/* Sidebar */}
       {auth && !hideSidebar && (
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />

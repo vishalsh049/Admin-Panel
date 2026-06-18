@@ -42,15 +42,15 @@ const ALL_COLUMNS = {
 
 const statusToneMap = {
   PAID: {
-    pill: "border-emerald-200/80 bg-emerald-50/90 text-emerald-700 shadow-[0_12px_30px_-20px_rgba(16,185,129,0.9)]",
+    pill: "border-emerald-200/80 bg-emerald-50/90 text-emerald-700",
     dot: "bg-emerald-500",
   },
   PARTIAL: {
-    pill: "border-amber-200/80 bg-amber-50/90 text-amber-700 shadow-[0_12px_30px_-20px_rgba(245,158,11,0.9)]",
+    pill: "border-amber-200/80 bg-amber-50/90 text-amber-700 ",
     dot: "bg-amber-500",
   },
   UNPAID: {
-    pill: "border-rose-200/80 bg-rose-50/90 text-rose-700 shadow-[0_12px_30px_-20px_rgba(244,63,94,0.75)]",
+    pill: "border-rose-200/80 bg-rose-50/90 text-rose-700",
     dot: "bg-rose-500",
   },
 };
@@ -84,67 +84,25 @@ function getStatusMeta(statusValue) {
   };
 }
 
-function Sparkline({ values, stroke, fill }) {
-  const width = 160;
-  const height = 56;
-  const safeValues = values.length ? values : [0];
-  const max = Math.max(...safeValues, 1);
-  const min = Math.min(...safeValues, 0);
-  const range = max - min || 1;
-  const stepX = safeValues.length > 1 ? width / (safeValues.length - 1) : width;
-
-  const points = safeValues
-    .map((value, index) => {
-      const x = index * stepX;
-      const y = height - ((value - min) / range) * (height - 10) - 5;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  const areaPoints = `0,${height} ${points} ${width},${height}`;
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-14 w-full">
-      <defs>
-        <linearGradient id={`fill-${stroke.replace(/[^a-z0-9]/gi, "")}`} x1="0%" x2="0%" y1="0%" y2="100%">
-          <stop offset="0%" stopColor={fill} stopOpacity="0.35" />
-          <stop offset="100%" stopColor={fill} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polyline fill={`url(#fill-${stroke.replace(/[^a-z0-9]/gi, "")})`} points={areaPoints} />
-      <polyline
-        fill="none"
-        points={points}
-        stroke={stroke}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function SummaryCard({ title, value, subtitle, icon, accent, chartValues }) {
+function SummaryCard({ title, value, subtitle, icon, accent }) {
   return (
     <motion.div
       whileHover={{ y: -6, scale: 1.01 }}
       transition={{ duration: 0.2 }}
-      className="group relative overflow-hidden rounded-[28px] border border-white/60 bg-white/80 p-5 shadow-[0_20px_60px_-24px_rgba(15,23,42,0.22)] backdrop-blur-xl"
+      className="group relative overflow-hidden rounded-[18px] border border-white/60 bg-white/80 p-4 backdrop-blur-xl"
     >
-      <div className={`absolute inset-x-6 top-0 h-24 rounded-full blur-3xl ${accent}`} />
+      <div className={`absolute inset-x-6 top-0 rounded-full blur-3xl ${accent}`} />
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{title}</p>
-          <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
-          <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{title}</p>
+          <p className="mt-1 text-xl font-semibold tracking-tight text-slate-900">{value}</p>
+          <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
         </div>
-        <div className="rounded-2xl border border-white/70 bg-white/70 p-3 text-slate-700 shadow-[0_10px_30px_-16px_rgba(99,102,241,0.65)]">
+        <div className="rounded-2xl border border-white/70 bg-white/70 p-2 text-slate-700">
           {icon}
         </div>
       </div>
-      <div className="relative mt-5 rounded-2xl border border-slate-100/80 bg-slate-50/80 px-3 py-2">
-        <Sparkline values={chartValues} stroke="#6366f1" fill="#818cf8" />
-      </div>
+      
     </motion.div>
   );
 }
@@ -166,7 +124,7 @@ function ActionIconButton({ children, className = "", ...props }) {
   return (
     <button
       {...props}
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-slate-600 shadow-[0_14px_30px_-18px_rgba(15,23,42,0.28)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:text-slate-900 ${className}`}
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-slate-600 backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:text-slate-900 ${className}`}
     >
       {children}
     </button>
@@ -180,13 +138,13 @@ function LoadingSkeleton() {
         {Array.from({ length: 5 }).map((_, index) => (
           <div
             key={index}
-            className="h-40 rounded-[28px] border border-white/70 bg-white/80 p-5 shadow-[0_20px_60px_-24px_rgba(15,23,42,0.18)]"
+            className="h-40 rounded-[28px] border border-white/70 bg-white/80 p-5"
           >
             <div className="skeleton-shimmer h-full rounded-[22px]" />
           </div>
         ))}
       </div>
-      <div className="rounded-[32px] border border-white/70 bg-white/75 p-5 shadow-[0_20px_70px_-26px_rgba(15,23,42,0.2)]">
+      <div className="rounded-[32px] border border-white/70 bg-white/75 p-5">
         <div className="skeleton-shimmer h-14 rounded-2xl" />
         <div className="mt-4 space-y-3">
           {Array.from({ length: 6 }).map((_, index) => (
@@ -385,31 +343,19 @@ export default function Expenses() {
   return (
     <motion.div
       {...pageTransition}
-      className="relative min-h-[82vh] overflow-hidden rounded-[34px] border border-white/60 bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.18),_transparent_26%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),_transparent_24%),linear-gradient(180deg,_rgba(255,255,255,0.92)_0%,_rgba(248,250,252,0.88)_100%)] p-4 shadow-[0_35px_120px_-35px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:p-6 lg:p-8"
-    >
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-20 top-10 h-44 w-44 rounded-full bg-indigo-200/35 blur-3xl" />
-        <div className="absolute right-0 top-0 h-56 w-56 rounded-full bg-sky-200/30 blur-3xl" />
-        <div className="absolute bottom-10 right-20 h-40 w-40 rounded-full bg-violet-200/30 blur-3xl" />
-      </div>
-
-      <div className="relative">
-        <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-indigo-600 shadow-[0_16px_40px_-24px_rgba(99,102,241,0.8)]">
+      className="relative">
+          <div className="relative">
+        <div className="mb-2 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white/70 px-2 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-indigo-600">
               <span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
-              Expense Control Center
+              Manage Expenses
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-3">
-                <h2 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Expenses</h2>
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm backdrop-blur">
-                  <FileStack className="h-4 w-4 text-indigo-500" />
-                  {analytics.totalRecords} records
-                </div>
               </div>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-[15px]">
-                Track every vendor payment, monitor pending balances, and review expense activity from one refined workspace.
+              <p className="px-2 text-sm leading-6 text-slate-500 sm:text-[15px]">
+               Centralize spending, vendor payments, and financial records with complete visibility and control.
               </p>
             </div>
           </div>
@@ -417,9 +363,9 @@ export default function Expenses() {
           <div className="relative flex flex-wrap gap-3">
             <Link
               to="/expenses/add"
-              className="group inline-flex items-center justify-center gap-2 rounded-2xl border border-white/50 bg-gradient-to-r from-indigo-600 via-violet-600 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_24px_40px_-20px_rgba(79,70,229,0.8)] transition duration-300 hover:-translate-y-1 hover:scale-[1.01] hover:shadow-[0_30px_50px_-20px_rgba(79,70,229,0.9)]"
+              className="group inline-flex items-center justify-center gap-2 rounded-2xl border border-white/50 bg-gradient-to-r from-indigo-600 via-violet-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_24px_40px_-20px_rgba(79,70,229,0.8)] transition duration-300 hover:-translate-y-1 hover:scale-[1.01] hover:shadow-[0_30px_50px_-20px_rgba(79,70,229,0.9)]"
             >
-              <Receipt className="h-4 w-4 transition group-hover:rotate-6" />
+              <Receipt className="h-4 w-4 transition group-hover:rotate-4" />
               Add Expense
             </Link>
 
@@ -430,7 +376,7 @@ export default function Expenses() {
               }}
               className="rounded-2xl"
             >
-              <CircleEllipsis className="h-5 w-5" />
+              <CircleEllipsis className="h-4 w-4" />
             </ActionIconButton>
 
             <AnimatePresence>
@@ -441,7 +387,7 @@ export default function Expenses() {
                   exit={{ opacity: 0, y: 8, scale: 0.98 }}
                   transition={{ duration: 0.18 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 top-full z-50 mt-3 w-72 overflow-hidden rounded-[24px] border border-white/70 bg-white/88 p-2 shadow-[0_30px_70px_-30px_rgba(15,23,42,0.45)] backdrop-blur-2xl"
+                  className="absolute right-0 top-full z-50 mt-3 w-72 overflow-hidden rounded-[14px] border border-white/70 bg-white/88 p-4 backdrop-blur-2xl"
                 >
                   <div className="mb-2 rounded-2xl border border-slate-100 bg-slate-50/70 px-4 py-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">View preferences</p>
@@ -489,82 +435,63 @@ export default function Expenses() {
           <LoadingSkeleton />
         ) : (
           <>
-            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div className="mb-2 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
               <SummaryCard
                 title="Total Expenses"
                 value={formatCurrency(analytics.totalExpenses)}
-                subtitle="Aggregate spend across the filtered list"
+                subtitle="Overall expenditure across all records"
                 icon={<BadgeIndianRupee className="h-5 w-5 text-indigo-600" />}
                 accent="bg-indigo-300/30"
-                chartValues={analytics.monthlySeries}
+                
               />
               <SummaryCard
                 title="Paid Amount"
                 value={formatCurrency(analytics.totalPaid)}
-                subtitle="Cleared payouts already settled"
+                subtitle="Successfully completed payments"
                 icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
                 accent="bg-emerald-300/30"
-                chartValues={analytics.paidSeries}
+               
               />
               <SummaryCard
                 title="Pending Amount"
                 value={formatCurrency(analytics.totalPending)}
-                subtitle={`${analytics.pendingRatio}% of total spend remains open`}
+                subtitle="Outstanding amount awaiting settlement"
                 icon={<WalletCards className="h-5 w-5 text-rose-600" />}
                 accent="bg-rose-300/30"
-                chartValues={analytics.pendingSeries}
+                
               />
               <SummaryCard
                 title="Monthly Expenses"
                 value={formatCurrency(analytics.currentMonthExpenses)}
-                subtitle="Current month outflow snapshot"
+                subtitle="Total spending during the current month"
                 icon={<CalendarRange className="h-5 w-5 text-sky-600" />}
                 accent="bg-sky-300/30"
-                chartValues={analytics.monthlySeries}
+               
               />
               <motion.div
                 whileHover={{ y: -6, scale: 1.01 }}
                 transition={{ duration: 0.2 }}
-                className="relative overflow-hidden rounded-[28px] border border-white/60 bg-white/80 p-5 shadow-[0_20px_60px_-24px_rgba(15,23,42,0.22)] backdrop-blur-xl"
+                className="relative overflow-hidden rounded-[18px] border border-white/60 bg-white/80 p-4 backdrop-blur-xl"
               >
-                <div className="absolute inset-x-6 top-0 h-24 rounded-full bg-violet-300/20 blur-3xl" />
+                <div className="absolute inset-x-6 top-0 h-10 rounded-full bg-violet-300/20 blur-3xl" />
                 <div className="relative">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Recent Transactions</p>
-                      <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">{analytics.recentTransactions.length}</p>
-                      <p className="mt-2 text-sm text-slate-500">Latest vendor activity at a glance</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Recent Transactions</p>
+                      <p className="mt-1 text-xl font-semibold tracking-tight text-slate-900">{analytics.recentTransactions.length}</p>
+                      <p className="mt-1 text-sm text-slate-500">Recent Activity</p>
                     </div>
-                    <div className="rounded-2xl border border-white/70 bg-white/70 p-3 text-violet-600 shadow-[0_10px_30px_-16px_rgba(139,92,246,0.65)]">
+                    <div className="rounded-2xl border border-white/70 bg-white/70 p-1 text-violet-600">
                       <ArrowUpRight className="h-5 w-5" />
                     </div>
                   </div>
 
-                  <div className="mt-5 space-y-3">
-                    {analytics.recentTransactions.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-5 text-sm text-slate-500">
-                        No transactions available in this view.
-                      </div>
-                    ) : (
-                      analytics.recentTransactions.map((expense) => (
-                        <div
-                          key={expense.id}
-                          className="flex items-center justify-between rounded-2xl border border-slate-100/80 bg-slate-50/80 px-3 py-3"
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-slate-700">{expense.vendorName || `EXP-${String(expense.id).padStart(3, "0")}`}</p>
-                            <p className="text-xs text-slate-500">{formatDate(expense.date)}</p>
-                          </div>
-                          <p className="text-sm font-semibold text-slate-900">{formatCurrency(expense.totalAfterGst)}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                  
                 </div>
               </motion.div>
             </div>
 
-            <div className="mb-6 rounded-[28px] border border-white/70 bg-white/72 p-4 shadow-[0_20px_70px_-28px_rgba(15,23,42,0.2)] backdrop-blur-xl sm:p-5">
+            <div className="mb-2 rounded-[22px] border border-white/70 bg-white/72 p-1 backdrop-blur-xl">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <label className="group relative block w-full sm:w-auto">
@@ -573,7 +500,7 @@ export default function Expenses() {
                       type="month"
                       value={monthFilter}
                       onChange={(e) => setMonthFilter(e.target.value)}
-                      className="h-12 w-full rounded-full border border-white/70 bg-white/80 pl-11 pr-4 text-sm text-slate-700 shadow-[0_14px_30px_-20px_rgba(15,23,42,0.22)] outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 sm:w-[220px]"
+                      className="h-10 w-full rounded-full border border-white/70 bg-white/80 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 sm:w-[220px]"
                     />
                   </label>
 
@@ -584,7 +511,7 @@ export default function Expenses() {
                       placeholder="Search by expense ID, vendor or person..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="h-12 w-full rounded-full border border-white/70 bg-white/80 pl-11 pr-4 text-sm text-slate-700 shadow-[0_14px_30px_-20px_rgba(15,23,42,0.22)] outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                      className="h-10 w-full rounded-full border border-white/70 bg-white/80 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
                     />
                   </label>
                 </div>
@@ -602,11 +529,11 @@ export default function Expenses() {
               </div>
             </div>
 
-            <div className="rounded-[32px] border border-white/70 bg-white/72 shadow-[0_24px_80px_-30px_rgba(15,23,42,0.28)] backdrop-blur-xl">
-              <div className="flex items-center justify-between gap-3 border-b border-slate-200/70 px-5 py-4">
+            <div className="rounded-[18px] border border-white/70 bg-white/72 backdrop-blur-xl">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200/70 px-4 py-2">
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Expense Ledger</p>
-                  <p className="text-xs text-slate-500">A polished operational view for finance and admin teams.</p>
+                  <p className="text-sm font-semibold text-slate-900">  Expense Operations</p>
+                  <p className="text-xs text-slate-500">Complete visibility into expenses, payments, vendors, and transaction history.</p>
                 </div>
                 <div className="hidden items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-medium text-slate-500 sm:inline-flex">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -617,9 +544,7 @@ export default function Expenses() {
               {filteredExpenses.length === 0 ? (
                 <div className="relative overflow-hidden px-6 py-16 text-center">
                   <div className="pointer-events-none absolute inset-0">
-                    <div className="absolute left-1/2 top-8 h-48 w-48 -translate-x-1/2 rounded-full bg-indigo-200/30 blur-3xl" />
-                    <div className="absolute bottom-8 left-12 h-28 w-28 rounded-full bg-sky-200/30 blur-2xl" />
-                    <div className="absolute right-12 top-12 h-28 w-28 rounded-full bg-violet-200/30 blur-2xl" />
+                    
                   </div>
                   <motion.div
                     initial={{ opacity: 0, y: 16 }}
@@ -627,11 +552,11 @@ export default function Expenses() {
                     transition={{ duration: 0.35 }}
                     className="relative mx-auto max-w-xl"
                   >
-                    <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] border border-white/80 bg-white/80 shadow-[0_25px_60px_-24px_rgba(79,70,229,0.35)]">
+                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/80 bg-white/80">
                       <Receipt className="h-10 w-10 text-indigo-500" />
                     </div>
-                    <h3 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">No expenses found</h3>
-                    <p className="mt-3 text-sm leading-6 text-slate-500">
+                    <h3 className="mt-4 text-xl font-semibold tracking-tight text-slate-900">No expenses found</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">
                       Try adjusting your month or search filters, or create a new expense to start building this ledger.
                     </p>
                     <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">

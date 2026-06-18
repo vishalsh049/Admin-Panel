@@ -115,9 +115,9 @@ export default function Sidebar({ isOpen, onClose }) {
           text-transform: uppercase;
           color: #b0b4c8;
           padding: 0 6px;
-          margin: 18px 0 6px;
+          margin: 14px 0 6px;
         }
-        .sb-section:first-child { margin-top: 4px; }
+        .sb-section:first-child { margin-top: 2px; }
 
         ul { list-style: none; margin: 0; padding: 0; }
         li { margin: 0 0 2px; }
@@ -128,7 +128,7 @@ export default function Sidebar({ isOpen, onClose }) {
           align-items: center;
           gap: 11px;
           width: 100%;
-          padding: 9px 10px;
+          padding: 4px 8px;
           border-radius: 10px;
           font-size: 13.5px;
           font-weight: 500;
