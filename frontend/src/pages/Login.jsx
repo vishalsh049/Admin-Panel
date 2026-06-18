@@ -186,19 +186,19 @@ export default function Login() {
     return "Send Reset Link";
   };
 
-  return (
-    <div className="flex min-h-screen w-full bg-white">
-      {/* ---------------- LEFT: brand / marketing panel ---------------- */}
+ return (
   <div
-  className="relative hidden w-[56%] overflow-hidden lg:flex lg:flex-col"
-  style={{
-    backgroundImage: "url('/login-bg.png')",
-    backgroundSize: "cover",
-    backgroundPosition: "-200px center",
-    backgroundRepeat: "no-repeat",
-    borderTopRightRadius: "5px",
-    borderBottomRightRadius: "260px",
-  }}
+    className="flex h-screen w-full overflow-hidden"
+    style={{
+      backgroundImage: "url('/login-bg.png')",
+      backgroundSize: "100% 100%",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+    }}
+  >
+      {/* ---------------- LEFT: brand / marketing panel ---------------- */}
+<div
+  className="relative hidden w-[42%] overflow-hidden lg:flex lg:flex-col"
 >
       
    {/* content */}
@@ -250,9 +250,9 @@ export default function Login() {
       </div>
 
       {/* ---------------- RIGHT: auth form panel ---------------- */}
-      <div className="relative flex flex-1 flex-col items-center justify-center bg-[radial-gradient(circle,#0000000d_1px,transparent_1px)] bg-[length:22px_22px] px-4 py-10 sm:px-8">
-        <div className="w-full max-w-[460px]">
-          <div className="relative rounded-3xl bg-white p-8 pt-14 shadow-xl sm:p-10 sm:pt-16">
+<div className="relative flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-8">
+          <div className="w-full max-w-[460px]">
+          <div className="relative rounded-3xl bg-white p-8 pt-14 shadow-lg sm:p-10 sm:pt-16">
             {/* badge logo overlapping the top edge */}
             <div className="absolute -top-9 left-1/2 flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full border border-gray-100 bg-white shadow-md">
               <BrandMark className="h-9 w-9" />
@@ -289,7 +289,7 @@ export default function Login() {
                   <IconUser className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                   <input
                     type="email"
-                    placeholder="admin@gmail.com"
+                    placeholder="Enter your valid email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3.5 pl-12 pr-4 text-sm outline-none transition focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-100"
@@ -304,7 +304,7 @@ export default function Login() {
                     <IconLock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                     <input
                       type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
+                      placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3.5 pl-12 pr-12 text-sm outline-none transition focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-100"
@@ -409,7 +409,7 @@ export default function Login() {
           </div>
 
           {/* footer */}
-          <div className="mt-6 flex flex-col gap-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-4 flex flex-col gap-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
             <span>© 2026 Pingoria Enterprise</span>
             <div className="flex items-center gap-4 sm:gap-6">
               <span className="cursor-pointer hover:text-gray-700">Contact Us</span>
