@@ -69,23 +69,28 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showExportPopup, setShowExportPopup] = useState(false);
-  const [filterPeriod, setFilterPeriod] = useState("30D");
+  const [filterPeriod, setFilterPeriod] = useState("1M");
+  const [selectedDate, setSelectedDate] = useState(
+  new Date().toISOString().split("T")[0]
+);
 
-  const periodMap = { "7D": "today", "30D": "month", "90D": "month", "1Y": "year" };
+const [fromDate, setFromDate] = useState("");
+const [toDate, setToDate] = useState("");
 
   useEffect(() => {
-    setLoading(true);
     setError("");
-    fetch(`${BASE_URL}/api/dashboard`)
+ fetch(
+`${BASE_URL}/api/dashboard?period=${filterPeriod}&from=${fromDate}&to=${toDate}`
+)
       .then((res) => {
         if (!res.ok) throw new Error(`Dashboard request failed: ${res.status}`);
         return res.json();
       })
-      .then((data) => { setDashboardData(data); setLoading(false); })
-      .catch((err) => { console.error(err); setError("Failed to load dashboard data."); setLoading(false); });
-  }, []);
+      .then((data) => { setDashboardData(data); })
+      .catch((err) => { console.error(err); setError("Failed to load dashboard data.");});
+  }, [filterPeriod, selectedDate, fromDate, toDate]);
 
-  if (loading) return <div className="p-10 text-center text-slate-500 bg-slate-50 min-h-screen">Loading dashboard data…</div>;
+  if (loading && !dashboardData) return <div className="p-10 text-center text-slate-500 bg-slate-50 min-h-screen">Loading dashboard data…</div>;
   if (!dashboardData) return <div className="p-10 text-center text-red-600 bg-slate-50 min-h-screen">{error || "Failed to load dashboard"}</div>;
 
   /* ── data prep ── */
@@ -95,6 +100,7 @@ export default function Dashboard() {
     expenses: Number(item.expenses) || 0,
     profit: Number.isFinite(Number(item.profit)) ? Number(item.profit) : (Number(item.sales) || 0) - (Number(item.expenses) || 0),
   }));
+  console.log("Monthly Sales:", monthlySales);
 
   const kpis = {
     totalSales: Number(dashboardData.kpis?.totalSales) || 0,
@@ -106,7 +112,7 @@ export default function Dashboard() {
 
   const currentMonthData = monthlySales[monthlySales.length - 1] || { name: "Current", sales: 0, expenses: 0, profit: 0 };
   const summary = dashboardData.summary || {};
-  const apiPeriod = periodMap[filterPeriod] || "month";
+  const apiPeriod = filterPeriod;
   const selectedSummary = summary[apiPeriod] || {
     sales: apiPeriod === "year" ? kpis.totalSales : currentMonthData.sales,
     orders: apiPeriod === "year" ? kpis.totalOrders : 0,
@@ -114,9 +120,20 @@ export default function Dashboard() {
     profit: apiPeriod === "year" ? kpis.profit : currentMonthData.profit,
   };
 
-  const chartData = apiPeriod === "year" ? monthlySales : [
-    { name: filterPeriod === "7D" ? "Today" : currentMonthData.name, sales: Number(selectedSummary.sales) || 0, expenses: Number(selectedSummary.expenses) || 0, profit: Number(selectedSummary.profit) || 0 },
-  ];
+ let chartData = [];
+
+if (filterPeriod === "7D") {
+  chartData = monthlySales.slice(-1);
+}
+else if (filterPeriod === "1M") {
+  chartData = monthlySales.slice(-1);
+}
+else if (filterPeriod === "3M") {
+  chartData = monthlySales.slice(-3);
+}
+else if (filterPeriod === "1Y") {
+  chartData = monthlySales;
+}
 
   const totalRevenue = chartData.reduce((s, m) => s + m.sales, 0);
   const totalExpenses = chartData.reduce((s, m) => s + m.expenses, 0);
@@ -134,15 +151,36 @@ export default function Dashboard() {
   const { salesGrowth, profitGrowth } = calcGrowth();
 
   const statusCounts = dashboardData.orderStatus || {};
-  const completed = Number(statusCounts.completed) || Number(statusCounts.Completed) || 0;
-  const pending   = Number(statusCounts.pending)   || Number(statusCounts.Pending)   || 0;
-  const cancelled = Number(statusCounts.cancelled) || Number(statusCounts.Cancelled) || 0;
-  const totalStatusCount = completed + pending + cancelled;
-  const orderStatusData = [
-    { name: "Completed", value: completed, color: "#22c55e" },
-    { name: "Pending",   value: pending,   color: "#facc15" },
-    { name: "Cancelled", value: cancelled, color: "#ef4444" },
-  ].filter((i) => i.value > 0);
+  const completed = Number(statusCounts.completed) || 0;
+const processing = Number(statusCounts.processing) || 0;
+const failed = Number(statusCounts.failed) || 0;
+const cancelled = Number(statusCounts.cancelled) || 0;
+
+const totalStatusCount =
+  completed + processing + failed + cancelled;
+
+const orderStatusData = [
+  {
+    name: "Completed",
+    value: completed,
+    color: "#22c55e",
+  },
+  {
+    name: "Processing",
+    value: processing,
+    color: "#facc15",
+  },
+  {
+    name: "Failed",
+    value: failed,
+    color: "#f97316",
+  },
+  {
+    name: "Cancelled",
+    value: cancelled,
+    color: "#ef4444",
+  },
+].filter((i) => i.value > 0);
 
   const activityFeed = dashboardData.activityFeed || [];
   const topProducts  = dashboardData.topProducts  || [];
@@ -163,15 +201,53 @@ export default function Dashboard() {
 
           <div className="flex items-center gap-3 flex-wrap">
             {/* date pill */}
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-700 font-medium shadow-sm">
-              <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-              {todayStr}
-              <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
-            </div>
+   <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-2 py-1 shadow-sm">
+
+  {/* From Date */}
+  <div className="flex items-center gap-2">
+    <span className="text-xs text-slate-500 font-medium">
+      From
+    </span>
+
+    <input
+      type="date"
+      value={fromDate}
+      onChange={(e) => setFromDate(e.target.value)}
+      className="border border-slate-200 rounded-lg px-2 py-1 text-sm outline-none"
+    />
+  </div>
+
+  {/* To Date */}
+  <div className="flex items-center gap-2">
+    <span className="text-xs text-slate-500 font-medium">
+      To
+    </span>
+
+    <input
+      type="date"
+      value={toDate}
+      onChange={(e) => setToDate(e.target.value)}
+      className="border border-slate-200 rounded-lg px-2 py-1 text-sm outline-none"
+    />
+  </div>
+
+  {/* Reset Button */}
+  <button
+    onClick={() => {
+      setFromDate("");
+      setToDate("");
+      setFilterPeriod("1M");
+    }}
+    className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-lg text-[14px] font-semibold"
+  >
+    Reset
+  </button>
+
+</div>
 
             {/* period tabs */}
             <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-              {["7D", "30D", "90D", "1Y"].map((p) => (
+              {["7D", "1M", "3M", "1Y"].map((p) => (
                 <button
                   key={p}
                   onClick={() => setFilterPeriod(p)}
@@ -282,6 +358,7 @@ export default function Dashboard() {
 
           {/* area chart */}
           <div className="h-40 w-full">
+            {console.log("Chart Data", chartData)}
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                 <defs>
@@ -314,13 +391,13 @@ export default function Dashboard() {
         </div>
 
         {/* Order Status */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col">
-          <h3 className="text-base font-bold text-slate-900">Order Status</h3>
-          <p className="text-xs text-slate-400 mt-0.5 mb-2">Distribution of your order states</p>
+        <div className="bg-white rounded-2xl p-2 border border-slate-100 shadow-sm flex flex-col">
+          <h3 className="text-base px-2 font-bold text-slate-900">Order Status</h3>
+          <p className="text-xs px-2 text-slate-400 mb-2">Distribution of your order states</p>
 
           {orderStatusData.length > 0 ? (
             <>
-              <div className="flex gap-4 items-center">
+             <div className="flex items-start gap-2">
                 {/* donut */}
                 <div className="relative flex-shrink-0">
                   <PieChart width={130} height={130}>
@@ -336,21 +413,31 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* legend */}
-                <div className="flex flex-col gap-2 flex-1">
-                  {orderStatusData.map((item) => (
-                    <div key={item.name} className="flex items-center justify-between bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                        <span className="text-sm font-semibold text-slate-700">{item.name}</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-slate-900">{item.value}</p>
-                        <p className="text-[10px] text-slate-400">{totalStatusCount ? Math.round((item.value / totalStatusCount) * 100) : 0}%</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+     {/* legend */}
+ <div className="grid grid-cols-2 gap-1  flex-1">
+  {orderStatusData.map((item) => (
+    <div
+      key={item.name}
+      className="bg-slate-50 rounded-xl px-2 py-3 border border-slate-100"
+    >
+      <div className="flex items-center justify-between">
+        <span
+          className="text-sm font-semibold"
+          style={{ color: item.color }}
+        >
+          {item.name}
+        </span>
+
+        <span
+          className="text-sm font-bold"
+          style={{ color: item.color }}
+        >
+          {item.value}
+        </span>
+      </div>
+    </div>
+  ))}
+</div>
               </div>
 
               {/* Weekly growth strip */}

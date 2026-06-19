@@ -252,19 +252,17 @@ const handleImport = async (e) => {
 
   return (
     <div className="min-h-screen">
-     <div className="mx-auto max-w-7xl space-y-3">
-      <section className="rounded-[32px] border border-white/60 bg-white/70 p-4 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-8">
-       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+     <div className="mx-auto max-w-7xl space-y-2">
+      <section className="rounded-[22px] border border-white/60 bg-white/70 p-2 backdrop-blur-xl sm:p-4">
+       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-         <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-200
+         <div className=" inline-flex items-center gap-2 rounded-full border border-violet-200
           bg-violet-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-violet-700">
           <Sparkles className="h-3 w-3" />
                 PRODUCT MANAGEMENT
          </div>
-         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3 xl">
-          Product Dashboard
-        </h1>
-      <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
+       
+      <p className="mt-1 max-w-2xl text-sm text-slate-600 sm:text-base">
         Manage your product inventory, track sources, and control listings
         from Admin Panel & WooCommerce in one place.
      </p>
@@ -280,7 +278,7 @@ const handleImport = async (e) => {
       value={searchTerm}
       onChange={(event) => setSearchTerm(event.target.value)}
       placeholder="Search products, SKU, category..."
-      className="w-full rounded-2xl bg-white border border-slate-200 py-2 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+      className="w-full rounded-xl bg-white border border-slate-200 py-2 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
     />
   </div>
 
@@ -288,7 +286,7 @@ const handleImport = async (e) => {
   <div className="flex gap-2">
 
     {/* IMPORT */}
-    <label className="inline-flex items-center gap-2 cursor-pointer rounded-2xl bg-white border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition">
+    <label className="inline-flex items-center gap-2 cursor-pointer rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition">
       <Upload className="h-4 w-4" />
       Import
       <input
@@ -302,7 +300,7 @@ const handleImport = async (e) => {
     {/* EXPORT */}
     <button
       onClick={handleExport}
-      className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-emerald-700 transition"
+      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition"
     >
       <Download className="h-4 w-4" />
       Export
@@ -311,7 +309,7 @@ const handleImport = async (e) => {
     {/* ADD PRODUCT */}
     <Link
       to="/add-product"
-      className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#2563eb_0%,#7c3aed_100%)] 
+      className="inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#2563eb_0%,#7c3aed_100%)] 
       px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5"
     >
       <Plus className="h-4 w-4" />
@@ -345,7 +343,7 @@ const handleImport = async (e) => {
       toast.error("Bulk delete failed");
     }
   }}
-  className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2
+  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2
               text-sm font-semibold text-white hover:bg-red-700"
 >
   Delete
@@ -356,7 +354,7 @@ const handleImport = async (e) => {
 </div>
     </div>
 
-         <div className="mt-6 grid gap-4 grid-cols-1 md:grid-cols-3">
+         <div className="mt-4 grid gap-2 grid-cols-1 md:grid-cols-3">
             <StatCard
               icon={<ShoppingBag className="h-5 w-5 text-blue-600" />}
               label="Total Products"
@@ -378,7 +376,7 @@ const handleImport = async (e) => {
           </div>
         </section>
 
-  <section className="overflow-hidden rounded-[32px] border border-white/60 bg-white/75 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+  <section className="overflow-hidden rounded-[22px] border border-white/60 bg-white/75 backdrop-blur-xl">
    {loading ? (
    <div className="flex min-h-[320px] flex-col items-center justify-center gap-4">
     <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
@@ -408,9 +406,9 @@ const handleImport = async (e) => {
         
      <div className="overflow-x-auto">
      <table className="min-w-full text-sm">
-    <thead className="bg-slate-50/90 text-slate-600">
+    <thead className="bg-slate-100 text-slate-600">
   <tr>
-    <th className="px-6 py-4">
+    <th className="px-4 py-2">
   <input
     type="checkbox"
     checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
@@ -423,15 +421,15 @@ const handleImport = async (e) => {
     }}
   />
 </th>
-    <th className="px-6 py-4 text-left font-semibold">Product Name</th>
-    <th className="px-6 py-4 text-left font-semibold">Price</th>
-    <th className="px-6 py-4 text-left font-semibold">Stock</th>
-    <th className="px-6 py-4 text-left font-semibold">Stock Status</th>
-    <th className="px-6 py-4 text-left font-semibold">Status</th>
-    <th className="px-6 py-4 text-left font-semibold">Category</th>
-    <th className="px-6 py-4 text-left font-semibold">Source</th>
-    <th className="px-6 py-4 text-left font-semibold">Created</th>
-    <th className="px-6 py-4 text-left font-semibold">Actions</th>
+    <th className="px-4 py-2 text-left font-semibold">Product Name</th>
+    <th className="px-4 py-2 text-left font-semibold">Price</th>
+    <th className="px-4 py-2 text-left font-semibold">Stock</th>
+    <th className="px-4 py-2 text-left font-semibold">Stock Status</th>
+    <th className="px-4 py-2 text-left font-semibold">Status</th>
+    <th className="px-4 py-2 text-left font-semibold">Category</th>
+    <th className="px-4 py-2 text-left font-semibold">Source</th>
+    <th className="px-4 py-2 text-left font-semibold">Created</th>
+    <th className="px-4 py-2 text-left font-semibold">Actions</th>
   </tr>
 </thead>
 
@@ -445,7 +443,7 @@ const handleImport = async (e) => {
               className="group transition duration-200 hover:bg-slate-50/90"
              >
 
-<td className="px-6 py-4">
+<td className="px-4 py-2">
   <input
     type="checkbox"
     checked={selectedProducts.includes(product.id)}
@@ -459,7 +457,7 @@ const handleImport = async (e) => {
   />
 </td>
 
-      <td className="px-6 py-4">
+      <td className="px-4 py-2">
         <div className="flex items-center gap-4">
 
           <div>
@@ -473,7 +471,7 @@ const handleImport = async (e) => {
       </div>
      </td>
 
-      <td className="px-6 py-4 font-medium text-slate-900">
+      <td className="px-4 py-2 font-medium text-slate-900">
         <div className="flex flex-col">
     
     {/* SALE PRICE */}
@@ -506,12 +504,12 @@ const handleImport = async (e) => {
 </td>
 
 {/* STOCK */}
-<td className="px-6 py-4 text-slate-600">
+<td className="px-4 py-2 text-slate-600">
   {product.stock ?? 0}
 </td>
 
 {/* STOCK STATUS */}
-<td className="px-6 py-4">
+<td className="px-4 py-2">
 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
   product.stock_status === "in_stock"
     ? "bg-emerald-100 text-emerald-700"
@@ -522,7 +520,7 @@ const handleImport = async (e) => {
 </td>
 
 {/* STATUS */}
-<td className="px-6 py-4">
+<td className="px-4 py-2">
   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
     product.status === "publish"
       ? "bg-blue-100 text-blue-700"
@@ -532,11 +530,11 @@ const handleImport = async (e) => {
   </span>
 </td>
 
-     <td className="px-6 py-4 text-slate-600">
+     <td className="px-4 py-2 text-slate-600">
        {product.category || "Uncategorized"}
      </td>
 
-      <td className="px-6 py-4">
+      <td className="px-4 py-2">
         <span 
         className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
         >
@@ -544,7 +542,7 @@ const handleImport = async (e) => {
          </span>
            </td>
 
-    <td className="px-6 py-4 text-slate-500">
+    <td className="px-4 py-2 text-slate-500">
        {product.created_at
          ? new Date(product.created_at).toLocaleDateString("en-IN", {
            day: "2-digit",
@@ -554,12 +552,12 @@ const handleImport = async (e) => {
            : "—"}
      </td>
 
-      <td className="px-6 py-4">
+      <td className="px-4 py-2">
         <div className="flex flex-wrap gap-2 ">
          <Link
            to={`/edit-product/${product.id}`}
            className="inline-flex items-center gap-2 rounded-xl border border-slate-200
-            bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition
+            bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition
              hover:-translate-y-0.5 hover:border-blue-200 hover:text-blue-700"
          >
           <PencilLine className="h-3.5 w-3.5" />
@@ -570,7 +568,7 @@ const handleImport = async (e) => {
             type="button"
             disabled={deletingId === product.id}
             onClick={() => handleDelete(product)}
-            className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3.5 py-2
+            className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2
              bg-rose-50 text-xs font-semibold text-rose-700 transition hover:-translate-y-0.5
                hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
            >
@@ -586,7 +584,7 @@ const handleImport = async (e) => {
    </table>
 
    {/* Pagination */}
-   <div className="flex items-center justify-between border-t border-slate-200 px-6 py-2">
+   <div className="flex items-center justify-between border-t border-slate-200 px-4 py-2">
 
   {/* LEFT */}
   <div className="text-sm text-slate-500">
@@ -668,14 +666,14 @@ function StatCard({ icon, label, value, tone }) {
   };
 
   return (
-    <div className={`rounded-2xl border p-4 shadow-sm transition hover:shadow-md ${toneMap[tone]}`}>
+    <div className={`rounded-2xl border p-2 shadow-sm transition hover:shadow-md ${toneMap[tone]}`}>
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/80 shadow-sm">
           {icon}
         </div>
         <div>
           <div className="text-sm text-slate-500">{label}</div>
-          <div className="text-xl font-bold text-slate-900">{value}</div>
+          <div className="text-lg font-semibold text-slate-900">{value}</div>
         </div>
       </div>
     </div>

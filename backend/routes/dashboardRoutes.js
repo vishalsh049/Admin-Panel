@@ -20,20 +20,91 @@ function isSameDay(dateA, dateB) {
 
 router.get("/", async (req, res) => {
   try {
+  const period = req.query.period || "30D";
+
+const selectedDate = req.query.date
+  ? new Date(req.query.date)
+  : new Date();
+
+const fromDate = req.query.from
+  ? new Date(req.query.from)
+  : null;
+
+const toDate = req.query.to
+  ? new Date(req.query.to)
+  : selectedDate;
+
+const today = toDate;
+let startDate = new Date();
+if (fromDate && toDate) {
+  startDate = fromDate;
+}
+else {
+switch (period) {
+
+  case "7D":
+    startDate = new Date();
+    startDate.setDate(today.getDate() - 6);
+    break;
+
+  case "1M":
+    // Current month from day 1 to today
+    startDate = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
+    );
+    break;
+
+  case "3M":
+    // First day of two months ago
+    startDate = new Date(
+      today.getFullYear(),
+      today.getMonth() - 2,
+      1
+    );
+    break;
+
+  case "1Y":
+    startDate = new Date(
+      today.getFullYear(),
+      0,
+      1
+    );
+    break;
+
+  default:
+    startDate = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
+    );
+}
+}
+
 const [expensesResult, ordersResult, customersResult] = await Promise.allSettled([
   Expense.findAll(),
-  WooCommerce.get("orders", {
-    per_page: 100,
-  }),
+ WooCommerce.get("orders", {
+  per_page: 100,
+}),
  WooCommerce.get("customers", {
   per_page: 1,
 }),
 ]);
 
-const orders =
+const allOrders =
   ordersResult.status === "fulfilled"
     ? ordersResult.value.data
     : [];
+
+const orders = allOrders.filter(order => {
+  const orderDate = new Date(order.date_created);
+
+  return (
+    orderDate >= startDate &&
+    orderDate <= today
+  );
+});
 
 const customers =
   customersResult.status === "fulfilled"
@@ -46,15 +117,32 @@ console.log("Orders Count:", orders.length);
 console.log("Customers Result Status:", customersResult.status);
 console.log("Customers Count:", customers.length);
 
-    const expenses = expensesResult.status === "fulfilled" ? expensesResult.value : [];
+   const allExpenses = expensesResult.status === "fulfilled"
+  ? expensesResult.value
+  : [];
+
+const expenses = allExpenses.filter(expense => {
+  const expenseDate = new Date(expense.createdAt);
+
+  return (
+    expenseDate >= startDate &&
+    expenseDate <= today
+  );
+});
 
     if (expensesResult.status === "rejected") {
       console.log("Dashboard expenses fetch warning:", expensesResult.reason?.message || expensesResult.reason);
     }
 
-    const today = new Date();
-
     const completedOrders = orders.filter((order) => order.status === "completed");
+    console.log(
+  completedOrders.map(order => ({
+    id: order.id,
+    status: order.status,
+    total: order.total,
+    date: order.date_created
+  }))
+);
     const uniqueCustomers = new Set();
 
 completedOrders.forEach((order) => {
@@ -71,17 +159,19 @@ const totalCustomers = uniqueCustomers.size;
       (sum, order) => sum + (parseFloat(order.total) || 0),
       0
     );
+    console.log("Total Sales =", totalSales);
     const totalExpenses = expenses.reduce(
   (sum, expense) => sum + (parseFloat(expense.amount) || 0),
   0
 );
     const profit = totalSales - totalExpenses;
 
-    const orderStatus = {
-      completed: orders.filter((order) => order.status === "completed").length,
-      pending: orders.filter((order) => order.status === "pending").length,
-      cancelled: orders.filter((order) => order.status === "cancelled").length,
-    };
+   const orderStatus = {
+  completed: orders.filter(o => o.status === "completed").length,
+  processing: orders.filter(o => o.status === "processing").length,
+  failed: orders.filter(o => o.status === "failed").length,
+  cancelled: orders.filter(o => o.status === "cancelled").length,
+};
 
     const monthlyMap = {};
     for (let i = 11; i >= 0; i--) {
@@ -117,12 +207,14 @@ const totalCustomers = uniqueCustomers.size;
     });
 
     const monthlySales = Object.values(monthlyMap)
+    
       .map((item) => ({
         ...item,
         profit: item.sales - item.expenses,
       }))
       .sort((a, b) => a.sortDate - b.sortDate)
       .map(({ sortDate, ...rest }) => rest);
+     console.log("Monthly Sales", monthlySales);
 
     const todayOrders = completedOrders.filter((order) =>
       isSameDay(new Date(order.date_created), today)
@@ -220,28 +312,33 @@ const totalCustomers = uniqueCustomers.size;
       topProducts,
       topCustomers,
       activityFeed,
-      summary: {
-        today: {
-          sales: todaySales,
-          orders: todayOrders.length,
-          expenses: 0,
-          profit: todaySales,
-        },
-        month: {
-          sales: currentMonthData.sales,
-          orders: completedOrders.filter(
-            (order) => getMonthKey(new Date(order.date_created)) === currentMonthKey
-          ).length,
-          expenses: currentMonthData.expenses,
-          profit: currentMonthData.profit,
-        },
-        year: {
-          sales: totalSales,
-          orders: completedOrders.length,
-          expenses: totalExpenses,
-          profit,
-        },
-      },
+
+ summary: {
+  "7D": {
+    sales: totalSales,
+    orders: orders.length,
+    expenses: totalExpenses,
+    profit,
+  },
+  "1M": {
+    sales: totalSales,
+    orders: orders.length,
+    expenses: totalExpenses,
+    profit,
+  },
+  "3M": {
+    sales: totalSales,
+    orders: orders.length,
+    expenses: totalExpenses,
+    profit,
+  },
+  "1Y": {
+    sales: totalSales,
+    orders: orders.length,
+    expenses: totalExpenses,
+    profit,
+  }
+},
       wooConfigured: Boolean(WooCommerce),
     });
   } catch (error) {
