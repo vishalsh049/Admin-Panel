@@ -151,10 +151,10 @@ INSERT INTO sale_bills
 (
 billing_name, billing_phone, billing_email, billing_address, billing_city, billing_state, billing_pincode,
 shipping_name, shipping_phone, shipping_address, shipping_city, shipping_state, shipping_pincode,
-order_date, status, payment_method, subtotal, discount, shipping_charge,
+order_date, status, payment_method, subtotal, discount,taxable_amount, shipping_charge,
 gst_amount, total_amount
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 const values = [
@@ -178,10 +178,11 @@ const values = [
   bill.paymentMethod || null,
   bill.subtotal || 0,
   bill.discount || 0,
+  bill.taxableAmount || 0,
   bill.shippingCharge || 0,
 
-  (bill.igst || 0) + (bill.cgst || 0) + (bill.sgst || 0),
-  bill.total || 0
+(bill.igst || 0) + (bill.cgst || 0) + (bill.sgst || 0),
+bill.total || 0
 ];
 
 console.log("VALUES:", values);
@@ -269,7 +270,8 @@ order_date = ?,
 status = ?, 
 payment_method = ?, 
 subtotal = ?, 
-discount = ?, 
+discount = ?,
+taxable_amount = ?, 
 shipping_charge = ?,
 gst_amount = ?, 
 total_amount = ?
@@ -287,7 +289,7 @@ WHERE id = ?
         bill.state || null,
         bill.pincode || null,
         `${bill.shipping?.firstName || ""} ${bill.shipping?.lastName || ""}`.trim() || null,
-        bill.shipping?.phone || null,
+        bill.shipping?.phone || null, 
         bill.shipping?.address || null,
         bill.shipping?.city || null,
         bill.shipping?.state || null,
@@ -297,6 +299,7 @@ WHERE id = ?
         bill.paymentMethod || null,
         bill.subtotal || 0,
         bill.discount || 0,
+        bill.taxableAmount || bill.taxable_amount || 0,
         bill.shippingCharge || bill.shipping_charge || 0,
         (bill.igst || 0) + (bill.cgst || 0) + (bill.sgst || 0),
         bill.total || bill.grandTotal || 0,

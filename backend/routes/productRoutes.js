@@ -7,6 +7,19 @@ const WooCommerceRestApi = require("@woocommerce/woocommerce-rest-api").default;
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
+const path = require("path");
+
+const storage = multer.diskStorage({
+  destination: "uploads/products",
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+const uploadImage = multer({
+  storage,
+});
+
 const WooCommerce = new WooCommerceRestApi({
   url: process.env.WOO_URL,
   consumerKey: process.env.WOO_CONSUMER_KEY,
@@ -224,6 +237,24 @@ router.post("/import", upload.single("file"), async (req, res) => {
   }
 });
 
+router.post(
+  "/upload-image",
+  uploadImage.single("image"),
+  (req, res) => {
+
+    if (!req.file) {
+      return res.status(400).json({
+        error: "No image uploaded",
+      });
+    }
+res.json({
+  imageUrl:
+    `https://divyadarshnam.com/uploads/products/${req.file.filename}`,
+});
+
+  }
+);
+
 // ---------------- GET ALL PRODUCTS ----------------
 router.get("/", async (req, res) => {
   try {
@@ -321,6 +352,44 @@ router.post("/", async (req, res) => {
   tax_status: tax_status || "taxable",
 
   image: image || "",
+});
+
+// Create product in WooCommerce
+const wooResponse = await WooCommerce.post("products", {
+  name,
+  type: "simple",
+  description,
+
+  regular_price: String(regular_price || 0),
+
+  sale_price: sale_price
+    ? String(sale_price)
+    : "",
+
+  sku,
+
+  manage_stock: true,
+
+  stock_quantity: Number(stock),
+
+  status: status || "publish",
+
+ categories: Array.isArray(categories)
+  ? categories.map(cat => ({ name: cat }))
+  : categories
+  ? [{ name: categories }]
+  : [],
+
+ images: image
+ ? [{
+     src: image
+   }]
+ : [],
+});
+
+// Save WooCommerce ID in MySQL
+await newProduct.update({
+  woocommerce_id: wooResponse.data.id
 });
 
     return res.json({

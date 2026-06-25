@@ -64,7 +64,7 @@ id: order.id,
 date: order.date_created,
 status: order.status,
 paymentMethod: order.payment_method_title,
-shipping_total: Number(order.shipping_total || 0),
+shippingCharge: Number(order.shipping_total || 0),
 discount: order.discount_total,
 
 billing: {
