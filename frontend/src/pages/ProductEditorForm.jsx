@@ -1,4 +1,5 @@
 import { ImagePlus, Package2, Save, Tag, Warehouse } from "lucide-react";
+import { BASE_URL } from "../utils/api";
 import { useState } from "react";
 import { useEffect, useRef } from "react";
 
@@ -76,27 +77,30 @@ export default function ProductEditorForm({
   };
 
   {/** handle image upload */ }
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const preview = URL.createObjectURL(file);
+ const handleImageUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    // update file
-    onChange({
-      target: {
-        name: "image_file",
-        value: file,
-      },
-    });
+  const formDataUpload = new FormData();
+  formDataUpload.append("image", file);
 
-    // update preview
-    onChange({
-      target: {
-        name: "image_preview",
-        value: preview,
-      },
-    });
-  };
+  const response = await fetch(
+    `${BASE_URL}/api/products/upload-image`,
+    {
+      method: "POST",
+      body: formDataUpload,
+    }
+  );
+
+  const data = await response.json();
+
+  onChange({
+    target: {
+      name: "image_preview",
+      value: data.imageUrl,
+    },
+  });
+};
 
   const handleChange = (e) => {
     const { name, value } = e.target;

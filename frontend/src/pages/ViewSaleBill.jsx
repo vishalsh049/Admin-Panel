@@ -56,6 +56,19 @@ const [discount, setDiscount] = useState(0);
 const [discountType, setDiscountType] = useState("%");
 const [apiResponse, setApiResponse] = useState(null);
 
+const bill = apiResponse?.bill || {};
+
+const [summary, setSummary] = useState({
+  subtotal: 0,
+  taxableAmount: 0,
+  gstAmount: 0,
+  cgst: 0,
+  sgst: 0,
+  igst: 0,
+  grandTotal: 0,
+  isSameState: false
+});
+
 // Copy Billing Address → Shipping Address
 useEffect(() => {
 
@@ -95,6 +108,22 @@ console.log("Fetched bill data:", data); // DEBUG
 
 const bill = data.bill;
 
+const gstAmount = Number(bill.gst_amount) || 0;
+const sellerState = "PB";
+const isSameState = bill.billing_state === sellerState;
+
+setSummary({
+  subtotal: Number(bill.subtotal) || 0,
+  taxableAmount: Number(bill.taxable_amount) || 0,
+  gstAmount,
+  cgst: isSameState ? gstAmount / 2 : 0,
+  sgst: isSameState ? gstAmount / 2 : 0,
+  igst: !isSameState ? gstAmount : 0,
+  grandTotal: Number(bill.total_amount) || 0,
+  isSameState
+});
+
+
 console.log("BILL DATA:", bill);
 console.log("ITEMS DATA:", data.items);
 console.log("ITEMS LENGTH:", data.items?.length || 0);
@@ -113,6 +142,7 @@ setStatus(bill.status || "");
 setPaymentMethod(bill.paymentMethod || bill.payment_method || "");
 setShippingCharge(bill.shippingCharge || bill.shipping_charge || 0);
 setDiscount(bill.discount || 0);
+setDiscountType("₹");
 
 const nameParts = (bill.billing_name || "").split(" ");
 
@@ -164,9 +194,7 @@ setItems(
 
   gst: Number(item.gst || item.gst_percent) || 0,
 
-  total:
-    Number(item.total) ||
-    (Number(item.rate || 0) * Number(item.qty || item.quantity || 1))
+ total: Number(item.total) || 0
 
 }))
 );
@@ -177,61 +205,6 @@ console.log("Items loaded:", data.items); // DEBUG
 .catch(err => console.log(err));
 
 }, [id]);
-
-     const subtotal = items.reduce((sum, row) => {
-     const rate = parseFloat(row.rate) || 0;
-     const qty = parseFloat(row.qty) || 0;
-
-  return sum + rate * qty;
-}, 0);
-
-let discountAmount = 0;
-
-if (discountType === "%") {
-  discountAmount = (subtotal * discount) / 100;
-} else {
-  discountAmount = parseFloat(discount) || 0;
-}
-
-
-// PRICE AFTER DISCOUNT
-
-
-let totalGST = 0;
-let taxableAmount = 0;
-
-items.forEach(item => {
-
-const price = (item.rate || 0) * (item.qty || 0);
-const gstRate = parseFloat(item.gst) || 0;
-
-// Apply discount proportionally
-const itemDiscount = discountType === "%"
-  ? price * discount / 100
-  : subtotal > 0 ? (discount / subtotal) * price : 0;
-
-const priceAfterDiscount = price - itemDiscount;
-
-// GST calculation AFTER discount
-const taxable = priceAfterDiscount / (1 + gstRate / 100);
-const gstValue = priceAfterDiscount - taxable;
-
-taxableAmount += taxable;
-totalGST += gstValue;
-
-});
-
-// STATE CHECK
-const sellerState = "PB"; // Punjab GST registration
-const isSameState = billing.state === sellerState;
-
-const cgst = isSameState ? totalGST / 2 : 0;
-const sgst = isSameState ? totalGST / 2 : 0;
-const igst = !isSameState ? totalGST : 0;
-
-
-// GRAND TOTAL (GST already included)
-const grandTotal = subtotal - discountAmount + Number(shippingCharge);
 
 
     const saveBill = async () => {
@@ -755,7 +728,7 @@ className="border px-3 py-2 rounded-md text-sm w-full sm:col-span-2"
 
         {items.map((row, index) => {
 
-const total = row.total || 0;
+const total = Number(row.total) || 0;
           return (
 
             <tr key={index} className="border-t">
@@ -805,7 +778,7 @@ readOnly
 
               {/* ---------- RATE ---------- */}
               <td className="p-2">
- <input
+<input
 type="number"
 className="border p-2 w-full rounded text-center"
 value={row.rate}
@@ -814,14 +787,14 @@ readOnly
               </td>
 
               {/* ---------- GST ---------- */}
-              <td className="p-2">
-              <input
+<td className="p-2">
+  <input
 type="number"
 className="border p-2 w-full rounded text-center"
 value={row.gst}
 readOnly
 />
-              </td>
+</td>
 
               {/* ---------- TOTAL ---------- */}
              <td className="p-2 text-center font-medium">

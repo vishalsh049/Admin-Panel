@@ -10,7 +10,8 @@ import {
   Boxes,
   Sparkles,
   Upload,
-  Download
+  Download,
+  Eye
 } from "lucide-react";
 import { BASE_URL } from "../utils/api";
 
@@ -36,6 +37,9 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [viewProduct, setViewProduct] = useState(null);
+const [showViewModal, setShowViewModal] = useState(false);
 
 const productsPerPage = 10;
 
@@ -404,8 +408,8 @@ const handleImport = async (e) => {
             </div>
           ) : (
         
-     <div className="overflow-x-auto">
-     <table className="min-w-full text-sm">
+    <div className="overflow-hidden">
+   <table className="w-full text-sm">
     <thead className="bg-slate-100 text-slate-600">
   <tr>
     <th className="px-4 py-2">
@@ -421,6 +425,7 @@ const handleImport = async (e) => {
     }}
   />
 </th>
+<th className="px-4 py-2 text-left font-semibold">Image</th>
     <th className="px-4 py-2 text-left font-semibold">Product Name</th>
     <th className="px-4 py-2 text-left font-semibold">Price</th>
     <th className="px-4 py-2 text-left font-semibold">Stock</th>
@@ -438,10 +443,10 @@ const handleImport = async (e) => {
           const badge = getSourceBadge(product.source);
 
            return (
-             <tr
-               key={product.id}
-              className="group transition duration-200 hover:bg-slate-50/90"
-             >
+          <tr
+ key={product.id}
+ className="group border-b border-slate-100 hover:bg-blue-50/30 transition"
+>
 
 <td className="px-4 py-2">
   <input
@@ -457,19 +462,30 @@ const handleImport = async (e) => {
   />
 </td>
 
-      <td className="px-4 py-2">
-        <div className="flex items-center gap-4">
+<td className="px-4 py-2">
+<img
+  src={
+    product.image?.startsWith("http")
+      ? product.image
+      : `${BASE_URL}${product.image}`
+  }
+  onError={(e) => {
+    e.target.src = "/no-image.png";
+  }}
+  alt={product.name}
+  className="h-14 w-14 rounded-xl object-cover border border-slate-200"
+/>
+</td>
 
-          <div>
-            <div className="font-semibold text-slate-900">
-              {product.name}
-               </div>
-            <div className="mt-1 text-xs text-slate-500">
-              {product.sku ? `SKU: ${product.sku}` : "No SKU assigned"}
-          </div>
-        </div>
-      </div>
-     </td>
+<td className="px-4 py-2">
+  <div className="font-semibold text-slate-900">
+    {product.name}
+  </div>
+
+  <div className="mt-1 text-xs text-slate-500">
+    {product.sku ? `SKU: ${product.sku}` : "No SKU assigned"}
+  </div>
+</td>
 
       <td className="px-4 py-2 font-medium text-slate-900">
         <div className="flex flex-col">
@@ -552,31 +568,48 @@ const handleImport = async (e) => {
            : "—"}
      </td>
 
-      <td className="px-4 py-2">
-        <div className="flex flex-wrap gap-2 ">
-         <Link
-           to={`/edit-product/${product.id}`}
-           className="inline-flex items-center gap-2 rounded-xl border border-slate-200
-            bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition
-             hover:-translate-y-0.5 hover:border-blue-200 hover:text-blue-700"
-         >
-          <PencilLine className="h-3.5 w-3.5" />
-                              
-            </Link>
+   <td className="px-4 py-2">
+  <div className="flex items-center justify-center gap-2">
 
-         <button
-            type="button"
-            disabled={deletingId === product.id}
-            onClick={() => handleDelete(product)}
-            className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2
-             bg-rose-50 text-xs font-semibold text-rose-700 transition hover:-translate-y-0.5
-               hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
-           >
-             <Trash2 className="h-3.5 w-3.5" />
-               {deletingId === product.id ? "Deleting..." : ""}
-             </button>
-             </div>
-            </td>
+    {/* View */}
+    <button
+    onClick={() => {
+  console.log(product);
+  setViewProduct(product);
+  setShowViewModal(true);
+}}
+      className="flex h-8 w-8 items-center justify-center rounded-xl
+      border border-emerald-200 bg-emerald-50 text-emerald-700
+      hover:bg-emerald-100"
+    >
+      <Eye className="h-4 w-4" />
+    </button>
+
+    {/* Edit */}
+    <Link
+      to={`/edit-product/${product.id}`}
+      className="flex h-8 w-8 items-center justify-center rounded-xl
+      border border-slate-200 bg-white text-slate-700
+      hover:border-blue-200 hover:text-blue-700"
+    >
+      <PencilLine className="h-4 w-4" />
+    </Link>
+
+    {/* Delete */}
+    <button
+      type="button"
+      disabled={deletingId === product.id}
+      onClick={() => handleDelete(product)}
+      className="flex h-8 w-8 items-center justify-center rounded-xl
+      border border-rose-200 bg-rose-50 text-rose-700
+      hover:bg-rose-100"
+    >
+      <Trash2 className="h-4 w-4" />
+    </button>
+
+  </div>
+</td>
+
            </tr>
           );
         })}
@@ -653,6 +686,75 @@ const handleImport = async (e) => {
   </div>
  )}
   </section>
+
+  {showViewModal && viewProduct && (
+<div
+  className="fixed inset-0 z-[9999]
+  bg-slate-900/20
+  backdrop-blur-md
+  flex items-center justify-center"
+>
+ <div className="bg-white rounded-3xl w-[1200px] max-h-[90vh] overflow-y-auto p-8">
+
+    <div className="flex justify-between items-center mb-6">
+      <h2 className="text-xl font-bold">
+        Product Details
+      </h2>
+
+      <button
+        onClick={() => setShowViewModal(false)}
+        className="text-red-500 text-xl"
+      >
+        ✕
+      </button>
+    </div>
+
+    <img
+      src={
+        viewProduct.image?.startsWith("http")
+          ? viewProduct.image
+          : `${BASE_URL}${viewProduct.image}`
+      }
+      className="w-32 h-32 rounded-2xl object-cover border mb-6"
+    />
+
+  <div className="grid grid-cols-3 gap-2">
+
+  <Info title="ID" value={viewProduct.id} />
+  <Info title="Name" value={viewProduct.name} />
+  <Info title="SKU" value={viewProduct.sku} />
+  <Info title="Category" value={viewProduct.category} />
+  <Info title="Regular Price" value={`₹${viewProduct.regular_price}`} />
+  <Info title="Sale Price" value={`₹${viewProduct.sale_price}`} />
+  <Info title="Stock" value={viewProduct.stock} />
+  <Info title="Stock Status" value={viewProduct.stock_status} />
+  <Info title="Status" value={viewProduct.status} />
+  <Info title="Brand" value={viewProduct.brand} />
+  <Info title="Color" value={viewProduct.color} />
+  <Info title="Size" value={viewProduct.size} />
+  <Info title="Weight" value={viewProduct.weight} />
+  <Info title="Length" value={viewProduct.length} />
+  <Info title="Width" value={viewProduct.width} />
+  <Info title="Height" value={viewProduct.height} />
+  <Info title="Source" value={viewProduct.source} />
+
+</div>
+
+    <div className="mt-5">
+      <h3 className="font-semibold mb-2">Description</h3>
+
+    <div
+  className="bg-slate-50 rounded-2xl p-4 text-sm text-slate-700 leading-7"
+  dangerouslySetInnerHTML={{
+    __html: viewProduct.description || "No description available",
+  }}
+/>
+    </div>
+
+  </div>
+</div>
+)}
+
  </div>
 </div>
   );
@@ -675,6 +777,20 @@ function StatCard({ icon, label, value, tone }) {
           <div className="text-sm text-slate-500">{label}</div>
           <div className="text-lg font-semibold text-slate-900">{value}</div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function Info({ title, value }) {
+  return (
+    <div className="bg-slate-50 rounded-2xl p-4">
+      <div className="text-xs text-slate-500">
+        {title}
+      </div>
+
+      <div className="font-semibold text-slate-900 mt-1">
+        {value || "-"}
       </div>
     </div>
   );

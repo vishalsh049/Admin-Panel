@@ -279,13 +279,16 @@ export default function Invoice() {
 
       {items.map((item, index) => {
 
-        const qty = Number(item.qty) || 0;
-        const rate = Number(item.rate) || 0;
-        const gst = Number(item.gst) || 0;
+      const qty = Number(item.qty) || 0;
+const rate = Number(item.rate) || 0;
+const gst =
+  item.gst === "" || item.gst === null || item.gst === undefined
+    ? ""
+    : Number(item.gst);
 
-        const base = qty * rate;
-        const tax = (base * gst) / 100;
-        const total = base + tax;
+const taxable = qty * rate;
+const tax = gst === "" ? 0 : taxable * gst / 100;
+const total = taxable + tax;
 
         return (
 
@@ -318,9 +321,9 @@ export default function Invoice() {
               {formatCurrency(rate)}
             </td>
 
-            <td className="border border-gray-200 px-3 pb-3 text-xs text-center">
-              {gst}%
-            </td>
+           <td className="border border-gray-200 px-3 pb-3 text-xs text-center">
+  {gst === "" ? "-" : `${gst}%`}
+</td>
 
             <td className="border border-gray-200 px-3 pb-3 text-xs text-center">
               {formatCurrency(tax)}
