@@ -55,8 +55,7 @@ const [items, setItems] = useState([]);
 const [discount, setDiscount] = useState(0);
 const [discountType, setDiscountType] = useState("%");
 const [apiResponse, setApiResponse] = useState(null);
-
-const bill = apiResponse?.bill || {};
+const [billData, setBillData] = useState({});
 
 const [summary, setSummary] = useState({
   subtotal: 0,
@@ -68,6 +67,8 @@ const [summary, setSummary] = useState({
   grandTotal: 0,
   isSameState: false
 });
+
+const { subtotal, taxableAmount, gstAmount, cgst, sgst, igst, grandTotal, isSameState } = summary;
 
 // Copy Billing Address → Shipping Address
 useEffect(() => {
@@ -107,22 +108,49 @@ fetch(`${BASE_URL}/api/sale-bills/${id}`)
 console.log("Fetched bill data:", data); // DEBUG
 
 const bill = data.bill;
+setBillData(bill);
+console.log("FULL BILL:", bill);
+console.log("Subtotal from API:", bill.subtotal);
+console.log("Taxable:", bill.taxable_amount);
+console.log("Total:", bill.total_amount);
 
-const gstAmount = Number(bill.gst_amount) || 0;
 const sellerState = "PB";
 const isSameState = bill.billing_state === sellerState;
 
-setSummary({
-  subtotal: Number(bill.subtotal) || 0,
-  taxableAmount: Number(bill.taxable_amount) || 0,
-  gstAmount,
-  cgst: isSameState ? gstAmount / 2 : 0,
-  sgst: isSameState ? gstAmount / 2 : 0,
-  igst: !isSameState ? gstAmount : 0,
-  grandTotal: Number(bill.total_amount) || 0,
-  isSameState
+// Process items first so summary is computed from item totals, not stored API values
+const loadedItems = (data.items || []).map(item => {
+
+  const qty = Number(item.qty || item.quantity) || 1;
+  const total = Number(item.total) || 0;
+  const gst = Number(item.gst || item.gst_percent) || 0;
+
+  // Calculate taxable rate from GST-inclusive total
+  const taxable = total / (1 + gst / 100);
+  const rate = taxable / qty;
+
+  return {
+    description: item.description || item.item_description || "Product",
+    sku: item.sku || "",
+    hsn: item.hsn || "",
+    qty,
+    rate: Number(rate.toFixed(2)),
+    gst,
+    total
+  };
+
 });
 
+// Subtotal = sum of item totals (not sum of rates)
+setSummary({
+  subtotal: Number(bill.subtotal || 0),
+  taxableAmount: Number(bill.taxable_amount || 0),
+  gstAmount: Number(bill.gst_amount || 0),
+  cgst: isSameState ? Number(bill.gst_amount || 0) / 2 : 0,
+  sgst: isSameState ? Number(bill.gst_amount || 0) / 2 : 0,
+  igst: !isSameState ? Number(bill.gst_amount || 0) : 0,
+  grandTotal: Number(bill.total_amount || 0),
+  isSameState
+});
 
 console.log("BILL DATA:", bill);
 console.log("ITEMS DATA:", data.items);
@@ -180,24 +208,7 @@ setShipping({
   gstin: ""
 });
 
-setItems(
-(data.items || []).map(item => ({
-
-  description: item.description || item.item_description || "Product",
-
-  sku: item.sku || "",
-  hsn: item.hsn || "",
-
-  qty: Number(item.qty || item.quantity) || 1,
-
-  rate: Number(item.rate) || 0,
-
-  gst: Number(item.gst || item.gst_percent) || 0,
-
- total: Number(item.total) || 0
-
-}))
-);
+setItems(loadedItems);
 
 console.log("Items loaded:", data.items); // DEBUG
 
@@ -317,7 +328,7 @@ className="bg-gray-200 px-4 py-2 rounded-md text-sm w-full sm:w-auto"
 ← Back
 </button>
 
-<h2 className="text-2xl font-semibold break-words">View Sale Bill</h2>
+<h2 className="text-2xl font-semibold break-words">View Sale Bill Test</h2>
 
 </div>
 
@@ -332,6 +343,8 @@ onClick={() =>
       date,
       shippingCharge,
       subtotal,
+      taxableAmount,
+      gstAmount,
       discount,
       paymentMethod,
       status
@@ -859,7 +872,7 @@ rows="3"
 
         <div className="flex justify-between">
           <span>Subtotal</span>
-          <span>₹{subtotal.toFixed(2)}</span>
+          <span>₹{Number(billData.subtotal).toFixed(2)}</span>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -929,7 +942,7 @@ className="border border-gray-300 rounded-md px-3 py-1 w-20 max-w-full text-righ
 
      <div className="flex justify-between text-lg font-semibold bg-green-50 text-green-700 p-3 rounded-lg">
 <span>Total Payable</span>
-<span>₹{grandTotal.toFixed(2)}</span>
+<span>₹{Number(billData.total_amount).toFixed(2)}</span>
 </div>
     </div>
 

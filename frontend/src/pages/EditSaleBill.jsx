@@ -277,10 +277,8 @@ updated[index].total = priceAfterDiscount;
           setItems(updated);
      };
 
-    const subtotal = items.reduce((sum, row) => {
-  const rate = parseFloat(row.rate) || 0;
-  const qty = parseFloat(row.qty) || 0;
-  return sum + rate * qty;
+  const subtotal = items.reduce((sum, row) => {
+  return sum + (parseFloat(row.total) || 0);
 }, 0);
 let discountAmount = 0;
 
@@ -299,7 +297,7 @@ let taxableAmount = 0;
 
 items.forEach(item => {
 
-const price = (item.rate || 0) * (item.qty || 0);
+const price = parseFloat(item.total) || 0;
 const gstRate = parseFloat(item.gst) || 0;
 
 // Apply discount proportionally
@@ -310,8 +308,8 @@ const itemDiscount = discountType === "%"
 const priceAfterDiscount = price - itemDiscount;
 
 // GST calculation AFTER discount
-const taxable = priceAfterDiscount / (1 + gstRate / 100);
-const gstValue = priceAfterDiscount - taxable;
+const taxable = (parseFloat(item.rate) || 0) * (parseFloat(item.qty) || 0);
+const gstValue = price - taxable;
 
 taxableAmount += taxable;
 totalGST += gstValue;
@@ -587,20 +585,22 @@ alert("Order not found. You can create bill manually.");
                               <button
                                    type="button"
                                    onClick={() =>
-                                        navigate(`/invoice/${id}`, {
-                                             state: {
-                                                  billing,
-                                                  shipping,
-                                                  items,
-                                                  grandTotal,
-                                                  date,
-                                                  shippingCharge,
-                                                  subtotal,
-                                                  discount,
-                                                  paymentMethod,
-                                                  status
-                                             }
-                                        })
+                                   navigate(`/invoice/${id}`, {
+  state: {
+    billing,
+    shipping,
+    items,
+    grandTotal,
+    subtotal,
+    taxableAmount,
+    gstAmount: totalGST,
+    date,
+    shippingCharge,
+    discount,
+    paymentMethod,
+    status
+  }
+})
                                    }
                                    className="rounded-lg bg-green-600 px-4 py-2 text-sm text-white sm:w-auto"
                               >
@@ -1299,20 +1299,22 @@ className="border border-gray-300 rounded-md px-3 py-1 w-20 max-w-full text-righ
                          <button
                               type="button"
                               onClick={() =>
-                                   navigate(`/invoice/${id}`, {
-                                        state: {
-                                             billing,
-                                             shipping,
-                                             items,
-                                             grandTotal,
-                                             date,
-                                             shippingCharge,
-                                             subtotal,
-                                             discount,
-                                             paymentMethod,
-                                             status
-                                        }
-                                   })
+                                navigate(`/invoice/${id}`, {
+  state: {
+    billing,
+    shipping,
+    items,
+    grandTotal,
+    subtotal,
+    taxableAmount,
+    gstAmount: totalGST,
+    date,
+    shippingCharge,
+    discount,
+    paymentMethod,
+    status
+  }
+})
                               }
                               className="rounded-lg bg-emerald-600 px-6 py-3 text-white sm:w-auto"
                          >

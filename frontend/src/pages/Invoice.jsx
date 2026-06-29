@@ -30,8 +30,8 @@ export default function Invoice() {
 
   const invoiceNumber = `DD202627${String(id || 1).padStart(3, "0")}`;
 
-  const taxableAmount = subtotal - discount;
-  const gstAmount = grandTotal - shippingCharge - taxableAmount;
+  const taxableAmount = Number(location.state?.taxableAmount) || 0;
+  const gstAmount = Number(location.state?.gstAmount) || 0;
 
   const amountInWords = `Rupees ${Math.round(
     grandTotal
@@ -107,9 +107,9 @@ export default function Invoice() {
 
           <div>
             <img
-              src="/logo.png"
+              src="/logodd.png"
               alt="logo"
-              className="w-24 h-24 object-contain"
+              className="w-48 h-24 object-contain"
             />
           </div>
 
@@ -287,8 +287,8 @@ const gst =
     : Number(item.gst);
 
 const taxable = qty * rate;
-const tax = gst === "" ? 0 : taxable * gst / 100;
-const total = taxable + tax;
+const total = Number(item.total) || 0;
+const tax = total - taxable;
 
         return (
 

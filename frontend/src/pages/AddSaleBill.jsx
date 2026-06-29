@@ -187,19 +187,24 @@
 const qty = parseFloat(updated[index].qty) || 1;
 const gst = parseFloat(updated[index].gst) || 0;
 
-if (field === "rate") {
-    updated[index].total = Number(value) * qty;
-}
-
+// Keep existing total fixed
 const total = parseFloat(updated[index].total) || 0;
 
-const taxable = total / (1 + gst / 100);
-const gstAmount = total - taxable;
+// Only when user changes Rate manually
+if (field === "rate") {
+    updated[index].total = (parseFloat(value) || 0) * qty;
+}
 
-updated[index].rate = taxable.toFixed(2);
-updated[index].gstAmount = gstAmount.toFixed(2);
+// Read the latest total
+const inclusiveTotal = parseFloat(updated[index].total) || 0;
 
-            setItems(updated);
+// Calculate taxable value from fixed total
+const taxable = inclusiveTotal / (1 + gst / 100);
+
+updated[index].rate = Number((taxable / qty).toFixed(2));
+updated[index].gstAmount = Number((inclusiveTotal - taxable).toFixed(2));
+
+setItems(updated);
       };
 
    const subtotal = items.reduce((sum, row) => {
@@ -234,8 +239,8 @@ updated[index].gstAmount = gstAmount.toFixed(2);
   const priceAfterDiscount = price - itemDiscount;
 
   // GST calculation AFTER discount
-  const taxable = priceAfterDiscount / (1 + gstRate / 100);
-  const gstValue = priceAfterDiscount - taxable;
+  const taxable = (item.rate * item.qty) - itemDiscount;
+  const gstValue = (parseFloat(item.gstAmount) || 0);
 
   taxableAmount += taxable;
   totalGST += gstValue;
@@ -508,6 +513,8 @@ updated[index].gstAmount = gstAmount.toFixed(2);
             updated[index].hsn = product.hsn
             updated[index].rate = product.price
             updated[index].gst = 0;
+            const qty = updated[index].qty || 1;
+updated[index].total = Number(updated[index].rate) * qty;
 
             setItems(updated)
 
