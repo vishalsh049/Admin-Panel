@@ -34,22 +34,14 @@ export default function Customers() {
     if (!q) return customers;
 
     return customers.filter((c) => {
-      const name = c.first_name || c.last_name ? `${c.first_name || ""} ${c.last_name || ""}` : "";
-      const username = c.username || "";
+      const name = c.name || "";
       const email = c.email || "";
-      const phone = c.billing?.phone || "";
-      const city = c.billing?.city || "";
-      const country = c.billing?.country || "";
-      const role = c.role || "";
+      const phone = c.phone || "";
 
       return (
         name.toLowerCase().includes(q) ||
-        username.toLowerCase().includes(q) ||
         email.toLowerCase().includes(q) ||
-        phone.toLowerCase().includes(q) ||
-        city.toLowerCase().includes(q) ||
-        country.toLowerCase().includes(q) ||
-        role.toLowerCase().includes(q)
+        phone.toLowerCase().includes(q)
       );
     });
   }, [customers, query]);
@@ -71,36 +63,22 @@ export default function Customers() {
     return filteredCustomers.slice(start, start + pageSize);
   }, [filteredCustomers, pageSize, safePage]);
 
-  const roleBadge = (role) => {
-    const r = String(role || "").toLowerCase();
-    const base = "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border";
-
-    if (r.includes("admin")) return `${base} bg-indigo-50 text-indigo-700 border-indigo-100`;
-    if (r.includes("vendor")) return `${base} bg-emerald-50 text-emerald-700 border-emerald-100`;
-    if (r.includes("customer")) return `${base} bg-sky-50 text-sky-700 border-sky-100`;
-    return `${base} bg-slate-50 text-slate-700 border-slate-100`;
-  };
-
   const exportRows = (rows) =>
     rows.map((c) => [
-      c.first_name || c.last_name ? `${c.first_name || ""} ${c.last_name || ""}`.trim() : c.email || "-",
+      c.name || c.email || "-",
       c.email || "-",
-      c.billing?.phone || "-",
-      c.billing?.city || "-",
-      c.billing?.country || "-",
-      c.username?.split(" ")[0] || "-",
-      c.role || "-",
-      c.date_created ? formatDate(c.date_created) : "-",
+      c.phone || "-",
+      c.created_at ? formatDate(c.created_at) : "-",
     ]);
 
   const handleExportPDF = () => {
-    const columns = ["Customer", "Email", "Phone", "City", "Country", "Username", "Role", "Join Date"];
+    const columns = ["Customer", "Email", "Phone", "Join Date"];
     const rows = exportRows(filteredCustomers);
     exportToPDF("Customers", columns, rows);
   };
 
   const handleExportExcel = () => {
-    const columns = ["Customer", "Email", "Phone", "City", "Country", "Username", "Role", "Join Date"];
+    const columns = ["Customer", "Email", "Phone", "Join Date"];
     const rows = exportRows(filteredCustomers);
     exportToExcel("Customers", columns, rows);
   };
@@ -153,7 +131,7 @@ export default function Customers() {
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by name, email, username, role, city, country..."
+                  placeholder="Search by name, email, or phone..."
                   className="w-full h-9 rounded-xl border border-slate-200 bg-white/85 backdrop-blur px-6 pr-8 text-slate-900 placeholder:text-slate-400 shadow-sm outline-none focus:border-indigo-200 focus:ring-4 focus:ring-indigo-100/40 transition-colors"
                 />
 
@@ -242,10 +220,6 @@ export default function Customers() {
                     <th className="p-4 text-left font-semibold text-slate-700">Customer</th>
                     <th className="p-4 text-left font-semibold text-slate-700">Email</th>
                     <th className="p-4 text-left font-semibold text-slate-700">Phone</th>
-                    <th className="p-4 text-left font-semibold text-slate-700">City</th>
-                    <th className="p-4 text-left font-semibold text-slate-700">Country</th>
-                    <th className="p-4 text-left font-semibold text-slate-700">Username</th>
-                    <th className="p-4 text-left font-semibold text-slate-700">Role</th>
                     <th className="p-4 text-left font-semibold text-slate-700">Join Date</th>
                   </tr>
                 </thead>
@@ -253,7 +227,7 @@ export default function Customers() {
                 <tbody>
                   {paginatedCustomers.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-10 text-center">
+                      <td colSpan={4} className="p-10 text-center">
                         <div className="inline-flex flex-col items-center gap-2">
                           <div className="w-14 h-14 rounded-3xl bg-slate-100 border border-slate-200 flex items-center justify-center">
                             <FaUser className="text-slate-500 text-lg" />
@@ -271,23 +245,13 @@ export default function Customers() {
                       >
                         <td className="p-4">
                           <div className="flex items-center gap-3 min-w-[240px]">
-                            {c.avatar_url ? (
-                              <img
-                                src={c.avatar_url}
-                                className="w-10 h-10 rounded-full ring-2 ring-white shadow-sm object-cover"
-                                alt=""
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-100 to-indigo-50 ring-2 ring-white shadow-sm flex items-center justify-center">
-                                <FaUser className="text-slate-600 text-sm" />
-                              </div>
-                            )}
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-100 to-indigo-50 ring-2 ring-white shadow-sm flex items-center justify-center">
+                              <FaUser className="text-slate-600 text-sm" />
+                            </div>
 
                             <div className="min-w-0">
                               <p className="font-semibold text-slate-900 truncate">
-                                {c.first_name || c.last_name
-                                  ? `${c.first_name || ""} ${c.last_name || ""}`.trim()
-                                  : c.email}
+                                {c.name || c.email}
                               </p>
                               <p className="text-xs text-slate-500 truncate max-w-[190px]">{c.email}</p>
                             </div>
@@ -299,30 +263,12 @@ export default function Customers() {
                         </td>
 
                         <td className="p-4">
-                          <span className="text-slate-700">{c.billing?.phone || "-"}</span>
-                        </td>
-
-                        <td className="p-4">
-                          <span className="text-slate-700">{c.billing?.city || "-"}</span>
-                        </td>
-
-                        <td className="p-4">
-                          <span className="text-slate-700">{c.billing?.country || "-"}</span>
-                        </td>
-
-                        <td className="p-4 max-w-[160px]">
-                          <span className="inline-block max-w-[150px] truncate px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-800 font-semibold text-xs">
-                            {c.username?.split(" ")[0] || "-"}
-                          </span>
-                        </td>
-
-                        <td className="p-4">
-                          <span className={roleBadge(c.role)}>{c.role}</span>
+                          <span className="text-slate-700">{c.phone || "-"}</span>
                         </td>
 
                         <td className="p-4">
                           <span className="text-slate-700 font-medium">
-                            {c.date_created ? formatDate(c.date_created) : "-"}
+                            {c.created_at ? formatDate(c.created_at) : "-"}
                           </span>
                         </td>
                       </tr>

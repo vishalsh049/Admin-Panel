@@ -14,13 +14,14 @@ const authRoutes = require("./routes/auth");
 const expenseRoutes = require("./routes/expenseRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
-const wooRoutes = require("./routes/wooRoutes");
 const productRoutes = require("./routes/productRoutes");
 const expenseCategoryRoutes = require("./routes/expenseCategoryRoutes");
 const saleBills = require("./routes/saleBills");
 const usersRoutes = require("./routes/users");
-const orderRoutes = require("./routes/orderRoutes");
 const customersRoute = require("./routes/customers");
+const storeRoutes = require("./routes/storeRoutes");
+const StoreCustomer = require("./models/StoreCustomer");
+const StoreOrder = require("./models/StoreOrder");
 
 const app = express();
 const SHOULD_SYNC_DB = (process.env.DB_SYNC || "false").toLowerCase() === "true";
@@ -50,14 +51,13 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/products", productRoutes);
-app.use("/api/woo", wooRoutes);
 app.use("/api/expense-categories", expenseCategoryRoutes);
 app.use("/api/sale-bills", saleBills);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/api/orders", orderRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/customers", customersRoute);
+app.use("/api/store", storeRoutes);
 
 // Serve built frontend on the same app when deploying to Hostinger.
 // Toggle with SERVE_FRONTEND=true after running `npm run build` inside frontend.
@@ -98,6 +98,12 @@ async function startServer() {
 
     await ensureUserColumns(sequelize);
     console.log("users table columns verified");
+
+    await StoreCustomer.sync({ alter: true });
+    console.log("store_customers table verified");
+
+    await StoreOrder.sync({ alter: true });
+    console.log("store_orders table verified");
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

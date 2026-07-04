@@ -1,9 +1,7 @@
 const express = require("express");
-const axios = require("axios");
 const Product = require("../models/Products");
 const multer = require("multer");
 const xlsx = require("xlsx");
-const WooCommerceRestApi = require("@woocommerce/woocommerce-rest-api").default;
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
@@ -20,22 +18,13 @@ const uploadImage = multer({
   storage,
 });
 
-const WooCommerce = new WooCommerceRestApi({
-  url: process.env.WOO_URL,
-  consumerKey: process.env.WOO_CONSUMER_KEY,
-  consumerSecret: process.env.WOO_CONSUMER_SECRET,
-  version: "wc/v3",
-});
-
 // ---------------- HELPERS ----------------
 const normalizeStatus = (status = "publish") => {
   const value = String(status).trim().toLowerCase();
   return value === "draft" ? "draft" : "publish";
 };
 
-const normalizeSource = (source = "admin") => {
-  return source === "woocommerce" ? "woocommerce" : "admin";
-};
+const normalizeSource = () => "admin";
 
 const serializeProduct = (productInstance) => {
   const product = productInstance.toJSON();
@@ -249,7 +238,7 @@ router.post(
     }
 res.json({
   imageUrl:
-    `https://divyadarshnam.com/uploads/products/${req.file.filename}`,
+    `${req.protocol}://${req.get("host")}/uploads/products/${req.file.filename}`,
 });
 
   }
@@ -354,44 +343,6 @@ router.post("/", async (req, res) => {
   image: image || "",
 });
 
-// Create product in WooCommerce
-const wooResponse = await WooCommerce.post("products", {
-  name,
-  type: "simple",
-  description,
-
-  regular_price: String(regular_price || 0),
-
-  sale_price: sale_price
-    ? String(sale_price)
-    : "",
-
-  sku,
-
-  manage_stock: true,
-
-  stock_quantity: Number(stock),
-
-  status: status || "publish",
-
- categories: Array.isArray(categories)
-  ? categories.map(cat => ({ name: cat }))
-  : categories
-  ? [{ name: categories }]
-  : [],
-
- images: image
- ? [{
-     src: image
-   }]
- : [],
-});
-
-// Save WooCommerce ID in MySQL
-await newProduct.update({
-  woocommerce_id: wooResponse.data.id
-});
-
     return res.json({
       success: true,
       message: "Product created",
@@ -453,214 +404,6 @@ router.delete("/:id", async (req, res) => {
     return res.json({ success: true, message: "Deleted" });
   } catch (error) {
     return res.status(500).json({ error: "Delete failed" });
-  }
-});
-
-// ---------------- SYNC WOOCOMMERCE PRODUCTS ----------------
-router.get("/sync-woocommerce", async (req, res) => {
-  try {
-
-    let page = 1;
-    let allProducts = [];
-
-    while (true) {
-
-      const response = await WooCommerce.get("products", {
-        per_page: 100,
-        page,
-      });
-
-      const products = response.data;
-
-      if (!products.length) break;
-
-      allProducts = [...allProducts, ...products];
-
-      page++;
-    }
-
-    let created = 0;
-    let updated = 0;
-
-    for (const item of allProducts) {
-
-      const existingProduct = await Product.findOne({
-        where: {
-          woocommerce_id: item.id,
-        },
-      });
-
-      const productData = {
-
-        woocommerce_id: item.id,
-
-        name: item.name || "",
-
-        description: item.description || "",
-
-        regular_price:
-          item.regular_price === ""
-            ? 0
-            : Number(item.regular_price),
-
-        sale_price:
-          item.sale_price === ""
-            ? null
-            : Number(item.sale_price),
-
-        category:
-          item.categories?.map((c) => c.name).join(", ") || "",
-
-        sku: item.sku || "",
-
-        stock: Number(item.stock_quantity || 0),
-
-        stock_status:
-          item.stock_status === "instock"
-            ? "in_stock"
-            : "out_of_stock",
-
-        status:
-          item.status === "publish"
-            ? "publish"
-            : "draft",
-
-        source: "woocommerce",
-
-        image:
-          item.images?.[0]?.src || "",
-
-        weight: Number(item.weight || 0),
-
-        length: Number(item.dimensions?.length || 0),
-
-        width: Number(item.dimensions?.width || 0),
-
-        height: Number(item.dimensions?.height || 0),
-      };
-
-      if (existingProduct) {
-
-        await existingProduct.update(productData);
-
-        updated++;
-
-      } else {
-
-        await Product.create(productData);
-
-        created++;
-      }
-    }
-
-    return res.json({
-      success: true,
-      total: allProducts.length,
-      created,
-      updated,
-    });
-
-  } catch (error) {
-
-    console.error("SYNC ERROR:", error);
-
-    return res.status(500).json({
-      error: "WooCommerce sync failed",
-    });
-  }
-});
-
-// ---------------- WOOCOMMERCE WEBHOOK ----------------
-router.post("/woocommerce/webhook", async (req, res) => {
-  try {
-
-   const data = req.body;
-
-if (!data.id) {
-  return res.status(200).json({
-    success: true,
-    message: "Webhook validation success",
-  });
-}
-
-const existingProduct = await Product.findOne({
-  where: {
-    woocommerce_id: data.id,
-  },
-});
-
-    const productData = {
-      woocommerce_id: data.id,
-
-      name: data.name || "",
-
-      description: data.description || "",
-
-      regular_price:
-        data.regular_price === ""
-          ? 0
-          : Number(data.regular_price),
-
-      sale_price:
-        data.sale_price === ""
-          ? null
-          : Number(data.sale_price),
-
-      category:
-        data.categories?.map((c) => c.name).join(", ") || "",
-
-      sku: data.sku || "",
-
-      stock: Number(data.stock_quantity || 0),
-
-      stock_status:
-        data.stock_status === "instock"
-          ? "in_stock"
-          : "out_of_stock",
-
-      status:
-        data.status === "publish"
-          ? "publish"
-          : "draft",
-
-      source: "woocommerce",
-
-      image:
-        data.images?.[0]?.src || "",
-
-      weight: Number(data.weight || 0),
-
-      length: Number(data.dimensions?.length || 0),
-
-      width: Number(data.dimensions?.width || 0),
-
-      height: Number(data.dimensions?.height || 0),
-    };
-
-    if (existingProduct) {
-
-      await existingProduct.update(productData);
-
-      return res.json({
-        success: true,
-        message: "WooCommerce product updated",
-      });
-    }
-
-    await Product.create(productData);
-
-    return res.json({
-      success: true,
-      message: "WooCommerce product created",
-    });
-
-  } catch (error) {
-
-    console.error("WOOCOMMERCE WEBHOOK ERROR:", error);
-
-    return res.status(500).json({
-      error: "Webhook failed",
-    });
   }
 });
 

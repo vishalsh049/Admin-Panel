@@ -110,7 +110,7 @@ export default function Profile() {
   const handlePasswordSave = () => {
     if (!passwordData.oldPassword || !passwordData.newPassword) return alert("Please fill all fields");
     if (passwordData.newPassword !== passwordData.confirmPassword) return alert("Passwords do not match ❌");
-    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const storedUser = (() => { try { return JSON.parse(localStorage.getItem("user")) || {}; } catch { return {}; } })();
     if (storedUser.password && storedUser.password !== passwordData.oldPassword) return alert("Old password is incorrect ❌");
     const updatedUser = { ...storedUser, password: passwordData.newPassword };
     setProfileData(updatedUser);

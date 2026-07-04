@@ -48,18 +48,11 @@ const Product = sequelize.define(
       field: "status",
     },
     source: {
-      type: DataTypes.ENUM("admin", "woocommerce"),
+      type: DataTypes.ENUM("admin"),
       allowNull: false,
       defaultValue: "admin",
       field: "source",
     },
-    
-    woocommerce_id: {
-  type: DataTypes.INTEGER,
-  allowNull: true,
-  unique: true,
-  field: "woocommerce_id",
-},
 
     image: {
       type: DataTypes.STRING,

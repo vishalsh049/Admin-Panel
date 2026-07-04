@@ -289,7 +289,7 @@ const orderStatusData = [
           title="CUSTOMERS"
           value={kpis.totalCustomers.toLocaleString("en-IN")}
           badge="Live"
-          sub="WooCommerce customers"
+          sub="Website customers"
           up
           iconBg="bg-purple-500"
           icon={<FaUsers className="text-white text-base" />}

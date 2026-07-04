@@ -1,7 +1,7 @@
 import { FaSearch, FaBell, FaMoon, FaBars } from "react-icons/fa";
 
 export default function Topbar({ onMenuClick }) {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = (() => { try { return JSON.parse(localStorage.getItem("user")) || {}; } catch { return {}; } })();
   const displayName = user?.name || "Admin";
 
   return (

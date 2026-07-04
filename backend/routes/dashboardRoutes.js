@@ -1,6 +1,7 @@
 const express = require("express");
 const Expense = require("../models/Expense");
-const WooCommerce = require("../config/woocommerce");
+const StoreOrder = require("../models/StoreOrder");
+const StoreCustomer = require("../models/StoreCustomer");
 
 const router = express.Router();
 
@@ -84,21 +85,17 @@ switch (period) {
 
 const [expensesResult, ordersResult, customersResult] = await Promise.allSettled([
   Expense.findAll(),
- WooCommerce.get("orders", {
-  per_page: 100,
-}),
- WooCommerce.get("customers", {
-  per_page: 1,
-}),
+  StoreOrder.findAll({ order: [["created_at", "DESC"]] }),
+  StoreCustomer.count(),
 ]);
 
 const allOrders =
   ordersResult.status === "fulfilled"
-    ? ordersResult.value.data
+    ? ordersResult.value.map((o) => o.toJSON())
     : [];
 
 const orders = allOrders.filter(order => {
-  const orderDate = new Date(order.date_created);
+  const orderDate = new Date(order.created_at);
 
   return (
     orderDate >= startDate &&
@@ -106,16 +103,14 @@ const orders = allOrders.filter(order => {
   );
 });
 
-const customers =
-  customersResult.status === "fulfilled"
-    ? customersResult.value.data
-    : [];
+const totalCustomers =
+  customersResult.status === "fulfilled" ? customersResult.value : 0;
 
 console.log("Orders Result Status:", ordersResult.status);
 console.log("Orders Count:", orders.length);
 
 console.log("Customers Result Status:", customersResult.status);
-console.log("Customers Count:", customers.length);
+console.log("Total Customers:", totalCustomers);
 
    const allExpenses = expensesResult.status === "fulfilled"
   ? expensesResult.value
@@ -134,29 +129,18 @@ const expenses = allExpenses.filter(expense => {
       console.log("Dashboard expenses fetch warning:", expensesResult.reason?.message || expensesResult.reason);
     }
 
-    const completedOrders = orders.filter((order) => order.status === "completed");
+    // "delivered" is the fulfilled/completed equivalent for the site's own orders
+    const completedOrders = orders.filter((order) => order.status === "delivered");
     console.log(
   completedOrders.map(order => ({
     id: order.id,
     status: order.status,
-    total: order.total,
-    date: order.date_created
+    total: order.totalPrice,
+    date: order.created_at
   }))
 );
-    const uniqueCustomers = new Set();
-
-completedOrders.forEach((order) => {
-  const customerKey =
-    order.customer_id ||
-    order.billing?.email ||
-    order.id;
-
-  uniqueCustomers.add(customerKey);
-});
-
-const totalCustomers = uniqueCustomers.size;
     const totalSales = completedOrders.reduce(
-      (sum, order) => sum + (parseFloat(order.total) || 0),
+      (sum, order) => sum + (parseFloat(order.totalPrice) || 0),
       0
     );
     console.log("Total Sales =", totalSales);
@@ -167,9 +151,9 @@ const totalCustomers = uniqueCustomers.size;
     const profit = totalSales - totalExpenses;
 
    const orderStatus = {
-  completed: orders.filter(o => o.status === "completed").length,
-  processing: orders.filter(o => o.status === "processing").length,
-  failed: orders.filter(o => o.status === "failed").length,
+  completed: orders.filter(o => o.status === "delivered").length,
+  processing: orders.filter(o => o.status === "processing" || o.status === "shipped").length,
+  failed: 0,
   cancelled: orders.filter(o => o.status === "cancelled").length,
 };
 
@@ -188,11 +172,11 @@ const totalCustomers = uniqueCustomers.size;
     }
 
     completedOrders.forEach((order) => {
-      const orderDate = new Date(order.date_created);
+      const orderDate = new Date(order.created_at);
       const key = getMonthKey(orderDate);
 
       if (monthlyMap[key]) {
-        monthlyMap[key].sales += parseFloat(order.total) || 0;
+        monthlyMap[key].sales += parseFloat(order.totalPrice) || 0;
       }
     });
 
@@ -207,7 +191,7 @@ const totalCustomers = uniqueCustomers.size;
     });
 
     const monthlySales = Object.values(monthlyMap)
-    
+
       .map((item) => ({
         ...item,
         profit: item.sales - item.expenses,
@@ -217,10 +201,10 @@ const totalCustomers = uniqueCustomers.size;
      console.log("Monthly Sales", monthlySales);
 
     const todayOrders = completedOrders.filter((order) =>
-      isSameDay(new Date(order.date_created), today)
+      isSameDay(new Date(order.created_at), today)
     );
     const todaySales = todayOrders.reduce(
-      (sum, order) => sum + (parseFloat(order.total) || 0),
+      (sum, order) => sum + (parseFloat(order.totalPrice) || 0),
       0
     );
 
@@ -235,8 +219,8 @@ const totalCustomers = uniqueCustomers.size;
 
     const productSalesMap = {};
     completedOrders.forEach((order) => {
-      (order.line_items || []).forEach((item) => {
-        const productKey = item.product_id || item.name;
+      (order.items || []).forEach((item) => {
+        const productKey = item.id || item.name;
         if (!productSalesMap[productKey]) {
           productSalesMap[productKey] = {
             name: item.name || "Product",
@@ -245,7 +229,7 @@ const totalCustomers = uniqueCustomers.size;
           };
         }
 
-        productSalesMap[productKey].sales += parseFloat(item.total) || 0;
+        productSalesMap[productKey].sales += (parseFloat(item.price) || 0) * (parseFloat(item.quantity) || 0);
         productSalesMap[productKey].quantity += parseFloat(item.quantity) || 0;
       });
     });
@@ -261,10 +245,8 @@ const totalCustomers = uniqueCustomers.size;
 
     const customerMap = {};
     completedOrders.forEach((order) => {
-      const customerKey = order.customer_id || order.billing?.email || order.id;
-      const firstName = order.billing?.first_name || "";
-      const lastName = order.billing?.last_name || "";
-      const name = `${firstName} ${lastName}`.trim() || "Customer";
+      const customerKey = order.customerId || order.customerEmail || order.id;
+      const name = order.customerName || "Customer";
 
       if (!customerMap[customerKey]) {
         customerMap[customerKey] = {
@@ -274,7 +256,7 @@ const totalCustomers = uniqueCustomers.size;
         };
       }
 
-      customerMap[customerKey].amount += parseFloat(order.total) || 0;
+      customerMap[customerKey].amount += parseFloat(order.totalPrice) || 0;
       customerMap[customerKey].orders += 1;
     });
 
@@ -284,14 +266,14 @@ const totalCustomers = uniqueCustomers.size;
 
     const activityFeed = orders
       .slice()
-      .sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 5)
       .map((order) => ({
         id: order.id,
-        text: `Order #${order.number} by ${order.billing?.first_name || "Customer"}`,
-        amount: parseFloat(order.total) || 0,
+        text: `Order #${order.id} by ${order.customerName || "Customer"}`,
+        amount: parseFloat(order.totalPrice) || 0,
         status: order.status,
-        time: new Date(order.date_created).toLocaleString("en-IN", {
+        time: new Date(order.created_at).toLocaleString("en-IN", {
           month: "short",
           day: "numeric",
           hour: "2-digit",
@@ -339,7 +321,6 @@ const totalCustomers = uniqueCustomers.size;
     profit,
   }
 },
-      wooConfigured: Boolean(WooCommerce),
     });
   } catch (error) {
     console.log("Dashboard Error:", error.message);

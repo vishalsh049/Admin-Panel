@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS products (
   sku VARCHAR(100) DEFAULT NULL,
   stock INT DEFAULT 0,
   status ENUM('draft', 'publish') DEFAULT 'draft',
-  source ENUM('admin', 'woocommerce') DEFAULT 'admin',
+  source ENUM('admin') DEFAULT 'admin',
   image_url TEXT DEFAULT NULL,
   created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

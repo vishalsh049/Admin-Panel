@@ -6,45 +6,43 @@ import { BASE_URL } from "../utils/api";
 
 export default function OrderDetails() {
   const { id } = useParams();
-  
+
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
     axios
-      .get(`${BASE_URL}/api/orders/${id}`)
+      .get(`${BASE_URL}/api/store/admin/orders/${id}`)
       .then((res) => {
         const o = res.data?.data;
         if (!o) return;
 
-        // 🔁 Map WooCommerce order → your structure
+        const shippingAddress = o.shippingAddress || {};
+
         setOrder({
           id: o.id,
-          date: new Date(o.date).toLocaleDateString(),
+          date: new Date(o.created_at).toLocaleDateString(),
           status: o.status,
           payment: o.paymentMethod,
 
           customer: {
-            name: `${o.billing.firstName} ${o.billing.lastName}`,
-            email: o.billing.email,
-            phone: o.billing.phone,
-            address: o.billing.address,
-            city: o.billing.city,
-            country: o.billing.country,
-            postal: o.billing.pincode,
+            name: o.customerName,
+            email: o.customerEmail,
+            phone: o.customerPhone || shippingAddress.phone,
+            address: shippingAddress.address,
+            city: shippingAddress.city,
+            country: shippingAddress.country,
+            postal: shippingAddress.postalCode,
           },
 
-          items: o.items.map((i) => ({
-          name: i.name,
-          qty: i.qty,
-          price: Number(i.price),
+          items: (o.items || []).map((i) => ({
+            name: i.name,
+            qty: i.quantity,
+            price: Number(i.price),
           })),
 
-shipping: parseFloat(o.shipping_total || 0),
+          shipping: 0,
 
-total:
-  Number(o.items.reduce((sum, i) => sum + Number(i.line_total || 0), 0)) +
-  Number(o.shipping_total || 0),
-
+          total: Number(o.totalPrice) || 0,
         });
       })
       .catch((err) => {
@@ -117,7 +115,7 @@ total:
         <p><b>Order Date:</b> {order.date}</p>
         <p>
           <b>Status:</b>{" "}
-          <span className="text-green-600">{order.status}</span>
+          <span className="text-green-600 capitalize">{order.status}</span>
         </p>
        <p><b>Payment Method:</b> {order.payment}</p>
       <p><b>Shipping:</b> ₹{Number(order.shipping).toFixed(2)}</p>

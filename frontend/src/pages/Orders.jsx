@@ -106,70 +106,54 @@ function ActionButtons({ orderId, navigate }) {
 }
 
 export default function ShopHubDashboard() {
-  const [activeSubNav, setActiveSubNav] = useState("All Orders");
   const [searchOrder, setSearchOrder] = useState("");
-  
+
   const [status, setStatus] = useState("All Status");
-  const [customer, setCustomer] = useState("All Customers")
 
-  const [sortBy, setSortBy] = useState("Newest");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalOrders, setTotalOrders] = useState(0);
-  const perPage = 10;
-  const totalPages = Math.ceil(totalOrders / perPage);
-
-  const [orders, setOrders] = useState([]);
-  const statuses = [
-  "All Status",
-  ...new Set(orders.map((order) => order.status)),
-];
-
-const customers = [
-  "All Customers",
-  ...new Set(
-    orders.map(
-      (order) =>
-        `${order.billing?.first_name || ""} ${order.billing?.last_name || ""}`.trim()
-    )
-  ),
-];
+  const [storeOrders, setStoreOrders] = useState([]);
 
   const navigate = useNavigate();
 
 useEffect(() => {
-  fetchOrders(currentPage);
-}, [currentPage]);
+  fetchStoreOrders();
+}, []);
 
-const fetchOrders = async (page = 1) => {
+const fetchStoreOrders = async () => {
   try {
-    const res = await fetch(`${BASE_URL}/api/orders?page=${page}`);
+    const res = await fetch(`${BASE_URL}/api/store/admin/orders`);
     const data = await res.json();
-
-    if (data.success) {
-      setOrders(data.data || []);
-      setTotalOrders(data.total || 0);
-    }
+    if (data.success) setStoreOrders(data.data || []);
   } catch (err) {
     console.log(err);
   }
 };
 
-     const filteredOrders = orders.filter((order) => {
-  const customerName =
-    `${order.billing?.first_name || ""} ${order.billing?.last_name || ""}`.trim();
+const updateStoreOrderStatus = async (orderId, newStatus) => {
+  try {
+    await fetch(`${BASE_URL}/api/store/admin/orders/${orderId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    fetchStoreOrders();
+  } catch (err) {
+    console.log(err);
+  }
+};
 
-  const statusMatch =
-    status === "All Status" || order.status === status;
+     const statuses = [
+  "All Status",
+  ...new Set(storeOrders.map((order) => order.status)),
+];
 
-  const customerMatch =
-    customer === "All Customers" || customerName === customer;
-
+const filteredStoreOrders = storeOrders.filter((order) => {
   const searchMatch =
     searchOrder === "" ||
     String(order.id).includes(searchOrder) ||
-    customerName.toLowerCase().includes(searchOrder.toLowerCase());
-
-  return statusMatch && customerMatch && searchMatch;
+    (order.customerName || "").toLowerCase().includes(searchOrder.toLowerCase()) ||
+    (order.customerEmail || "").toLowerCase().includes(searchOrder.toLowerCase());
+  const statusMatch = status === "All Status" || order.status === status;
+  return searchMatch && statusMatch;
 });
 
 
@@ -258,18 +242,6 @@ const fetchOrders = async (page = 1) => {
               </div>
             </div>
 
-            {/* Customer */}
-            <div className="flex flex-col gap-1.5">
-             
-              <select value={customer} onChange={e => setCustomer(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[13px] outline-none cursor-pointer text-slate-700 min-w-40"
-                style={{ fontFamily: "inherit" }}>
-                {customers.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-              </select>
-            </div>
-
             {/* Actions */}
             <div className="ml-auto flex flex-wrap gap-2">
               <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-[13px] font-medium transition-colors hover:text-[#6c63ff]"
@@ -293,156 +265,72 @@ const fetchOrders = async (page = 1) => {
             </div>
           </div>
 
-          {/* ORDERS TABLE */}
+          {/* ── WEBSITE ORDERS ─────────────────────────────────────────────── */}
           <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden">
-            {/* Table Header */}
-            <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <h2 className="text-[15px] font-bold">Orders List</h2>
-              <div className="flex flex-wrap items-center gap-2 text-[13px] text-slate-400">
-                Sort by:
-                <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-                  className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-[13px] bg-slate-50 text-slate-700 outline-none cursor-pointer"
-                  style={{ fontFamily: "inherit" }}>
-                  {["Newest","Oldest","Amount (High)","Amount (Low)"].map(s => <option key={s}>{s}</option>)}
-                </select>
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+              <div>
+                <h2 className="text-[15px] font-bold">Website Orders</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Orders placed by customers on your website</p>
               </div>
+              <span className="text-xs bg-indigo-50 text-indigo-600 font-semibold px-3 py-1 rounded-full">{filteredStoreOrders.length} orders</span>
             </div>
-
-            {/* Table */}
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px]">
+              <table className="w-full min-w-[900px]">
                 <thead>
                   <tr className="border-b border-slate-100">
-                    {["Order ID","Customer","Date","Items","Total Amount","Status","Payment","Action"].map(h => (
+                    {["Order ID","Customer","Phone","Items","Total","Payment","Status","Date","Update Status","View"].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-[12px] font-semibold text-slate-400 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                
-               <tbody>
-
-  {filteredOrders.map((order, i) => (
-
-    <tr key={order.id} className={`hover:bg-slate-50 text-sm ${i < orders.length - 1 ? "border-b" : ""}`}>
-      
-     <td className="px-4 py-2 text-sm font-medium text-slate-700">
-  #{order.id}
-</td>
-
-  <td className="px-4 py-2">
-  <div className="text-sm font-medium text-slate-800">
-    {order.billing?.first_name} {order.billing?.last_name}
-  </div>
-  <div className="text-xs text-slate-400">
-    {order.billing?.email}
-  </div>
-</td>
-
-  <td className="px-4 py-2 text-sm text-slate-600">
-  {new Date(order.date_created).toLocaleDateString()}
-</td>
-
-  <td className="px-4 py-2 text-sm text-slate-600">
-  {order.line_items?.length} items
-</td>
-
-   <td className="px-4 py-2 text-sm font-semibold text-slate-800">
-  ₹{order.total}
-</td>
-
-  <td className="px-4 py-2">
-  <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600 capitalize">
-    {order.status}
-  </span>
-</td>
-
- <td className="px-4 py-2 text-xs text-slate-500 max-w-[180px] truncate">
-  {order.payment_method_title}
-</td>
-
-      <td>
-  <ActionButtons
-    orderId={order.id}
-    navigate={navigate}
-  />
-</td>
-
-    </tr>
-  ))}
-</tbody>
+                <tbody>
+                  {filteredStoreOrders.length === 0 && (
+                    <tr>
+                      <td colSpan={10} className="px-4 py-10 text-center text-slate-400 text-sm">
+                        No website orders yet. Orders placed on the website will appear here.
+                      </td>
+                    </tr>
+                  )}
+                  {filteredStoreOrders.map((order, i) => (
+                    <tr key={order.id} className={`hover:bg-slate-50 text-sm ${i < filteredStoreOrders.length - 1 ? "border-b border-slate-100" : ""}`}>
+                      <td className="px-4 py-3 text-sm font-medium text-slate-700">#{order.id}</td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-medium text-slate-800">{order.customerName}</div>
+                        <div className="text-xs text-slate-400">{order.customerEmail}</div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500">{order.customerPhone || "—"}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{Array.isArray(order.items) ? order.items.length : "—"} items</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-800">₹{Number(order.totalPrice).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-xs text-slate-500 capitalize">{order.paymentMethod}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 text-xs rounded-full capitalize font-medium
+                          ${order.status === "pending" ? "bg-amber-100 text-amber-700" :
+                            order.status === "processing" ? "bg-blue-100 text-blue-700" :
+                            order.status === "shipped" ? "bg-purple-100 text-purple-700" :
+                            order.status === "delivered" ? "bg-green-100 text-green-700" :
+                            order.status === "cancelled" ? "bg-red-100 text-red-700" :
+                            "bg-gray-100 text-gray-600"}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500">{new Date(order.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={order.status}
+                          onChange={e => updateStoreOrderStatus(order.id, e.target.value)}
+                          className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[12px] outline-none cursor-pointer text-slate-700"
+                          style={{ fontFamily: "inherit" }}>
+                          {["pending","processing","shipped","delivered","cancelled"].map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td><ActionButtons orderId={order.id} navigate={navigate} /></td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
-
-      {/* Pagination */}
-<div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-2 border-t border-slate-100 bg-slate-50/50">
-
-  {/* Left Info */}
-  <div className="text-sm text-slate-500">
-    Showing page{" "}
-    <span className="font-semibold text-slate-800">
-      {currentPage}
-    </span>{" "}
-    of{" "}
-    <span className="font-semibold text-slate-800">
-      {totalPages}
-    </span>
-  </div>
-
-  {/* Pagination Buttons */}
-  <div className="flex items-center gap-2">
-
-    {/* Prev */}
-    <button
-      onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-      disabled={currentPage === 1}
-      className={`h-8 px-4 rounded-xl border text-sm font-medium transition-all flex items-center gap-2
-        ${
-          currentPage === 1
-            ? "bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed"
-            : "bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
-        }`}
-    >
-      ← Prev
-    </button>
-
-    {/* Page Numbers */}
-    <div className="flex items-center gap-2">
-
-      {[...Array(totalPages)].map((_, i) => (
-        <button
-          key={i}
-          onClick={() => setCurrentPage(i + 1)}
-          className={`h-8 min-w-[40px] px-3 rounded-xl text-sm font-semibold transition-all
-            ${
-              currentPage === i + 1
-                ? "bg-indigo-600 text-white"
-                : "bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-600"
-            }`}
-        >
-          {i + 1}
-        </button>
-      ))}
-
-    </div>
-
-    {/* Next */}
-    <button
-      onClick={() =>
-        setCurrentPage((p) => Math.min(p + 1, totalPages))
-      }
-      disabled={currentPage === totalPages}
-      className={`h-8 px-3 rounded-xl border text-sm font-medium transition-all flex items-center gap-2
-        ${
-          currentPage === totalPages
-            ? "bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed"
-            : "bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:text-indigo-600 hover:shadow-sm"
-        }`}
-    >
-      Next →
-    </button>
-
-  </div>
-</div>
           </div>
 
         </main>

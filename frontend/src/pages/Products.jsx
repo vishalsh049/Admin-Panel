@@ -20,10 +20,6 @@ const sourceBadgeMap = {
     label: "Admin Panel",
     className: "border border-blue-200 bg-blue-100/90 text-blue-700",
   },
-  woocommerce: {
-    label: "WooCommerce",
-    className: "border border-emerald-200 bg-emerald-100/90 text-emerald-700",
-  },
 };
 
 const getSourceBadge = (source) => sourceBadgeMap[source] || sourceBadgeMap.admin;
@@ -268,7 +264,7 @@ const handleImport = async (e) => {
        
       <p className="mt-1 max-w-2xl text-sm text-slate-600 sm:text-base">
         Manage your product inventory, track sources, and control listings
-        from Admin Panel & WooCommerce in one place.
+        from your Admin Panel.
      </p>
   </div>
 

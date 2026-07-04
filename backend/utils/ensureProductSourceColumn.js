@@ -8,7 +8,7 @@ async function ensureProductSourceColumn(sequelize) {
 
     if (!tableDefinition.source) {
       await queryInterface.addColumn("products", "source", {
-        type: DataTypes.ENUM("admin", "woocommerce"),
+        type: DataTypes.ENUM("admin"),
         allowNull: false,
         defaultValue: "admin",
       });

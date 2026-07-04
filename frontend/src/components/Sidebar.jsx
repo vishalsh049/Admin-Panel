@@ -27,7 +27,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const [openExpenses, setOpenExpenses] = useState(false);
   const [openUsers, setOpenUsers] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = (() => { try { return JSON.parse(localStorage.getItem("user")) || {}; } catch { return {}; } })();
   const role = (user?.role || "admin").toLowerCase();
 
   const location = useLocation();
