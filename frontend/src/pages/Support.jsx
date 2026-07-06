@@ -97,7 +97,7 @@ const Support = () => {
 
           <div>
             <p className="font-medium">Phone</p>
-            <p className="text-gray-600">+91 98765 43210</p>
+            <p className="text-gray-600">+91 8386977271</p>
           </div>
 
           <div>

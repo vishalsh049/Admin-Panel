@@ -17,6 +17,7 @@ import {
   FaUserTie,
   FaMoneyBillWave,
   FaTimes,
+  FaEnvelopeOpenText,
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 
@@ -327,6 +328,10 @@ export default function Sidebar({ isOpen, onClose }) {
 
             {(role === "admin" || role === "sales") && (
               <NavItem to="/orders" iconClass="orange" icon={<FaShoppingBag />} label="Orders" active={isActive("/orders")} />
+            )}
+
+            {(role === "admin" || role === "sales") && (
+              <NavItem to="/contact-messages" iconClass="cyan" icon={<FaEnvelopeOpenText />} label="Contact Messages" active={isActive("/contact-messages")} />
             )}
 
             {(role === "admin" || role === "inventory") && (

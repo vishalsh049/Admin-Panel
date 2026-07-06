@@ -20,8 +20,14 @@ const saleBills = require("./routes/saleBills");
 const usersRoutes = require("./routes/users");
 const customersRoute = require("./routes/customers");
 const storeRoutes = require("./routes/storeRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 const StoreCustomer = require("./models/StoreCustomer");
+const StoreContactMessage = require("./models/StoreContactMessage");
 const StoreOrder = require("./models/StoreOrder");
+const StoreOrderStatusHistory = require("./models/StoreOrderStatusHistory");
+const StoreOrderRequest = require("./models/StoreOrderRequest");
+const StoreWishlist = require("./models/StoreWishlist");
+const StoreAddress = require("./models/StoreAddress");
 
 const app = express();
 const SHOULD_SYNC_DB = (process.env.DB_SYNC || "false").toLowerCase() === "true";
@@ -58,6 +64,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/customers", customersRoute);
 app.use("/api/store", storeRoutes);
+app.use("/api/store/contact", contactRoutes);
 
 // Serve built frontend on the same app when deploying to Hostinger.
 // Toggle with SERVE_FRONTEND=true after running `npm run build` inside frontend.
@@ -104,6 +111,21 @@ async function startServer() {
 
     await StoreOrder.sync({ alter: true });
     console.log("store_orders table verified");
+
+    await StoreOrderStatusHistory.sync();
+    console.log("store_order_status_history table verified");
+
+    await StoreOrderRequest.sync();
+    console.log("store_order_requests table verified");
+
+    await StoreWishlist.sync({ alter: true });
+    console.log("store_wishlists table verified");
+
+    await StoreAddress.sync({ alter: true });
+    console.log("store_addresses table verified");
+
+    await StoreContactMessage.sync({ alter: true });
+    console.log("store_contact_messages table verified");
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

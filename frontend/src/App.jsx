@@ -36,6 +36,8 @@ import AddExpense from "./pages/AddExpense";
 import ExpenseBill from "./pages/ExpenseBill";
 
 import Billing from "./pages/Billing";
+import ContactMessages from "./pages/ContactMessages";
+import ContactMessageDetails from "./pages/ContactMessageDetails";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Setting";
@@ -146,6 +148,9 @@ function AppRoutes({ token }) {
               <Route path="/reports" element={<Reports />} />
 
               <Route path="/billing" element={<Billing />} />
+
+              <Route path="/contact-messages" element={<ContactMessages />} />
+              <Route path="/contact-messages/:id" element={<ContactMessageDetails />} />
 
               <Route path="/users" element={<Users />} />
               <Route path="/profile" element={<Profile />} />
