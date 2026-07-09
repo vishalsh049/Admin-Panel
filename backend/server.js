@@ -47,9 +47,13 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true); // same-origin / non-browser requests (curl, server-to-server)
-      return allowedOrigins.includes(origin)
-        ? callback(null, true)
-        : callback(new Error("Not allowed by CORS"));
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // 403, not 500: a disallowed origin is a client/config issue, and the
+      // log line tells the operator the exact value to add to CLIENT_ORIGIN.
+      console.warn(`CORS rejected origin: ${origin} (allowed: ${allowedOrigins.join(", ") || "none — CLIENT_ORIGIN unset"})`);
+      const err = new Error(`Origin ${origin} not allowed by CORS`);
+      err.status = 403;
+      return callback(err);
     },
     credentials: true,
   })
