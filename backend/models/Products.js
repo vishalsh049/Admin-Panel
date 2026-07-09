@@ -13,6 +13,10 @@ const Product = sequelize.define(
       type: DataTypes.TEXT,
       field: "description",
     },
+    short_description: {
+      type: DataTypes.TEXT,
+      field: "short_description",
+    },
     regular_price: {
   type: DataTypes.DECIMAL(10, 2),
   allowNull: false,
@@ -24,9 +28,24 @@ const Product = sequelize.define(
       allowNull: true,
       field: "sale_price",
     },
+    cost_price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      field: "cost_price",
+    },
+    low_stock_threshold: {
+      type: DataTypes.INTEGER,
+      defaultValue: 5,
+      field: "low_stock_threshold",
+    },
     category: {
       type: DataTypes.STRING,
       field: "category",
+    },
+    category_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "category_id",
     },
     sku: {
       type: DataTypes.STRING,
@@ -105,6 +124,56 @@ width: {
 height: {
   type: DataTypes.DECIMAL(10, 2),
   field: "height",
+},
+
+slug: {
+  type: DataTypes.STRING,
+  field: "slug",
+},
+
+seo_title: {
+  type: DataTypes.STRING,
+  field: "seo_title",
+},
+
+seo_description: {
+  type: DataTypes.TEXT,
+  field: "seo_description",
+},
+
+seo_keywords: {
+  type: DataTypes.STRING,
+  field: "seo_keywords",
+},
+
+is_featured: {
+  type: DataTypes.BOOLEAN,
+  defaultValue: false,
+  field: "is_featured",
+},
+
+is_best_seller: {
+  type: DataTypes.BOOLEAN,
+  defaultValue: false,
+  field: "is_best_seller",
+},
+
+is_new_arrival: {
+  type: DataTypes.BOOLEAN,
+  defaultValue: false,
+  field: "is_new_arrival",
+},
+
+is_trending: {
+  type: DataTypes.BOOLEAN,
+  defaultValue: false,
+  field: "is_trending",
+},
+
+has_variations: {
+  type: DataTypes.BOOLEAN,
+  defaultValue: false,
+  field: "has_variations",
 },
   },
   {

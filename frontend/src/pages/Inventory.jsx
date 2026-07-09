@@ -1,51 +1,58 @@
-import React, { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import html2pdf from "html2pdf.js";
+import * as productService from "../services/productService";
 
 export default function Inventory() {
-
-  const [items, setItems] = useState([
-    { id: 1, name: "Tulsi Mala", sku: "TM-101", stock: 40, low: 5, category: "Mala" },
-    { id: 2, name: "Brass Statue", sku: "BS-222", stock: 8, low: 5, category: "Murti" },
-    { id: 3, name: "Pooja Thali", sku: "PT-333", stock: 15, low: 5, category: "Puja Items" },
-  ]);
-
-  const [history, setHistory] = useState([]);
-
-  const [form, setForm] = useState({
-    name: "", sku: "", stock: "", category: ""
-  });
-
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [savingId, setSavingId] = useState(null);
 
-  // stock reduce from invoice (internal function now)
-  const reduceStockFromInvoice = (cartItems) => {
-    setItems(prev =>
-      prev.map(p => {
-        const match = cartItems.find(c => c.name === p.name);
-        return match ? { ...p, stock: p.stock - match.qty } : p;
-      })
-    );
+  const fetchAll = async () => {
+    setLoading(true);
+    try {
+      const data = await productService.getProducts({ limit: 100 });
+      setProducts(Array.isArray(data.products) ? data.products : []);
+    } catch (error) {
+      toast.error("Failed to load inventory");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (items.some(i => i.stock <= i.low)) {
-    console.warn("Low stock alert triggered");
-  }
+  useEffect(() => {
+    fetchAll();
+  }, []);
 
-  const addItem = () => {
-    if (!form.name || !form.sku || !form.stock)
-      return alert("Fill all required fields");
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) => p.name.toLowerCase().includes(q) || (p.sku || "").toLowerCase().includes(q));
+  }, [products, search]);
 
-    setItems([...items, { ...form, id: Date.now(), stock: Number(form.stock) }]);
+  // Variable products manage stock per-variation (see Edit Product), so base
+  // stock isn't directly editable here — this avoids the base `stock` column
+  // and per-variation stock silently fighting each other.
+  const updateBaseStock = async (product, value) => {
+    const stock = Number(value);
+    if (Number.isNaN(stock) || stock < 0) return;
 
-    setForm({ name: "", sku: "", stock: "", category: "" });
-  };
-
-  const updateStock = (id, value) => {
-    setItems(items.map(i =>
-      i.id === id ? { ...i, stock: Number(value) } : i
-    ));
-
-    setHistory(h => [...h, { id, change: value, time: new Date().toLocaleString() }]);
+    setSavingId(product.id);
+    setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, stock } : p)));
+    try {
+      await productService.updateProduct(product.id, {
+        name: product.name,
+        regular_price: product.regular_price,
+        stock,
+        stock_status: stock > 0 ? "in_stock" : "out_of_stock",
+      });
+    } catch (error) {
+      toast.error("Failed to update stock");
+      fetchAll();
+    } finally {
+      setSavingId(null);
+    }
   };
 
   const downloadPDF = () => {
@@ -53,8 +60,10 @@ export default function Inventory() {
   };
 
   const downloadCSV = () => {
-    let csv = "Product,SKU,Stock\n";
-    items.forEach(i => csv += `${i.name},${i.sku},${i.stock}\n`);
+    let csv = "Product,SKU,Stock,Status\n";
+    filtered.forEach((p) => {
+      csv += `${p.name},${p.sku || ""},${p.has_variations ? "variable" : p.stock},${p.in_stock ? "In Stock" : "Out of Stock"}\n`;
+    });
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -63,8 +72,8 @@ export default function Inventory() {
   };
 
   const downloadExcel = () => {
-    let html = "<table><tr><th>Name</th><th>Stock</th></tr>";
-    items.forEach(i => html += `<tr><td>${i.name}</td><td>${i.stock}</td></tr>`);
+    let html = "<table><tr><th>Name</th><th>SKU</th><th>Stock</th></tr>";
+    filtered.forEach((p) => { html += `<tr><td>${p.name}</td><td>${p.sku || ""}</td><td>${p.has_variations ? "variable" : p.stock}</td></tr>`; });
     html += "</table>";
     const blob = new Blob([html], { type: "application/vnd.ms-excel" });
     const a = document.createElement("a");
@@ -75,53 +84,63 @@ export default function Inventory() {
 
   return (
     <div className="p-4 sm:p-6" id="inv">
-
       <h1 className="text-2xl font-bold mb-3">Inventory Management</h1>
 
       <input
-        placeholder="Search products"
+        placeholder="Search products or SKU"
         className="mb-3 w-full rounded border px-3 py-2 sm:max-w-sm"
-        onChange={e => setSearch(e.target.value)}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
       />
 
-      <div className="mb-4 grid gap-2 rounded bg-white p-3 shadow sm:grid-cols-2 xl:grid-cols-5">
-        <input className="rounded border px-3 py-2" placeholder="Name" onChange={e=>setForm({...form,name:e.target.value})}/>
-        <input className="rounded border px-3 py-2" placeholder="SKU" onChange={e=>setForm({...form,sku:e.target.value})}/>
-        <input className="rounded border px-3 py-2" placeholder="Stock" onChange={e=>setForm({...form,stock:e.target.value})}/>
-        <input className="rounded border px-3 py-2" placeholder="Category" onChange={e=>setForm({...form,category:e.target.value})}/>
-        <button className="rounded bg-blue-600 px-3 py-2 text-white" onClick={addItem}>Add</button>
-      </div>
-
-      <div className="responsive-table rounded bg-white shadow">
-      <table className="w-full min-w-[560px] bg-white shadow rounded">
-        <thead className="bg-gray-100 text-left">
-          <tr>
-            <th>Name</th><th>SKU</th><th>Stock</th><th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items
-            .filter(i => i.name.toLowerCase().includes(search.toLowerCase()))
-            .map(i => (
-            <tr key={i.id}>
-              <td>{i.name}</td>
-              <td>{i.sku}</td>
-              <td>
-                <input
-                  className="w-16 rounded border"
-                  value={i.stock}
-                  onChange={e => updateStock(i.id, e.target.value)}
-                />
-              </td>
-              <td>
-                {i.stock <= 0 && <span className="text-red-600">Out of Stock</span>}
-                {i.stock > 0 && i.stock <= i.low && <span className="text-orange-500">Low Stock</span>}
-                {i.stock > i.low && <span className="text-green-600">In Stock</span>}
-              </td>
+      <div className="responsive-table overflow-x-auto rounded bg-white shadow">
+        <table className="w-full min-w-[640px] bg-white shadow rounded">
+          <thead className="bg-gray-100 text-left">
+            <tr>
+              <th className="px-3 py-2">Name</th>
+              <th className="px-3 py-2">SKU</th>
+              <th className="px-3 py-2">Stock</th>
+              <th className="px-3 py-2">Low Stock Alert</th>
+              <th className="px-3 py-2">Status</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan="5" className="px-3 py-6 text-center text-slate-500">Loading...</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan="5" className="px-3 py-6 text-center text-slate-500">No products found</td></tr>
+            ) : (
+              filtered.map((p) => (
+                <tr key={p.id} className="border-t border-slate-100">
+                  <td className="px-3 py-2">{p.name}</td>
+                  <td className="px-3 py-2 text-slate-500">{p.sku || "—"}</td>
+                  <td className="px-3 py-2">
+                    {p.has_variations ? (
+                      <span className="text-xs text-slate-500" title="Manage stock per variation in Edit Product">
+                        Variable ({(p.variations || []).length} variations)
+                      </span>
+                    ) : (
+                      <input
+                        type="number"
+                        min="0"
+                        className="w-20 rounded border px-2 py-1 disabled:opacity-50"
+                        defaultValue={p.stock}
+                        disabled={savingId === p.id}
+                        onBlur={(e) => updateBaseStock(p, e.target.value)}
+                      />
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-slate-500">{p.low_stock_threshold}</td>
+                  <td className="px-3 py-2">
+                    {!p.in_stock && <span className="text-red-600">Out of Stock</span>}
+                    {p.in_stock && p.is_low_stock && <span className="text-orange-500">Low Stock</span>}
+                    {p.in_stock && !p.is_low_stock && <span className="text-green-600">In Stock</span>}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">

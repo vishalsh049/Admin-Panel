@@ -1,10 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const PDFDocument = require("pdfkit");
 const { Op } = require("sequelize");
 const sequelize = require("../config/db");
+const { sendMail } = require("../utils/mailer");
 const Product = require("../models/Products");
+const Category = require("../models/Category");
+const {
+  ProductImage,
+  ProductAttribute,
+  ProductAttributeValue,
+  ProductVariation,
+} = require("../models");
+const { buildProductPayload } = require("../utils/serializers/productSerializer");
+const toRelativeUploadPath = require("../utils/toRelativeUploadPath");
 const StoreCustomer = require("../models/StoreCustomer");
 const StoreOrder = require("../models/StoreOrder");
 const StoreOrderStatusHistory = require("../models/StoreOrderStatusHistory");
@@ -13,6 +24,9 @@ const StoreWishlist = require("../models/StoreWishlist");
 const StoreAddress = require("../models/StoreAddress");
 
 const JWT_SECRET = process.env.JWT_SECRET || "please-set-JWT_SECRET";
+const CLIENT_URL =
+  process.env.CLIENT_URL || process.env.CLIENT_ORIGIN?.split(",")[0]?.trim() || "";
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 const RETURN_WINDOW_HOURS = 48;
 const NON_RETURNABLE_CATEGORY_KEYWORDS = ["puja", "perfume", "attar"];
 const ORDER_REQUEST_TYPES = ["return", "exchange", "refund", "complaint"];
@@ -38,13 +52,34 @@ function customerAuth(req, res, next) {
 
 // ─── PRODUCTS (public) ────────────────────────────────────────────────────────
 
+const STORE_PRODUCT_INCLUDE = [
+  { model: Category, as: "categoryRef" },
+  { model: ProductImage, as: "images" },
+];
+
+const STORE_PRODUCT_INCLUDE_FULL = [
+  ...STORE_PRODUCT_INCLUDE,
+  {
+    model: ProductAttribute,
+    as: "attributes",
+    include: [{ model: ProductAttributeValue, as: "values" }],
+  },
+  {
+    model: ProductVariation,
+    as: "variations",
+    include: [{ model: ProductAttributeValue, as: "attributeValues" }],
+  },
+];
+
 // GET /api/store/products
 router.get("/products", async (req, res) => {
   try {
-    const { category, search, sort } = req.query;
+    const { category, category_id, search, sort, page, limit } = req.query;
 
     const where = { status: "publish" };
-    if (category && category !== "All Categories") {
+    if (category_id) {
+      where.category_id = category_id;
+    } else if (category && category !== "All Categories") {
       where.category = { [Op.like]: `%${category}%` };
     }
     if (search) {
@@ -55,20 +90,72 @@ router.get("/products", async (req, res) => {
     if (sort === "price_asc") order = [["regular_price", "ASC"]];
     if (sort === "price_desc") order = [["regular_price", "DESC"]];
 
-    const products = await Product.findAll({ where, order });
+    // `page`/`limit` are opt-in so existing callers that expect a flat array
+    // (no pagination params) keep working unchanged.
+    if (page || limit) {
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+      const { rows, count } = await Product.findAndCountAll({
+        where,
+        order,
+        include: STORE_PRODUCT_INCLUDE,
+        limit: limitNum,
+        offset: (pageNum - 1) * limitNum,
+        distinct: true,
+      });
+      return res.json({
+        products: rows.map((p) => buildProductPayload(p, { context: "store" })),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: count,
+          totalPages: Math.max(1, Math.ceil(count / limitNum)),
+        },
+      });
+    }
 
-    const mapped = products.map(formatProduct);
-    res.json(mapped);
+    const products = await Product.findAll({ where, order, include: STORE_PRODUCT_INCLUDE });
+    res.json(products.map((p) => buildProductPayload(p, { context: "store" })));
   } catch (err) {
     console.error("Store products error:", err.message);
     res.status(500).json({ message: "Failed to fetch products" });
   }
 });
 
+// GET /api/store/categories
+router.get("/categories", async (req, res) => {
+  try {
+    const categories = await Category.findAll({
+      where: { status: "Active" },
+      order: [
+        ["sort_order", "ASC"],
+        ["name", "ASC"],
+      ],
+    });
+    res.json(
+      categories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        description: c.description || "",
+        image: c.image ? toRelativeUploadPath(c.image) : null,
+        banner: c.banner ? toRelativeUploadPath(c.banner) : null,
+        icon: c.icon ? toRelativeUploadPath(c.icon) : null,
+        parent_id: c.parent_id,
+        sort_order: c.sort_order,
+        is_featured: !!c.is_featured,
+      }))
+    );
+  } catch (err) {
+    console.error("Store categories error:", err.message);
+    res.status(500).json({ message: "Failed to fetch categories" });
+  }
+});
+
 // GET /api/store/products/:id
 router.get("/products/:id", async (req, res) => {
   try {
-    const product = await Product.findByPk(req.params.id);
+    const product = await Product.findByPk(req.params.id, { include: STORE_PRODUCT_INCLUDE_FULL });
     if (!product || product.status !== "publish") {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -83,9 +170,14 @@ router.get("/products/:id", async (req, res) => {
 // POST /api/store/auth/register
 router.post("/auth/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email and password are required" });
+    }
+
+    const trimmedPhone = phone ? String(phone).trim() : null;
+    if (trimmedPhone && !/^\d{10}$/.test(trimmedPhone)) {
+      return res.status(400).json({ message: "Phone number must be 10 digits" });
     }
 
     const exists = await StoreCustomer.findOne({ where: { email: email.toLowerCase() } });
@@ -97,6 +189,7 @@ router.post("/auth/register", async (req, res) => {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       password,
+      phone: trimmedPhone,
     });
 
     const token = jwt.sign({ id: customer.id, type: "customer" }, JWT_SECRET, { expiresIn: "30d" });
@@ -105,6 +198,7 @@ router.post("/auth/register", async (req, res) => {
       id: customer.id,
       name: customer.name,
       email: customer.email,
+      phone: customer.phone,
       token,
     });
   } catch (err) {
@@ -142,6 +236,160 @@ router.post("/auth/login", async (req, res) => {
   } catch (err) {
     console.error("Login error:", err.message);
     res.status(500).json({ message: "Login failed" });
+  }
+});
+
+// POST /api/store/auth/google  (public)
+// Google Sign-In: the frontend obtains an OAuth access token via Google
+// Identity Services and sends it here. We never trust the token as-is —
+// tokeninfo confirms Google issued it *for this app* (audience check),
+// then userinfo gives us the verified profile.
+router.post("/auth/google", async (req, res) => {
+  try {
+    const { accessToken } = req.body;
+    if (!accessToken) {
+      return res.status(400).json({ message: "Google access token is required" });
+    }
+
+    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+    if (!GOOGLE_CLIENT_ID) {
+      return res
+        .status(503)
+        .json({ message: "Google sign-in is not configured on the server" });
+    }
+
+    const infoRes = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
+    );
+    if (!infoRes.ok) {
+      return res.status(401).json({ message: "Invalid or expired Google token" });
+    }
+    const tokenInfo = await infoRes.json();
+    if (tokenInfo.aud !== GOOGLE_CLIENT_ID) {
+      return res.status(401).json({ message: "Google token was not issued for this app" });
+    }
+
+    const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!profileRes.ok) {
+      return res.status(401).json({ message: "Could not fetch Google profile" });
+    }
+    const profile = await profileRes.json();
+    if (!profile.email || profile.email_verified !== true) {
+      return res.status(401).json({ message: "Google account email is not verified" });
+    }
+
+    const email = profile.email.toLowerCase().trim();
+    let customer = await StoreCustomer.findOne({ where: { email } });
+    if (!customer) {
+      // Google-only accounts never use this password — it exists because the
+      // column is NOT NULL. A user can still set a real one via reset link.
+      customer = await StoreCustomer.create({
+        name: (profile.name || email.split("@")[0]).trim(),
+        email,
+        password: crypto.randomBytes(32).toString("hex"),
+      });
+    }
+
+    const token = jwt.sign({ id: customer.id, type: "customer" }, JWT_SECRET, {
+      expiresIn: "30d",
+    });
+
+    res.json({
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      token,
+    });
+  } catch (err) {
+    console.error("Google auth error:", err.message);
+    res.status(500).json({ message: "Google sign-in failed" });
+  }
+});
+
+// POST /api/store/auth/forgot-password  (public)
+router.post("/auth/forgot-password", async (req, res) => {
+  try {
+    const email = (req.body.email || "").trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Always return the same generic response whether or not the email is
+    // registered — a distinct "not found" response here would let an
+    // attacker enumerate which emails have store accounts.
+    const genericResponse = {
+      message: "If that email is registered, a password reset link has been sent.",
+    };
+
+    const customer = await StoreCustomer.findOne({ where: { email } });
+    if (!customer) {
+      return res.json(genericResponse);
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    await customer.update({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+    });
+
+    const resetLink = `${CLIENT_URL || ""}/reset-password?token=${rawToken}`;
+
+    await sendMail({
+      to: customer.email,
+      subject: "Reset your Divya Darshnam password",
+      html: `
+        <h2>Password Reset Requested</h2>
+        <p>Click the link below to set a new password. This link expires in 1 hour.</p>
+        <p><a href="${resetLink}">${resetLink}</a></p>
+        <p>If you didn't request this, you can safely ignore this email.</p>
+      `,
+    });
+
+    res.json(genericResponse);
+  } catch (err) {
+    console.error("Forgot password error:", err.message);
+    res.status(500).json({ message: "Failed to process request" });
+  }
+});
+
+// POST /api/store/auth/reset-password  (public)
+router.post("/auth/reset-password", async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token and new password are required" });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const customer = await StoreCustomer.findOne({
+      where: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { [Op.gt]: new Date() },
+      },
+    });
+
+    if (!customer) {
+      return res.status(400).json({ message: "Invalid or expired reset link" });
+    }
+
+    customer.password = password;
+    customer.resetPasswordToken = null;
+    customer.resetPasswordExpires = null;
+    await customer.save();
+
+    res.json({ message: "Password reset successfully" });
+  } catch (err) {
+    console.error("Reset password error:", err.message);
+    res.status(500).json({ message: "Failed to reset password" });
   }
 });
 
@@ -943,29 +1191,10 @@ async function formatOrder(order) {
   };
 }
 
+// Thin wrapper kept for call-site compatibility — all shaping now lives in
+// the shared serializer so admin and store responses can never drift again.
 function formatProduct(p) {
-  const data = p.toJSON();
-  const price = data.sale_price && Number(data.sale_price) > 0
-    ? Number(data.sale_price)
-    : Number(data.regular_price || 0);
-
-  return {
-    id: data.id,
-    name: data.name || "",
-    description: data.description || "",
-    price,                                    // website frontend uses `price`
-    regular_price: Number(data.regular_price || 0),
-    sale_price: data.sale_price ? Number(data.sale_price) : null,
-    image: data.image || "",
-    category: data.category || "",
-    stock: Number(data.stock || 0),
-    stock_status: data.stock_status || "in_stock",
-    sku: data.sku || "",
-    brand: data.brand || "",
-    rating: 0,       // website frontend StarRating uses this
-    numReviews: 0,
-    created_at: data.created_at,
-  };
+  return buildProductPayload(p, { context: "store" });
 }
 
 module.exports = router;

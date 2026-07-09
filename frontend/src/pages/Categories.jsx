@@ -1,362 +1,331 @@
-import React, { useState, useEffect } from "react";
-import { BASE_URL } from "../utils/api";
+import React, { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import { Search, ImagePlus, Trash2 } from "lucide-react";
+import * as categoryService from "../services/categoryService";
+import { getImageUrl } from "../utils/getImageUrl";
+import { slugify } from "../utils/slugify";
+import ConfirmModal from "../components/ConfirmModal";
+
+const emptyForm = {
+  name: "",
+  slug: "",
+  description: "",
+  parent_id: "",
+  status: "Active",
+  image: "",
+  banner: "",
+  icon: "",
+  seo_title: "",
+  seo_description: "",
+  seo_keywords: "",
+  sort_order: 0,
+  is_featured: false,
+};
 
 export default function Categories() {
   const [categories, setCategories] = useState([]);
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [parentId, setParentId] = useState("");
-  const [description, setDescription] = useState("");
+  const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState([]);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
+  const [uploading, setUploading] = useState({ image: false, banner: false, icon: false });
 
-  const buildTree = (data) => {
-    const map = {};
-    const tree = [];
-
-    data.forEach((item) => {
-      map[item.id] = { ...item, children: [] };
-    });
-
-    data.forEach((item) => {
-      if (item.parent_id) {
-        map[item.parent_id]?.children.push(map[item.id]);
-      } else {
-        tree.push(map[item.id]);
-      }
-    });
-
-    return tree;
-  };
-
-  const treeData = buildTree(Array.isArray(categories) ? categories : []);
-
-  // 🔥 FETCH
   const fetchCategories = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/api/categories`);
-
-      const data = await res.json(); // ✅ always read data
-
-      console.log("API DATA:", data); // optional
-
-      if (Array.isArray(data)) {
-        setCategories(data);
-      } else {
-        setCategories([]);
-      }
+      const data = await categoryService.getCategories();
+      setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Fetch error:", err);
+      console.error("Fetch categories error:", err);
+      toast.error("Failed to load categories");
       setCategories([]);
     }
   };
 
   useEffect(() => {
     fetchCategories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ❌ DELETE CATEGORY
-const handleDelete = async (id) => {
-  if (!window.confirm("Delete this category?")) return;
+  const filteredCategories = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter((c) => c.name.toLowerCase().includes(q) || (c.slug || "").toLowerCase().includes(q));
+  }, [categories, search]);
 
-  try {
-    const res = await fetch(`${BASE_URL}/api/categories/${id}`, {
-      method: "DELETE",
+  const treeData = useMemo(() => {
+    const map = {};
+    const tree = [];
+    filteredCategories.forEach((item) => { map[item.id] = { ...item, children: [] }; });
+    filteredCategories.forEach((item) => {
+      if (item.parent_id && map[item.parent_id]) map[item.parent_id].children.push(map[item.id]);
+      else tree.push(map[item.id]);
     });
+    const sortRec = (nodes) => {
+      nodes.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      nodes.forEach((n) => sortRec(n.children));
+      return nodes;
+    };
+    return sortRec(tree);
+  }, [filteredCategories]);
 
-    const data = await res.json();
+  const resetForm = () => {
+    setForm(emptyForm);
+    setEditingId(null);
+    setSlugTouched(false);
+  };
 
-    if (!res.ok) {
-      alert(data.error || "Delete failed");
-      return;
-    }
+  const handleEdit = (category) => {
+    setEditingId(category.id);
+    setSlugTouched(true);
+    setForm({
+      name: category.name || "",
+      slug: category.slug || "",
+      description: category.description || "",
+      parent_id: category.parent_id || "",
+      status: category.status || "Active",
+      image: category.image || "",
+      banner: category.banner || "",
+      icon: category.icon || "",
+      seo_title: category.seo_title || "",
+      seo_description: category.seo_description || "",
+      seo_keywords: category.seo_keywords || "",
+      sort_order: category.sort_order || 0,
+      is_featured: !!category.is_featured,
+    });
+  };
 
-    alert("Category Deleted ✅");
+  const handleNameChange = (value) => {
+    setForm((f) => ({ ...f, name: value, slug: slugTouched ? f.slug : slugify(value) }));
+  };
 
-    fetchCategories();
-  } catch (err) {
-    console.error(err);
-    alert("Something went wrong");
-  }
-};
-
-// ✏️ EDIT CATEGORY
-const handleEdit = (category) => {
-  setEditingId(category.id);
-
-  setName(category.name || "");
-  setSlug(category.slug || "");
-  setDescription(category.description || "");
-  setParentId(category.parent_id || "");
-};
-
-  // ➕ ADD CATEGORY
-  const handleAdd = async () => {
-    if (!name.trim()) return alert("Name required");
-
+  const handleUpload = async (field, file) => {
+    if (!file) return;
+    setUploading((u) => ({ ...u, [field]: true }));
     try {
-      const url = editingId
-  ? `${BASE_URL}/api/categories/${editingId}`
-  : `${BASE_URL}/api/categories`;
-
-const method = editingId ? "PUT" : "POST";
-
-const res = await fetch(url, {
-  method,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    name,
-    slug,
-    description: description || "",
-    parent_id: parentId ? Number(parentId) : null,
-  }),
-});
-
-      const data = await res.json();
-      console.log("Backend response:", data);
-
-      if (!res.ok) {
-        alert(data.error || "Failed to add category");
-        return;
-      }
-
-      alert(
-      editingId
-    ? "Category Updated ✅"
-    : "Category Added ✅"
-);
-
-      // reset form
-      setName("");
-      setSlug("");
-      setDescription("");
-      setParentId("");
-      setEditingId(null);
-
-   fetchCategories();
-    } catch (err) {
-      console.error("Error:", err);
+      const data = await categoryService.uploadCategoryImage(file);
+      setForm((f) => ({ ...f, [field]: data.path }));
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Upload failed");
+    } finally {
+      setUploading((u) => ({ ...u, [field]: false }));
     }
   };
 
-  const renderTree = (nodes, level = 0) => {
-    return nodes.map((node) => (
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      toast.error("Category name is required");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const payload = { ...form, parent_id: form.parent_id ? Number(form.parent_id) : null };
+      if (editingId) {
+        await categoryService.updateCategory(editingId, payload);
+        toast.success("Category updated");
+      } else {
+        await categoryService.createCategory(payload);
+        toast.success("Category added");
+      }
+      resetForm();
+      fetchCategories();
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to save category");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    setIsBusy(true);
+    try {
+      await categoryService.deleteCategory(pendingDelete.id);
+      toast.success("Category deleted");
+      fetchCategories();
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Delete failed");
+    } finally {
+      setIsBusy(false);
+      setPendingDelete(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setIsBusy(true);
+    try {
+      await categoryService.bulkDeleteCategories(selected);
+      toast.success("Selected categories deleted");
+      setSelected([]);
+      fetchCategories();
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Bulk delete failed");
+    } finally {
+      setIsBusy(false);
+      setPendingBulkDelete(false);
+    }
+  };
+
+  const renderTree = (nodes, level = 0) =>
+    nodes.map((node) => (
       <React.Fragment key={node.id}>
         <tr className="group hover:bg-indigo-50/60">
+          <td className="py-3 pl-4">
+            <input type="checkbox" checked={selected.includes(node.id)} onChange={(e) => setSelected((prev) => e.target.checked ? [...prev, node.id] : prev.filter((id) => id !== node.id))} />
+          </td>
           <td className="py-3 pr-3">
             <div className="flex items-start gap-3">
-              <div className="pt-0.5">
-                <span
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-gray-100 bg-white text-xs text-gray-500"
-                  title={`Level ${level}`}
-                >
-                  {level}
-                </span>
-              </div>
-
+              {node.image ? (
+                <img src={getImageUrl(node.image)} alt="" className="h-9 w-9 rounded-lg object-cover border border-gray-200" />
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-100 bg-gray-50 text-gray-300">
+                  <ImagePlus className="h-4 w-4" />
+                </div>
+              )}
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span
-                    className="truncate font-medium text-gray-900"
-                    style={{ paddingLeft: `${level * 16}px` }}
-                  >
-                    {level > 0 && "↳ "}
-                    {node.name}
+                  <span className="truncate font-medium text-gray-900" style={{ paddingLeft: `${level * 16}px` }}>
+                    {level > 0 && "↳ "}{node.name}
                   </span>
                   {node.parent_id ? (
-                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 border border-indigo-100">
-                      Sub
-                    </span>
+                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 border border-indigo-100">Sub</span>
                   ) : (
-                    <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-700 border border-gray-100">
-                      Main
-                    </span>
+                    <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-700 border border-gray-100">Main</span>
+                  )}
+                  {node.is_featured && (
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 border border-amber-100">Featured</span>
                   )}
                 </div>
-
-                {node.description ? (
-                  <p className="mt-1 line-clamp-1 text-xs text-gray-500">
-                    {node.description}
-                  </p>
-                ) : null}
+                {node.description ? <p className="mt-1 line-clamp-1 text-xs text-gray-500">{node.description}</p> : null}
               </div>
             </div>
           </td>
-
           <td className="py-3 pr-3">
-            <span className="inline-flex max-w-[240px] items-center rounded-lg bg-gray-50 px-2.5 py-1 text-xs text-gray-700 border border-gray-100 truncate">
-              {node.slug || "-"}
+            <span className="inline-flex max-w-[200px] items-center rounded-lg bg-gray-50 px-2.5 py-1 text-xs text-gray-700 border border-gray-100 truncate">{node.slug || "-"}</span>
+          </td>
+          <td className="py-3 pr-3 text-xs text-gray-600">{node.productCount ?? 0}</td>
+          <td className="py-3 pr-3">
+            <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium border ${node.status === "Active" ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-100 text-slate-600 border-slate-200"}`}>
+              {node.status || "Active"}
             </span>
           </td>
-
-          <td className="py-3 pr-3">
-            <span className="text-xs text-gray-600">
-              {node.parent_id ? "Subcategory" : "Main"}
-            </span>
-          </td>
-
           <td className="py-3">
             <div className="flex items-center gap-2">
-             <button
-             onClick={() => handleEdit(node)}
-            className="inline-flex items-center justify-center rounded-lg border border-indigo-100 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50/70 transition"
-            type="button"
-                >
-              Edit
-          </button>
-
-            <button
-  onClick={() => handleDelete(node.id)}
-  className="inline-flex items-center justify-center rounded-lg border border-red-100 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50/70 transition"
-  type="button"
->
-  Delete
-</button>
+              <button onClick={() => handleEdit(node)} type="button" className="inline-flex items-center justify-center rounded-lg border border-indigo-100 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50/70 transition">
+                Edit
+              </button>
+              <button onClick={() => setPendingDelete(node)} type="button" className="inline-flex items-center justify-center rounded-lg border border-red-100 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50/70 transition">
+                Delete
+              </button>
             </div>
           </td>
         </tr>
-
         {node.children.length > 0 && renderTree(node.children, level + 1)}
       </React.Fragment>
     ));
-  };
-
-  const generateSlug = (text) => {
-    return text
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, "") // remove special chars
-      .replace(/\s+/g, "-") // space → dash
-      .replace(/-+/g, "-"); // remove extra dashes
-  };
 
   return (
     <div className="w-full">
-      {/* Header */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Categories
-          </h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Manage your product categories and nested subcategories.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900">Categories</h1>
+          <p className="mt-1 text-sm text-gray-600">Manage your product categories and nested subcategories.</p>
         </div>
-
         <div className="flex items-center gap-3">
+          {selected.length > 0 && (
+            <button onClick={() => setPendingBulkDelete(true)} className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
+              <Trash2 className="h-4 w-4" /> Delete ({selected.length})
+            </button>
+          )}
           <div className="rounded-xl border border-gray-100 bg-white px-4 py-2 shadow-sm">
             <div className="text-xs text-gray-500">Total categories</div>
-            <div className="text-lg font-semibold text-gray-900">
-              {Array.isArray(categories) ? categories.length : 0}
-            </div>
+            <div className="text-lg font-semibold text-gray-900">{categories.length}</div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-        {/* LEFT FORM */}
         <section className="col-span-12 lg:col-span-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-6">
           <div className="mb-5">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Add new category
-            </h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Create a new category (optional parent for subcategories).
-            </p>
+            <h2 className="text-lg font-semibold text-gray-900">{editingId ? "Edit category" : "Add new category"}</h2>
+            <p className="mt-1 text-sm text-gray-600">Create a new category (optional parent for subcategories).</p>
           </div>
 
-          {/* NAME */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Name
-            </label>
-            <input
-              value={name}
-              onChange={(e) => {
-                const value = e.target.value;
-                setName(value);
-                setSlug(generateSlug(value)); // 👈 auto slug
-              }}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition"
-              placeholder="e.g. Electronics"
-            />
-          </div>
+          <FormField label="Name">
+            <input value={form.name} onChange={(e) => handleNameChange(e.target.value)} className={fieldClass} placeholder="e.g. Puja Items" />
+          </FormField>
 
-          {/* SLUG */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Slug
-            </label>
-            <input
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition"
-              placeholder="e.g. electronics"
-            />
-          </div>
+          <FormField label="Slug">
+            <input value={form.slug} onChange={(e) => { setSlugTouched(true); setForm((f) => ({ ...f, slug: e.target.value })); }} className={fieldClass} placeholder="e.g. puja-items" />
+          </FormField>
 
-          {/* PARENT */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Parent category
-            </label>
-            <select
-              value={parentId}
-              onChange={(e) => setParentId(Number(e.target.value) || "")}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition"
-            >
+          <FormField label="Parent category">
+            <select value={form.parent_id} onChange={(e) => setForm((f) => ({ ...f, parent_id: e.target.value }))} className={fieldClass}>
               <option value="">None</option>
-
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
+              {categories.filter((c) => c.id !== editingId).map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Sort Order">
+              <input type="number" value={form.sort_order} onChange={(e) => setForm((f) => ({ ...f, sort_order: e.target.value }))} className={fieldClass} />
+            </FormField>
+            <FormField label="Status">
+              <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className={fieldClass}>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </FormField>
           </div>
 
-          {/* DESCRIPTION */}
-          <div className="mb-5">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full min-h-[110px] rounded-xl border border-gray-200 px-3 py-2.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition"
-              placeholder="Short description (optional)"
-            />
+          <label className="mb-4 flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" checked={form.is_featured} onChange={(e) => setForm((f) => ({ ...f, is_featured: e.target.checked }))} className="h-4 w-4 accent-indigo-600" />
+            Featured category (shown on homepage)
+          </label>
+
+          <FormField label="Description">
+            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className={`${fieldClass} min-h-[90px]`} placeholder="Short description (optional)" />
+          </FormField>
+
+          <div className="grid grid-cols-3 gap-3">
+            <ImageField label="Image" value={form.image} uploading={uploading.image} onUpload={(f) => handleUpload("image", f)} />
+            <ImageField label="Banner" value={form.banner} uploading={uploading.banner} onUpload={(f) => handleUpload("banner", f)} />
+            <ImageField label="Icon" value={form.icon} uploading={uploading.icon} onUpload={(f) => handleUpload("icon", f)} />
           </div>
 
-          <button
-            onClick={handleAdd}
-            className="w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:shadow-md transition focus:ring-2 focus:ring-indigo-500/25"
-            type="button"
-          >
-           {editingId ? "Update Category" : "Add Category"}
-          </button>
+          <div className="mt-4 space-y-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">SEO</div>
+            <input value={form.seo_title} onChange={(e) => setForm((f) => ({ ...f, seo_title: e.target.value }))} className={fieldClass} placeholder="SEO title" />
+            <textarea value={form.seo_description} onChange={(e) => setForm((f) => ({ ...f, seo_description: e.target.value }))} className={`${fieldClass} min-h-[70px]`} placeholder="SEO description" />
+            <input value={form.seo_keywords} onChange={(e) => setForm((f) => ({ ...f, seo_keywords: e.target.value }))} className={fieldClass} placeholder="SEO keywords" />
+          </div>
+
+          <div className="mt-5 flex gap-3">
+            <button onClick={handleSave} disabled={isSaving} className="flex-1 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:shadow-md transition focus:ring-2 focus:ring-indigo-500/25 disabled:opacity-60" type="button">
+              {isSaving ? "Saving..." : editingId ? "Update Category" : "Add Category"}
+            </button>
+            {editingId && (
+              <button onClick={resetForm} type="button" className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Cancel
+              </button>
+            )}
+          </div>
         </section>
 
-        {/* RIGHT TABLE */}
-        <section className="col-span-12 lg:col-span-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-0 sm:p-0">
-          <div className="border-b border-gray-100 px-5 sm:px-6 py-4 flex items-center justify-between gap-3">
+        <section className="col-span-12 lg:col-span-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+          <div className="border-b border-gray-100 px-5 sm:px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Category list
-              </h2>
-              <p className="mt-1 text-sm text-gray-600">
-                Nested structure is displayed with indentation.
-              </p>
+              <h2 className="text-lg font-semibold text-gray-900">Category list</h2>
+              <p className="mt-1 text-sm text-gray-600">Nested structure is displayed with indentation.</p>
             </div>
-            <div className="hidden sm:block rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500">
-                Tip
-              </div>
-              <div className="text-sm font-medium text-gray-700">
-                Use Parent to create subcategories
-              </div>
+            <div className="relative min-w-[220px]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search categories..." className="w-full rounded-xl border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400" />
             </div>
           </div>
 
@@ -364,26 +333,22 @@ const res = await fetch(url, {
             <table className="w-full min-w-[820px]">
               <thead className="bg-gray-50">
                 <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
-                  <th className="px-5 py-3 font-semibold">Category</th>
+                  <th className="px-4 py-3"></th>
+                  <th className="px-3 py-3 font-semibold">Category</th>
                   <th className="px-3 py-3 font-semibold">Slug</th>
-                  <th className="px-3 py-3 font-semibold">Type</th>
+                  <th className="px-3 py-3 font-semibold">Products</th>
+                  <th className="px-3 py-3 font-semibold">Status</th>
                   <th className="px-5 py-3 font-semibold">Actions</th>
                 </tr>
               </thead>
-
               <tbody className="divide-y divide-gray-100">
                 {renderTree(treeData)}
-
-                {categories.length === 0 && (
+                {filteredCategories.length === 0 && (
                   <tr>
-                    <td colSpan="4" className="px-5 py-10 text-center">
+                    <td colSpan="6" className="px-5 py-10 text-center">
                       <div className="mx-auto max-w-md">
-                        <div className="text-gray-900 font-semibold">
-                          No categories found
-                        </div>
-                        <div className="mt-1 text-sm text-gray-600">
-                          Add your first category from the form on the left.
-                        </div>
+                        <div className="text-gray-900 font-semibold">No categories found</div>
+                        <div className="mt-1 text-sm text-gray-600">Add your first category from the form on the left.</div>
                       </div>
                     </td>
                   </tr>
@@ -393,6 +358,53 @@ const res = await fetch(url, {
           </div>
         </section>
       </div>
+
+      <ConfirmModal
+        open={!!pendingDelete}
+        title={`Delete "${pendingDelete?.name}"?`}
+        message="This will be blocked if any products still use this category."
+        confirmLabel="Delete"
+        isBusy={isBusy}
+        onConfirm={handleDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
+      <ConfirmModal
+        open={pendingBulkDelete}
+        title={`Delete ${selected.length} selected categories?`}
+        message="Categories still in use by products will block the whole batch."
+        confirmLabel="Delete"
+        isBusy={isBusy}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setPendingBulkDelete(false)}
+      />
     </div>
   );
 }
+
+function FormField({ label, children }) {
+  return (
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function ImageField({ label, value, uploading, onUpload }) {
+  return (
+    <div>
+      <div className="mb-1 text-xs font-medium text-gray-600">{label}</div>
+      <label className="flex h-16 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-center hover:bg-gray-100">
+        {value ? (
+          <img src={getImageUrl(value)} alt="" className="h-full w-full rounded-xl object-cover" />
+        ) : (
+          <span className="text-[11px] text-gray-400">{uploading ? "..." : "Upload"}</span>
+        )}
+        <input type="file" accept="image/*" className="hidden" onChange={(e) => onUpload(e.target.files[0])} />
+      </label>
+    </div>
+  );
+}
+
+const fieldClass =
+  "w-full rounded-xl border border-gray-200 px-3 py-2.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition";
