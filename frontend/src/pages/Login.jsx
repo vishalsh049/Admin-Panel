@@ -265,7 +265,7 @@ export default function Login() {
               onSubmit={
                 mode === "login" ? handleLogin : mode === "register" ? handleRegister : handleForgot
               }
-              className="mt-8 space-y-5"
+              className="mt-8 mb-8 space-y-5"
             >
               {mode === "register" && (
                 <div>
@@ -352,60 +352,7 @@ export default function Login() {
 </button>
             </form>
 
-            {mode !== "forgot" && (
-              <>
-                <div className="my-6 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-gray-200" />
-                  <span className="text-xs uppercase tracking-wide text-gray-400">or continue with</span>
-                  <div className="h-px flex-1 bg-gray-200" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Wire these up to your OAuth provider of choice */}
-                  <button
-                    type="button"
-                    className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                  >
-                    <IconGoogle className="h-4 w-4" />
-                    Google
-                  </button>
-                  <button
-                    type="button"
-                    className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                  >
-                    <IconMicrosoft className="h-4 w-4" />
-                    Microsoft
-                  </button>
-                </div>
-              </>
-            )}
-
-            <p className="mt-7 text-center text-sm text-gray-500">
-              {mode === "login" && (
-                <>
-                  Don&apos;t have an account?{" "}
-                  <button type="button" onClick={() => setMode("register")} className="font-semibold text-orange-500 hover:text-orange-600">
-                    Sign up
-                  </button>
-                </>
-              )}
-              {mode === "register" && (
-                <>
-                  Already have an account?{" "}
-                  <button type="button" onClick={() => setMode("login")} className="font-semibold text-orange-500 hover:text-orange-600">
-                    Sign in
-                  </button>
-                </>
-              )}
-              {mode === "forgot" && (
-                <>
-                  Remembered it?{" "}
-                  <button type="button" onClick={() => setMode("login")} className="font-semibold text-orange-500 hover:text-orange-600">
-                    Back to sign in
-                  </button>
-                </>
-              )}
-            </p>
+            
           </div>
 
           {/* footer */}
