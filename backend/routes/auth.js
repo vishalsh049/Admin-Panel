@@ -34,7 +34,7 @@ router.post("/register", async (req, res) => {
     }
 
     const existing = await sequelize.query(
-      "SELECT * FROM users WHERE email=?",
+      "SELECT id FROM users WHERE email=?",
       {
         replacements: [normalizedEmail],
         type: QueryTypes.SELECT

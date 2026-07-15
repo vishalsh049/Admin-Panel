@@ -22,6 +22,8 @@ const StoreOrderStatusHistory = require("../models/StoreOrderStatusHistory");
 const StoreOrderRequest = require("../models/StoreOrderRequest");
 const StoreWishlist = require("../models/StoreWishlist");
 const StoreAddress = require("../models/StoreAddress");
+const { cancelFshipOrder } = require("../services/fshipService");
+const { createShipmentForOrder } = require("../controllers/shippingController");
 
 const JWT_SECRET = process.env.JWT_SECRET || "please-set-JWT_SECRET";
 const CLIENT_URL =
@@ -32,23 +34,8 @@ const NON_RETURNABLE_CATEGORY_KEYWORDS = ["puja", "perfume", "attar"];
 const ORDER_REQUEST_TYPES = ["return", "exchange", "refund", "complaint"];
 
 // ─── Customer Auth Middleware ──────────────────────────────────────────────────
-function customerAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Not authorized" });
-  }
-  try {
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.type !== "customer") {
-      return res.status(401).json({ message: "Not authorized" });
-    }
-    req.customerId = decoded.id;
-    next();
-  } catch {
-    res.status(401).json({ message: "Token failed" });
-  }
-}
+// Shared with routes/paymentRoutes.js — single source of truth.
+const customerAuth = require("../middleware/customerAuth");
 
 // ─── PRODUCTS (public) ────────────────────────────────────────────────────────
 
@@ -202,8 +189,16 @@ router.post("/auth/register", async (req, res) => {
       token,
     });
   } catch (err) {
-    console.error("Register error:", err.message);
-    res.status(500).json({ message: "Registration failed" });
+    // Two concurrent registrations with the same email can both pass the
+    // findOne check above; the unique index rejects the loser — report it
+    // as the duplicate it is, not as a server error.
+    if (err.name === "SequelizeUniqueConstraintError") {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+    // Log the underlying SQL error too — err.message alone hides the real
+    // cause for Sequelize database errors.
+    console.error("Register error:", err.parent?.sqlMessage || err.message, "\n", err.stack);
+    res.status(500).json({ message: "Registration failed due to a server error. Please try again." });
   }
 });
 
@@ -234,8 +229,8 @@ router.post("/auth/login", async (req, res) => {
       token,
     });
   } catch (err) {
-    console.error("Login error:", err.message);
-    res.status(500).json({ message: "Login failed" });
+    console.error("Login error:", err.parent?.sqlMessage || err.message, "\n", err.stack);
+    res.status(500).json({ message: "Login failed due to a server error. Please try again." });
   }
 });
 
@@ -767,6 +762,14 @@ router.post("/orders", customerAuth, async (req, res) => {
       expectedDeliveryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
     });
 
+    // Automatic shipment creation. The order always survives a shipping
+    // failure — createShipmentForOrder marks shippingStatus "pending" so the
+    // admin can retry from the order page.
+    const shipmentResult = await createShipmentForOrder(order);
+    if (!shipmentResult.ok) {
+      console.error(`FShip auto shipment for order ${order.id} not created:`, shipmentResult.error);
+    }
+
     await StoreOrderStatusHistory.create({
       order_id: order.id,
       status: "pending",
@@ -861,6 +864,32 @@ router.get("/orders/track", async (req, res) => {
   }
 });
 
+// GET /api/store/orders/:id/tracking-history  (dual-mode – live courier scans)
+// Same ownership rules as /orders/track: a logged-in customer resolves via
+// JWT, a guest must supply a matching contact value.
+router.get("/orders/:id/tracking-history", async (req, res) => {
+  try {
+    const order = await resolveOwnedOrder(req);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found or details did not match." });
+    }
+    if (!order.trackingNumber) {
+      return res.json({ awb: null, courierName: null, summary: null, scans: [] });
+    }
+    const { getTrackingHistory } = require("../services/fshipService");
+    const history = await getTrackingHistory(order.trackingNumber);
+    res.json({
+      awb: order.trackingNumber,
+      courierName: history?.summary?.fulfilledby || order.courierName || null,
+      summary: history?.summary || null,
+      scans: history?.trackingdata || [],
+    });
+  } catch (err) {
+    console.error("Customer tracking history error:", err.message);
+    res.status(502).json({ message: "Live tracking is temporarily unavailable. Please try again later." });
+  }
+});
+
 // PATCH /api/store/orders/:id/cancel  (dual-mode – logged-in or guest with contact)
 router.patch("/orders/:id/cancel", async (req, res) => {
   try {
@@ -871,6 +900,15 @@ router.patch("/orders/:id/cancel", async (req, res) => {
     if (!["pending", "processing"].includes(order.status)) {
       return res.status(409).json({ message: "This order can no longer be cancelled." });
     }
+
+    if (order.trackingNumber) {
+      try {
+        await cancelFshipOrder(order.trackingNumber, "Cancelled by customer");
+      } catch (cancelErr) {
+        console.error("FShip cancel order failed:", cancelErr.message || cancelErr);
+      }
+    }
+
     await order.update({ status: "cancelled" });
     await StoreOrderStatusHistory.create({
       order_id: order.id,
@@ -972,6 +1010,20 @@ router.get("/orders/:id/invoice", async (req, res) => {
     if (Number(order.shippingCharges) > 0) doc.text(`Shipping: Rs. ${Number(order.shippingCharges).toFixed(2)}`);
     if (Number(order.gstAmount) > 0) doc.text(`GST: Rs. ${Number(order.gstAmount).toFixed(2)}`);
     doc.font("Helvetica-Bold").text(`Grand Total: Rs. ${Number(order.totalPrice).toFixed(2)}`);
+    doc.moveDown();
+
+    doc.font("Helvetica-Bold").text("Payment:");
+    doc.font("Helvetica");
+    doc.text(
+      order.paymentMethod === "razorpay"
+        ? `Paid Online (Razorpay) — ${order.isPaid ? "PAID" : "PAYMENT PENDING"}`
+        : `Cash on Delivery — ${order.isPaid ? "PAID" : "payable on delivery"}`
+    );
+    if (order.razorpayPaymentId) doc.text(`Payment ID: ${order.razorpayPaymentId}`);
+    if (order.paidAt) doc.text(`Paid on: ${new Date(order.paidAt).toLocaleDateString("en-IN")}`);
+    if (Number(order.refundAmount) > 0) {
+      doc.text(`Refunded: Rs. ${Number(order.refundAmount).toFixed(2)}${order.refundId ? ` (${order.refundId})` : ""}`);
+    }
     doc.moveDown(2);
 
     doc
@@ -1177,14 +1229,29 @@ async function formatOrder(order) {
       method: order.paymentMethod,
       status: order.isPaid ? "paid" : "unpaid",
       paidAt: order.paidAt,
+      gatewayStatus: order.paymentStatus || null,
+      razorpayOrderId: order.razorpayOrderId || null,
+      razorpayPaymentId: order.razorpayPaymentId || null,
+      refundId: order.refundId || null,
+      refundAmount: order.refundAmount != null ? Number(order.refundAmount) : null,
     },
     tracking: {
       trackingNumber: order.trackingNumber || null,
       courierName: order.courierName || null,
       courierTrackingUrl: buildCourierUrl(order.courierName, order.trackingNumber),
       expectedDeliveryDate: order.expectedDeliveryDate,
+      shippingStatus: order.shippingStatus || "not_created",
+      currentStatus: order.trackingStatus || null,
+      location: order.trackingLocation || null,
+      remark: order.trackingRemark || null,
+      lastScanAt: order.lastScanAt || null,
     },
     invoiceNumber: order.invoiceNumber || null,
+    fship: {
+      orderId: order.fshipOrderId || null,
+      pickupId: order.fshipPickupId || null,
+      response: parseJsonField(order.fshipResponse, null),
+    },
     timeline,
     returnEligibility,
     canCancel: ["pending", "processing"].includes(order.status),

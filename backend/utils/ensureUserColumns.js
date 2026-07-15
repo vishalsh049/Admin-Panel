@@ -15,6 +15,8 @@ async function ensureColumn(sequelize, columnName, definition) {
 async function ensureUserColumns(sequelize) {
   await ensureColumn(sequelize, "name", "VARCHAR(255) NOT NULL DEFAULT '' AFTER email");
   await ensureColumn(sequelize, "role", "VARCHAR(100) NOT NULL DEFAULT 'staff' AFTER password");
+  await ensureColumn(sequelize, "resetPasswordToken", "VARCHAR(255) NULL AFTER role");
+  await ensureColumn(sequelize, "resetPasswordExpires", "DATETIME NULL AFTER resetPasswordToken");
 
   await sequelize.query(
     `

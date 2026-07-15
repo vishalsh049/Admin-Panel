@@ -3,18 +3,23 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { BASE_URL } from "../utils/api";
+import OrderShippingSection from "../components/OrderShippingSection";
+import OrderPaymentSection from "../components/OrderPaymentSection";
 
 export default function OrderDetails() {
   const { id } = useParams();
 
   const [order, setOrder] = useState(null);
+  // Raw store_orders row — the payment section needs the gateway fields as-is.
+  const [rawOrder, setRawOrder] = useState(null);
 
-  useEffect(() => {
+  const fetchOrder = () =>
     axios
       .get(`${BASE_URL}/api/store/admin/orders/${id}`)
       .then((res) => {
         const o = res.data?.data;
         if (!o) return;
+        setRawOrder(o);
 
         const shippingAddress = o.shippingAddress || {};
 
@@ -48,6 +53,10 @@ export default function OrderDetails() {
       .catch((err) => {
         console.error("Order details error:", err);
       });
+
+  useEffect(() => {
+    fetchOrder();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (!order) {
@@ -122,6 +131,12 @@ export default function OrderDetails() {
        <p><b>Total Order Items:</b> {totalItems}</p>
         <p><b>Total Quantity:</b> {totalQuantity}</p>
       </div>
+
+      {/* -------- Payment (Razorpay) -------- */}
+      {rawOrder && <OrderPaymentSection order={rawOrder} onChanged={fetchOrder} />}
+
+      {/* -------- Shipping (FShip) -------- */}
+      <OrderShippingSection orderId={order.id} />
 
       {/* -------- Customer Details -------- */}
       <div className="bg-white p-6 rounded-xl shadow mb-4">

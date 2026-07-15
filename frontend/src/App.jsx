@@ -15,6 +15,7 @@ import EditSaleBill from "./pages/EditSaleBill";
 
 import Orders from "./pages/Orders";
 import OrderDetails from "./pages/OrderDetails";
+import Payments from "./pages/Payments";
 import Invoice from "./pages/Invoice";
 
 import Reports from "./pages/Reports";
@@ -41,6 +42,9 @@ import ContactMessageDetails from "./pages/ContactMessageDetails";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Setting";
+import Integrations from "./pages/Integrations";
+import RazorpayConfig from "./pages/RazorpayConfig";
+import FshipConfig from "./pages/FshipConfig";
 import Support from "./pages/Support";
 
 /* ================= AUTH CHECK ================= */
@@ -124,6 +128,7 @@ function AppRoutes({ token }) {
 
               <Route path="/orders" element={<Orders />} />
               <Route path="/orders/:id" element={<OrderDetails />} />
+              <Route path="/payments" element={<Payments />} />
               <Route path="/invoice/:id" element={<Invoice />} />
 
               <Route path="/products" element={<Products />} />
@@ -156,6 +161,9 @@ function AppRoutes({ token }) {
               <Route path="/profile" element={<Profile />} />
 
               <Route path="/settings" element={<Settings />} />
+              <Route path="/settings/integrations" element={<Integrations />} />
+              <Route path="/settings/integrations/razorpay" element={<RazorpayConfig />} />
+              <Route path="/settings/integrations/fship" element={<FshipConfig />} />
               <Route path="/support" element={<Support />} />
             </Route>
 

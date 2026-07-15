@@ -18,6 +18,7 @@ import {
   FaMoneyBillWave,
   FaTimes,
   FaEnvelopeOpenText,
+  FaCreditCard,
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 
@@ -331,6 +332,10 @@ export default function Sidebar({ isOpen, onClose }) {
             )}
 
             {(role === "admin" || role === "sales") && (
+              <NavItem to="/payments" iconClass="green" icon={<FaCreditCard />} label="Payments" active={isActive("/payments")} />
+            )}
+
+            {(role === "admin" || role === "sales") && (
               <NavItem to="/contact-messages" iconClass="cyan" icon={<FaEnvelopeOpenText />} label="Contact Messages" active={isActive("/contact-messages")} />
             )}
 
@@ -360,6 +365,10 @@ export default function Sidebar({ isOpen, onClose }) {
               <DropdownItem label="Users" iconClass="yellow" icon={<FaUsersCog />} open={openUsers} onClick={() => setOpenUsers(!openUsers)}>
                 <SubNavItem to="/users" label="Users List" active={isActive("/users")} />
               </DropdownItem>
+            )}
+
+            {role === "admin" && (
+              <NavItem to="/settings/integrations" iconClass="indigo" icon={<FaCogs />} label="Integrations" active={isActive("/settings/integrations")} />
             )}
 
             <NavItem to="/profile" iconClass="blue" icon={<FaUser />} label="Profile" active={isActive("/profile")} />
