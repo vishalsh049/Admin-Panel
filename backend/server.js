@@ -38,10 +38,33 @@ const StoreAddress = require("./models/StoreAddress");
 const app = express();
 const SHOULD_SYNC_DB = (process.env.DB_SYNC || "false").toLowerCase() === "true";
 
+// Render sits behind a reverse proxy — without this, req.protocol/req.ip and
+// anything relying on X-Forwarded-* (secure cookies, rate limiting) is wrong.
+app.set("trust proxy", 1);
+
 // Middlewares
-const configuredOrigins = process.env.CLIENT_ORIGIN
-  ? process.env.CLIENT_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
-  : [];
+// Baked-in production domains so the site keeps working even if the Render
+// dashboard env var is misconfigured or reset. Extend via CLIENT_ORIGIN
+// (or the ALLOWED_ORIGINS alias) instead of editing this list where possible.
+const DEFAULT_PRODUCTION_ORIGINS = [
+  "https://divyadarshnam.divyadarshnam.com",
+  "https://www.divyadarshnam.com",
+  "https://divyadarshnam.com",
+  "https://admin.divyadarshnam.com",
+];
+
+const parseOriginList = (value) =>
+  (value || "").split(",").map((o) => o.trim()).filter(Boolean);
+
+// CLIENT_ORIGIN is the canonical env var; ALLOWED_ORIGINS is accepted as an
+// alias since it's a common name operators reach for — both are merged.
+const configuredOrigins = Array.from(
+  new Set([
+    ...DEFAULT_PRODUCTION_ORIGINS,
+    ...parseOriginList(process.env.CLIENT_ORIGIN),
+    ...parseOriginList(process.env.ALLOWED_ORIGINS),
+  ])
+);
 
 const localOriginPatterns = [
   /^https?:\/\/localhost(?::\d+)?$/i,
@@ -50,35 +73,34 @@ const localOriginPatterns = [
   /^https?:\/\/\[::1\](?::\d+)?$/i,
 ];
 
-if (configuredOrigins.length === 0) {
-  console.warn(
-    "WARNING: CLIENT_ORIGIN is not set — CORS will reject all cross-origin browser requests. " +
-      "Set CLIENT_ORIGIN to a comma-separated list of allowed origins (admin panel + website URLs)."
-  );
-}
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // same-origin / non-browser requests (curl, server-to-server)
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // same-origin / non-browser requests (curl, server-to-server)
+    const isConfiguredOrigin = configuredOrigins.includes(origin);
+    const isLocalDevOrigin = localOriginPatterns.some((pattern) => pattern.test(origin));
 
-      const isConfiguredOrigin = configuredOrigins.includes(origin);
-      const isLocalDevOrigin = localOriginPatterns.some((pattern) => pattern.test(origin));
+    if (isConfiguredOrigin || isLocalDevOrigin) return callback(null, true);
 
-      if (isConfiguredOrigin || isLocalDevOrigin) return callback(null, true);
+    // 403, not 500: a disallowed origin is a client/config issue, and the
+    // log line tells the operator the exact value to add to CLIENT_ORIGIN.
+    console.warn(
+      `CORS rejected origin: ${origin} (allowed: ${[...configuredOrigins, "localhost/127.0.0.1 dev ports"].join(", ")})`
+    );
+    const err = new Error(`Origin ${origin} not allowed by CORS`);
+    err.status = 403;
+    return callback(err);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+};
 
-      // 403, not 500: a disallowed origin is a client/config issue, and the
-      // log line tells the operator the exact value to add to CLIENT_ORIGIN.
-      console.warn(
-        `CORS rejected origin: ${origin} (allowed: ${[...configuredOrigins, "localhost/127.0.0.1 dev ports"].join(", ")})`
-      );
-      const err = new Error(`Origin ${origin} not allowed by CORS`);
-      err.status = 403;
-      return callback(err);
-    },
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
+// Explicit preflight handler for every route — belt-and-braces alongside the
+// global cors() middleware above, since some proxies/clients send OPTIONS
+// before Express's routing layer would otherwise short-circuit it.
+app.options(/.*/, cors(corsOptions));
 // `verify` keeps the exact raw bytes of each JSON body — the Razorpay webhook
 // signature is an HMAC over the raw payload, so re-serialized JSON won't do.
 app.use(
