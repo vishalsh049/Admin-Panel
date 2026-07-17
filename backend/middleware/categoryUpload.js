@@ -6,6 +6,9 @@ const slugify = require("../utils/slugify");
 
 const UPLOAD_DIR = path.join(__dirname, "..", "uploads", "categories");
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+// The stored extension MUST come from this fixed map, never from the
+// client-supplied originalname — see middleware/productUpload.js for why.
+const EXTENSION_BY_MIME = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif" };
 const MAX_UPLOAD_MB = Number(process.env.MAX_UPLOAD_MB || 5);
 const MAX_WIDTH = 1600;
 const QUALITY = 80;
@@ -13,7 +16,7 @@ const QUALITY = 80;
 const storage = multer.diskStorage({
   destination: UPLOAD_DIR,
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    const ext = EXTENSION_BY_MIME[file.mimetype] || ".jpg";
     const base = slugify(path.basename(file.originalname, path.extname(file.originalname))) || "category";
     const unique = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
     cb(null, `${base}-${unique}${ext}`);
@@ -70,6 +73,11 @@ async function compressFile(file) {
       lastError = error;
     }
   }
+  // Every attempt failed to parse this as a real image — don't leave an
+  // unvalidated file sitting in the publicly-served uploads directory.
+  try {
+    fs.unlinkSync(filePath);
+  } catch {}
   throw lastError;
 }
 

@@ -2,8 +2,15 @@ const express = require("express");
 const { QueryTypes } = require("sequelize");
 const sequelize = require("../config/db");
 const ensureUserColumns = require("../utils/ensureUserColumns");
+const adminAuth = require("../middleware/adminAuth");
+const requireAdminRole = require("../middleware/requireAdminRole");
 
 const router = express.Router();
+
+// User/role management is restricted to the "admin" role — any authenticated
+// admin-panel user could otherwise list every account's password hash,
+// change roles, reset passwords, or delete accounts.
+router.use(adminAuth, requireAdminRole);
 
 const normalizeEmail = (email) => email?.trim().toLowerCase() || "";
 const normalizeName = (name, email) => {
@@ -20,7 +27,7 @@ router.get("/", async (req, res) => {
 
     const users = await sequelize.query(
       `
-      SELECT id, name, email, password, role, created_at
+      SELECT id, name, email, role, created_at
       FROM users
       ORDER BY id DESC
       `,

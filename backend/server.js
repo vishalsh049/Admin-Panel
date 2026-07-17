@@ -24,6 +24,7 @@ const contactRoutes = require("./routes/contactRoutes");
 const shippingRoutes = require("./routes/shippingRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const integrationRoutes = require("./routes/integrationRoutes");
+const wooImportRoutes = require("./routes/wooImportRoutes");
 const { initIntegrationConfigCache } = require("./services/integrationConfigService");
 const { syncActiveShipments } = require("./controllers/shippingController");
 const StoreCustomer = require("./models/StoreCustomer");
@@ -105,6 +106,7 @@ app.use("/api/store/contact", contactRoutes);
 app.use("/api/shipping", shippingRoutes);
 app.use("/api/store/payments", paymentRoutes);
 app.use("/api/admin/integrations", integrationRoutes);
+app.use("/api/admin/woo-import", wooImportRoutes);
 
 // Serve built frontend on the same app when deploying to Hostinger.
 // Toggle with SERVE_FRONTEND=true after running `npm run build` inside frontend.

@@ -45,6 +45,7 @@ import Settings from "./pages/Setting";
 import Integrations from "./pages/Integrations";
 import RazorpayConfig from "./pages/RazorpayConfig";
 import FshipConfig from "./pages/FshipConfig";
+import WooImport from "./pages/WooImport";
 import Support from "./pages/Support";
 
 /* ================= AUTH CHECK ================= */
@@ -164,6 +165,7 @@ function AppRoutes({ token }) {
               <Route path="/settings/integrations" element={<Integrations />} />
               <Route path="/settings/integrations/razorpay" element={<RazorpayConfig />} />
               <Route path="/settings/integrations/fship" element={<FshipConfig />} />
+              <Route path="/settings/woo-import" element={<WooImport />} />
               <Route path="/support" element={<Support />} />
             </Route>
 

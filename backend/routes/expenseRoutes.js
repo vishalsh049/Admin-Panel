@@ -4,6 +4,9 @@ const sequelize = require("../config/db");
 const Expense = require("../models/Expense");
 const ExpenseItem = require("../models/ExpenseItem");
 const upload = require("../middleware/upload");
+const adminAuth = require("../middleware/adminAuth");
+
+router.use(adminAuth);
 
 /* ================= ADD EXPENSE ================= */
 router.post(

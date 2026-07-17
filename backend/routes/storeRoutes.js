@@ -36,6 +36,8 @@ const ORDER_REQUEST_TYPES = ["return", "exchange", "refund", "complaint"];
 // ─── Customer Auth Middleware ──────────────────────────────────────────────────
 // Shared with routes/paymentRoutes.js — single source of truth.
 const customerAuth = require("../middleware/customerAuth");
+const adminAuth = require("../middleware/adminAuth");
+const authRateLimit = require("../middleware/authRateLimit");
 
 // ─── PRODUCTS (public) ────────────────────────────────────────────────────────
 
@@ -154,12 +156,29 @@ router.get("/products/:id", async (req, res) => {
 
 // ─── CUSTOMER AUTH ────────────────────────────────────────────────────────────
 
+// Mirrors frontend/src/utils/authValidation.js PASSWORD_RULES — the frontend
+// blocks weak passwords in the UI, but that's advisory only; the API itself
+// must not accept anything the UI wouldn't.
+function passwordStrengthError(password) {
+  if (password.length < 8) return "Password must be at least 8 characters";
+  if (!/\d/.test(password)) return "Password must include at least one number";
+  if (!/[^A-Za-z0-9]/.test(password)) return "Password must include at least one special character";
+  if (!/[A-Z]/.test(password)) return "Password must include at least one uppercase letter";
+  if (!/[a-z]/.test(password)) return "Password must include at least one lowercase letter";
+  return null;
+}
+
 // POST /api/store/auth/register
-router.post("/auth/register", async (req, res) => {
+router.post("/auth/register", authRateLimit, async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email and password are required" });
+    }
+
+    const passwordError = passwordStrengthError(password);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
     }
 
     const trimmedPhone = phone ? String(phone).trim() : null;
@@ -203,7 +222,7 @@ router.post("/auth/register", async (req, res) => {
 });
 
 // POST /api/store/auth/login
-router.post("/auth/login", async (req, res) => {
+router.post("/auth/login", authRateLimit, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -305,7 +324,7 @@ router.post("/auth/google", async (req, res) => {
 });
 
 // POST /api/store/auth/forgot-password  (public)
-router.post("/auth/forgot-password", async (req, res) => {
+router.post("/auth/forgot-password", authRateLimit, async (req, res) => {
   try {
     const email = (req.body.email || "").trim().toLowerCase();
     if (!email) {
@@ -353,14 +372,18 @@ router.post("/auth/forgot-password", async (req, res) => {
 });
 
 // POST /api/store/auth/reset-password  (public)
-router.post("/auth/reset-password", async (req, res) => {
+router.post("/auth/reset-password", authRateLimit, async (req, res) => {
   try {
     const { token, password } = req.body;
     if (!token || !password) {
       return res.status(400).json({ message: "Token and new password are required" });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    // Only length is enforced here — unlike /auth/register, the reset-password
+    // page shows a strength meter, not a rules checklist, so requiring the
+    // full PASSWORD_RULES set would reject passwords the UI never told the
+    // user were invalid.
+    if (password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
     }
 
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
@@ -1044,7 +1067,7 @@ router.get("/orders/:id/invoice", async (req, res) => {
 // ─── ADMIN: view all website orders ──────────────────────────────────────────
 
 // GET /api/store/admin/orders
-router.get("/admin/orders", async (req, res) => {
+router.get("/admin/orders", adminAuth, async (req, res) => {
   try {
     const orders = await StoreOrder.findAll({
       order: [["created_at", "DESC"]],
@@ -1057,7 +1080,7 @@ router.get("/admin/orders", async (req, res) => {
 });
 
 // GET /api/store/admin/orders/:id
-router.get("/admin/orders/:id", async (req, res) => {
+router.get("/admin/orders/:id", adminAuth, async (req, res) => {
   try {
     const order = await StoreOrder.findByPk(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
@@ -1069,7 +1092,7 @@ router.get("/admin/orders/:id", async (req, res) => {
 });
 
 // PATCH /api/store/admin/orders/:id/status  — update order status
-router.patch("/admin/orders/:id/status", async (req, res) => {
+router.patch("/admin/orders/:id/status", adminAuth, async (req, res) => {
   try {
     const { status } = req.body;
     const order = await StoreOrder.findByPk(req.params.id);

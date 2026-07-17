@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../utils/api";
+import { setAuthHeader } from "../utils/authHeader";
 
 /* ---------- small inline icon set (no extra deps) ---------- */
 const IconUser = (p) => (
@@ -128,6 +129,7 @@ export default function Login() {
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(res.data.user || {}));
         sessionStorage.setItem("session-auth-active", "true");
+        setAuthHeader(res.data.token);
         window.dispatchEvent(new Event("auth-changed"));
         navigate("/dashboard");
       } else {

@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const sequelize = require("../config/db");
 const nodemailer = require("nodemailer");
 const { QueryTypes } = require("sequelize");
+const authRateLimit = require("../middleware/authRateLimit");
 
 const JWT_SECRET = process.env.JWT_SECRET || "please-set-JWT_SECRET";
 const CLIENT_URL =
@@ -20,11 +21,11 @@ const getFallbackNameFromEmail = (email) => {
 
 
 // CREATE ACCOUNT
-router.post("/register", async (req, res) => {
+router.post("/register", authRateLimit, async (req, res) => {
 
   try {
 
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
     const normalizedName = name?.trim();
     const normalizedEmail = email?.trim().toLowerCase();
     const normalizedPassword = password?.trim();
@@ -32,6 +33,12 @@ router.post("/register", async (req, res) => {
     if (!normalizedName || !normalizedEmail || !normalizedPassword) {
       return res.status(400).json({ message: "Name, email, and password are required" });
     }
+
+    // This endpoint is the public self-signup form on the login page — it must
+    // never trust a client-supplied role. New self-signups are always "staff";
+    // promoting someone to "admin" is only possible via the authenticated
+    // Users management page (POST /api/users, gated by requireAdminRole).
+    const role = "staff";
 
     const existing = await sequelize.query(
       "SELECT id FROM users WHERE email=?",
@@ -68,7 +75,7 @@ type: QueryTypes.INSERT
 
 
 
-router.post("/login", async (req, res) => {
+router.post("/login", authRateLimit, async (req, res) => {
   try {
 
     const { email, password } = req.body;
@@ -139,7 +146,7 @@ router.post("/login", async (req, res) => {
 // FORGOT PASSWORD 
 
 
-router.post("/forgot-password", async (req, res) => {
+router.post("/forgot-password", authRateLimit, async (req, res) => {
 
 const { email } = req.body;
 const normalizedEmail = email?.trim().toLowerCase();

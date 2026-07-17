@@ -74,6 +74,12 @@ const Category = sequelize.define(
       defaultValue: false,
       field: "is_featured",
     },
+
+    woo_category_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "woo_category_id",
+    },
   },
   {
     tableName: "product_categories",

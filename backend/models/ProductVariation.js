@@ -50,6 +50,11 @@ const ProductVariation = sequelize.define(
       defaultValue: "active",
       field: "status",
     },
+    woo_variation_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "woo_variation_id",
+    },
   },
   {
     tableName: "product_variations",

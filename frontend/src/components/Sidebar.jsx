@@ -1,5 +1,6 @@
 import { useState } from "react";
 import React from "react";
+import { setAuthHeader } from "../utils/authHeader";
 import {
   FaChartBar,
   FaChartLine,
@@ -7,6 +8,7 @@ import {
   FaUser,
   FaShoppingBag,
   FaCogs,
+  FaCloudDownloadAlt,
   FaHeadset,
   FaStore,
   FaFileInvoice,
@@ -371,6 +373,10 @@ export default function Sidebar({ isOpen, onClose }) {
               <NavItem to="/settings/integrations" iconClass="indigo" icon={<FaCogs />} label="Integrations" active={isActive("/settings/integrations")} />
             )}
 
+            {role === "admin" && (
+              <NavItem to="/settings/woo-import" iconClass="indigo" icon={<FaCloudDownloadAlt />} label="WooCommerce Import" active={isActive("/settings/woo-import")} />
+            )}
+
             <NavItem to="/profile" iconClass="blue" icon={<FaUser />} label="Profile" active={isActive("/profile")} />
           </ul>
         </nav>
@@ -383,6 +389,7 @@ export default function Sidebar({ isOpen, onClose }) {
               localStorage.removeItem("token");
               localStorage.removeItem("user");
               sessionStorage.removeItem("session-auth-active");
+              setAuthHeader(null);
               window.dispatchEvent(new Event("auth-changed"));
               window.location.href = "/login";
             }}

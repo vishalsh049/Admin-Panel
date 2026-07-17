@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { User, Lock, LogOut, Pencil, Save, Trash2, X, Eye, EyeOff, CheckCircle2, ChevronDown } from "lucide-react";
+import { setAuthHeader } from "../utils/authHeader";
 
 const COUNTRIES = [
   { code: "IN", name: "India", flag: "🇮🇳" },
@@ -123,6 +124,7 @@ export default function Profile() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    setAuthHeader(null);
     window.dispatchEvent(new Event("storage"));
     alert("Logged out!");
   };

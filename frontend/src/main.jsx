@@ -5,6 +5,9 @@ import App from "./App";
 import "./index.css";
 import { VendorProvider } from "./context/VendorContext";
 import { ExpenseProvider } from "./context/ExpenseContext";
+import { setAuthHeader } from "./utils/authHeader";
+
+setAuthHeader(localStorage.getItem("token"));
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

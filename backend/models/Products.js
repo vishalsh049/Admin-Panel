@@ -175,6 +175,12 @@ has_variations: {
   defaultValue: false,
   field: "has_variations",
 },
+
+woo_product_id: {
+  type: DataTypes.INTEGER,
+  allowNull: true,
+  field: "woo_product_id",
+},
   },
   {
     tableName: "products",

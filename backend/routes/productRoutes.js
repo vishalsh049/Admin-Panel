@@ -5,7 +5,21 @@ const productUpload = require("../middleware/productUpload");
 const ctrl = require("../controllers/productController");
 
 const router = express.Router();
-const importUpload = multer({ dest: "uploads/" });
+const IMPORT_MIME_TYPES = new Set([
+  "text/csv",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+]);
+const importUpload = multer({
+  dest: "uploads/",
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!IMPORT_MIME_TYPES.has(file.mimetype)) {
+      return cb(new Error("Only CSV or Excel (.xlsx/.xls) files are allowed"));
+    }
+    cb(null, true);
+  },
+});
 
 // ---- List / detail / stats ----
 router.get("/", adminAuth, ctrl.getProducts);

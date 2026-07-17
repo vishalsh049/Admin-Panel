@@ -12,6 +12,12 @@ module.exports = function adminAuth(req, res, next) {
   try {
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, JWT_SECRET);
+    // Customer JWTs are signed with the same secret but carry type:"customer" —
+    // reject them here so a storefront login can never be replayed as an
+    // admin-panel session.
+    if (decoded.type) {
+      return res.status(401).json({ success: false, message: "Not authorized" });
+    }
     req.adminId = decoded.id;
     req.adminEmail = decoded.email || null;
     next();

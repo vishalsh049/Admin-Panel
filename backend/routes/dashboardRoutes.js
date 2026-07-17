@@ -2,8 +2,11 @@ const express = require("express");
 const Expense = require("../models/Expense");
 const StoreOrder = require("../models/StoreOrder");
 const StoreCustomer = require("../models/StoreCustomer");
+const adminAuth = require("../middleware/adminAuth");
 
 const router = express.Router();
+
+router.use(adminAuth);
 
 function getMonthKey(date) {
   const month = date.toLocaleString("default", { month: "short" });
