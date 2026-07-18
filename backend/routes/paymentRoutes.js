@@ -17,6 +17,7 @@ const { Op } = require("sequelize");
 
 const customerAuth = require("../middleware/customerAuth");
 const adminAuth = require("../middleware/adminAuth");
+const requirePermission = require("../middleware/requirePermission");
 const StoreCustomer = require("../models/StoreCustomer");
 const StoreOrder = require("../models/StoreOrder");
 const StoreOrderStatusHistory = require("../models/StoreOrderStatusHistory");
@@ -478,7 +479,7 @@ router.post("/webhook", async (req, res) => {
 // ─── ADMIN PAYMENT MANAGEMENT ─────────────────────────────────────────────────
 
 // GET /api/store/payments/admin/list  (admin)
-router.get("/admin/list", adminAuth, async (req, res) => {
+router.get("/admin/list", adminAuth, requirePermission("payments"), async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
@@ -526,7 +527,7 @@ router.get("/admin/list", adminAuth, async (req, res) => {
 
 // POST /api/store/payments/admin/:orderId/refund  (admin)
 // Full refund by default; pass { amount } (rupees) for a partial refund.
-router.post("/admin/:orderId/refund", adminAuth, async (req, res) => {
+router.post("/admin/:orderId/refund", adminAuth, requirePermission("payments"), async (req, res) => {
   try {
     const order = await StoreOrder.findByPk(req.params.orderId);
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
@@ -576,7 +577,7 @@ router.post("/admin/:orderId/refund", adminAuth, async (req, res) => {
 // POST /api/store/payments/admin/:orderId/sync  (admin)
 // Re-fetches the payment state from Razorpay and reconciles the order —
 // useful when a webhook was missed or keys were rotated.
-router.post("/admin/:orderId/sync", adminAuth, async (req, res) => {
+router.post("/admin/:orderId/sync", adminAuth, requirePermission("payments"), async (req, res) => {
   try {
     const order = await StoreOrder.findByPk(req.params.orderId);
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });

@@ -45,7 +45,7 @@ const SearchableAccountDropdown = ({
 
       {/* DROPDOWN */}
       {open && (
-        <div className="absolute left-0 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-xl z-[9999]">
+        <div className="absolute left-0 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-xl z-30">
 
           {/* SEARCH */}
           <div className="p-3 border-b bg-gray-50">

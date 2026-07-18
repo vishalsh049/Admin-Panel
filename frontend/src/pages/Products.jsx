@@ -422,7 +422,7 @@ export default function Products() {
         </section>
 
         {showViewModal && viewProduct && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/20 p-4 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 backdrop-blur-md">
             <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-6 sm:p-8">
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-xl font-bold">Product Details</h2>

@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../utils/api";
+import { authHeaders } from "../utils/authHeader";
 
 const NAV_ITEMS = [
   {
@@ -120,7 +121,7 @@ useEffect(() => {
 
 const fetchStoreOrders = async () => {
   try {
-    const res = await fetch(`${BASE_URL}/api/store/admin/orders`);
+    const res = await fetch(`${BASE_URL}/api/store/admin/orders`, { headers: authHeaders() });
     const data = await res.json();
     if (data.success) setStoreOrders(data.data || []);
   } catch (err) {
@@ -132,7 +133,7 @@ const updateStoreOrderStatus = async (orderId, newStatus) => {
   try {
     await fetch(`${BASE_URL}/api/store/admin/orders/${orderId}/status`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ status: newStatus }),
     });
     fetchStoreOrders();

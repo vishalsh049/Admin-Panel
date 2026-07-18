@@ -77,7 +77,11 @@ async function list(req, res) {
     const providers = await IntegrationProvider.findAll({ order: [["id", "ASC"]] });
     const data = await Promise.all(
       providers.map(async (provider) => {
-        const config = await IntegrationConfig.findOne({ where: { providerId: provider.id } });
+        // A provider can hold one row per environment (sandbox + production).
+        // The most recently saved row is the "active" one everywhere —
+        // keep this ordering in sync with loadFromDb() in
+        // services/integrationConfigService.js.
+        const config = await IntegrationConfig.findOne({ where: { providerId: provider.id }, order: [["updated_at", "DESC"]] });
         return {
           providerCode: provider.providerCode,
           providerName: provider.providerName,
@@ -104,7 +108,7 @@ async function getOne(req, res) {
     const provider = await IntegrationProvider.findOne({ where: { providerCode } });
     if (!provider) return res.status(404).json({ success: false, message: "Integration not found" });
 
-    const config = await IntegrationConfig.findOne({ where: { providerId: provider.id } });
+    const config = await IntegrationConfig.findOne({ where: { providerId: provider.id }, order: [["updated_at", "DESC"]] });
     res.json({
       success: true,
       data: {
@@ -145,7 +149,10 @@ async function save(req, res) {
       if ((SECRET_FIELDS[providerCode] || []).includes(key) && (value === "" || value === undefined || value === null)) {
         continue; // keep previous value
       }
-      merged[key] = value;
+      // Credentials are pasted from dashboards — stray whitespace/newlines
+      // around an otherwise-valid key make the provider reject it with a
+      // generic auth error, so trim every string field before storing.
+      merged[key] = typeof value === "string" ? value.trim() : value;
     }
     for (const field of NUMERIC_FIELDS[providerCode] || []) {
       if (merged[field] !== undefined && merged[field] !== null && merged[field] !== "") {
@@ -215,7 +222,7 @@ async function testConnection(req, res) {
       if ((SECRET_FIELDS[providerCode] || []).includes(key) && (value === "" || value === undefined || value === null)) {
         continue;
       }
-      testValues[key] = value;
+      testValues[key] = typeof value === "string" ? value.trim() : value;
     }
 
     let ok = true;

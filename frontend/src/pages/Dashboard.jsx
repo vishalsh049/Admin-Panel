@@ -23,7 +23,7 @@ import {
   YAxis,
 } from "recharts";
 import { exportToPDF, exportToExcel } from "../utils/exportReports";
-import { BASE_URL } from "../utils/api";
+import api from "../services/api";
 
 /* ─── tiny sparkline used inside KPI cards ─── */
 function Sparkline({ color = "#22c55e", up = true }) {
@@ -79,15 +79,10 @@ const [toDate, setToDate] = useState("");
 
   useEffect(() => {
     setError("");
- fetch(
-`${BASE_URL}/api/dashboard?period=${filterPeriod}&from=${fromDate}&to=${toDate}`
-)
-      .then((res) => {
-        if (!res.ok) throw new Error(`Dashboard request failed: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => { setDashboardData(data); })
-      .catch((err) => { console.error(err); setError("Failed to load dashboard data.");});
+    api
+      .get("/api/dashboard", { params: { period: filterPeriod, from: fromDate, to: toDate } })
+      .then((res) => { setDashboardData(res.data); })
+      .catch((err) => { console.error(err); setError("Failed to load dashboard data."); });
   }, [filterPeriod, selectedDate, fromDate, toDate]);
 
   if (loading && !dashboardData) return <div className="p-10 text-center text-slate-500 bg-slate-50 min-h-screen">Loading dashboard data…</div>;

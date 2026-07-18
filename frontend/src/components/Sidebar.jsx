@@ -1,288 +1,199 @@
-import { useState } from "react";
-import React from "react";
+import { Fragment, useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { setAuthHeader } from "../utils/authHeader";
 import {
-  FaChartBar,
-  FaChartLine,
   FaHome,
   FaUser,
-  FaShoppingBag,
+  FaShoppingCart,
+  FaTruck,
+  FaBoxOpen,
   FaCogs,
-  FaCloudDownloadAlt,
-  FaHeadset,
-  FaStore,
-  FaFileInvoice,
   FaChevronDown,
   FaChevronUp,
   FaSignOutAlt,
   FaUsersCog,
-  FaUserTie,
   FaMoneyBillWave,
-  FaTimes,
-  FaEnvelopeOpenText,
-  FaCreditCard,
+  FaChartBar,
+  FaImages,
+  FaBlog,
+  FaBars,
+  FaBullhorn,
+  FaCommentDots,
+  FaFileAlt,
 } from "react-icons/fa";
-import { Link, useLocation } from "react-router-dom";
+
+/**
+ * Navigation is data-driven: sections contain items, items may contain children
+ * (rendered as a collapsible group). `roles` limits visibility — omit it to show
+ * the entry to everyone; items without their own `roles` inherit the section's,
+ * and children without their own inherit the item's.
+ *
+ * Structure follows the standard ERP module layout (Sales / Purchases /
+ * Inventory / Accounting / Website / Administration). List pages only — create
+ * and edit screens are reached from buttons on their list page, not from here.
+ */
+const NAV_SECTIONS = [
+  {
+    label: "Main",
+    items: [{ to: "/dashboard", label: "Dashboard", icon: FaHome, color: "purple" }],
+  },
+  {
+    label: "Operations",
+    items: [
+      {
+        label: "Sales", icon: FaShoppingCart, color: "green", roles: ["admin", "sales"],
+        children: [
+          { to: "/orders", label: "Orders" },
+          { to: "/customers", label: "Customers" },
+          { to: "/sale-bills", label: "Sale Bills" },
+          { to: "/payments", label: "Payments" },
+          { to: "/contact-messages", label: "Contact Messages" },
+        ],
+      },
+      {
+        label: "Purchases", icon: FaTruck, color: "orange", roles: ["admin", "inventory", "accounts"],
+        children: [
+          { to: "/vendors", label: "Vendors", roles: ["admin", "inventory"] },
+          { to: "/purchase-bills", label: "Purchase Bills" },
+          { to: "/vendor-payouts", label: "Vendor Payouts", roles: ["admin", "accounts"] },
+        ],
+      },
+      {
+        label: "Inventory", icon: FaBoxOpen, color: "blue", roles: ["admin", "inventory"],
+        children: [
+          { to: "/products", label: "Products" },
+          { to: "/categories", label: "Categories" },
+          { to: "/inventory", label: "Stock Manager" },
+        ],
+      },
+      {
+        label: "Accounting", icon: FaMoneyBillWave, color: "red", roles: ["admin", "accounts"],
+        children: [
+          { to: "/expenses", label: "Expenses" },
+          { to: "/expense-bills", label: "Expense Bills" },
+        ],
+      },
+      { to: "/reports", label: "Reports", icon: FaChartBar, color: "cyan", roles: ["admin"] },
+    ],
+  },
+  {
+    label: "Website",
+    roles: ["admin", "editor"],
+    items: [
+      { to: "/pages", label: "Pages", icon: FaFileAlt, color: "purple" },
+      {
+        label: "Blog", icon: FaBlog, color: "cyan",
+        children: [
+          { to: "/blog", label: "All Posts" },
+          { to: "/blog/categories", label: "Categories" },
+          { to: "/blog/authors", label: "Authors" },
+        ],
+      },
+      { to: "/media", label: "Media Library", icon: FaImages, color: "violet" },
+      { to: "/menus", label: "Menus", icon: FaBars, color: "teal" },
+      { to: "/banners", label: "Banners", icon: FaBullhorn, color: "orange" },
+      { to: "/testimonials", label: "Testimonials", icon: FaCommentDots, color: "yellow" },
+    ],
+  },
+  {
+    label: "Administration",
+    roles: ["admin"],
+    items: [
+      {
+        label: "Users & Roles", icon: FaUsersCog, color: "yellow",
+        children: [
+          { to: "/users", label: "Users List" },
+          { to: "/roles", label: "Roles & Permissions" },
+        ],
+      },
+      {
+        label: "Settings", icon: FaCogs, color: "indigo",
+        children: [
+          { to: "/settings", label: "Site Settings" },
+          { to: "/settings/integrations", label: "Integrations" },
+          { to: "/settings/woo-import", label: "WooCommerce Import" },
+        ],
+      },
+    ],
+  },
+  {
+    items: [{ to: "/profile", label: "Profile", icon: FaUser, color: "blue" }],
+  },
+];
+
+/* Every path the nav links to, used for longest-prefix active matching so
+   detail routes (/vendors/4, /orders/12) highlight their parent entry. */
+const ALL_NAV_PATHS = NAV_SECTIONS.flatMap((section) =>
+  section.items.flatMap((item) => (item.children ? item.children.map((c) => c.to) : [item.to]))
+);
+
+const matchesPath = (navPath, pathname) =>
+  pathname === navPath || pathname.startsWith(navPath + "/");
+
+const bestMatch = (pathname) =>
+  ALL_NAV_PATHS.filter((p) => matchesPath(p, pathname)).sort((a, b) => b.length - a.length)[0];
+
+const groupsContaining = (pathname) => {
+  const open = {};
+  for (const section of NAV_SECTIONS) {
+    for (const item of section.items) {
+      if (item.children?.some((c) => matchesPath(c.to, pathname))) open[item.label] = true;
+    }
+  }
+  return open;
+};
 
 export default function Sidebar({ isOpen, onClose }) {
-  const [openInventory, setOpenInventory] = useState(false);
-  const [openCustomers, setOpenCustomers] = useState(false);
-  const [openVendors, setOpenVendors] = useState(false);
-  const [openExpenses, setOpenExpenses] = useState(false);
-  const [openUsers, setOpenUsers] = useState(false);
+  const location = useLocation();
+  const [openGroups, setOpenGroups] = useState(() => groupsContaining(location.pathname));
 
   const user = (() => { try { return JSON.parse(localStorage.getItem("user")) || {}; } catch { return {}; } })();
   const role = (user?.role || "admin").toLowerCase();
+  const canSee = (roles) => !roles || roles.includes(role);
 
-  const location = useLocation();
-  const isActive = (path) => location.pathname === path;
+  const activePath = bestMatch(location.pathname);
+  const isActive = (path) => path === activePath;
+
+  // Keep the group of the current route expanded when navigating
+  useEffect(() => {
+    setOpenGroups((prev) => ({ ...prev, ...groupsContaining(location.pathname) }));
+  }, [location.pathname]);
+
+  const toggleGroup = (label) =>
+    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+
+  const signOut = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("session-auth-active");
+    setAuthHeader(null);
+    window.dispatchEvent(new Event("auth-changed"));
+    window.location.href = "/login";
+  };
+
+  /* Resolve role visibility ahead of render so empty sections drop their header too */
+  const visibleSections = NAV_SECTIONS
+    .filter((section) => canSee(section.roles))
+    .map((section) => ({
+      ...section,
+      items: section.items
+        .filter((item) => canSee(item.roles ?? section.roles))
+        .map((item) =>
+          item.children
+            ? {
+                ...item,
+                children: item.children.filter((child) =>
+                  canSee(child.roles ?? item.roles ?? section.roles)
+                ),
+              }
+            : item
+        )
+        .filter((item) => !item.children || item.children.length > 0),
+    }))
+    .filter((section) => section.items.length > 0);
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-       .sb-root {
-  font-family: 'Inter', sans-serif;
-  width: 260px;
-  max-width: 85vw;
-  height: 100vh;
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  background: #ffffff;
-  border-right: 1px solid #e8eaf0;
-  overflow-y: auto;
-  transform: translateX(-100%);
-  transition: transform 0.3s ease;
-}
-
-        .sb-root.open {
-          transform: translateX(0);
-        }
-
-        /* Logo */
-        .sb-logo {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-          padding: 22px 20px 18px;
-          border-bottom: 1px solid #f0f1f5;
-        }
-        .sb-logo-row {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 0;
-        }
-        .sb-logo-icon {
-         width: 240px;
-         height: auto;
-         object-fit: contain;
-         padding:10px;
-        }
-        .sb-logo-text h1 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 700;
-          color: #1a1d2e;
-          line-height: 1.2;
-        }
-        .sb-logo-text p {
-          margin: 3px 0 0;
-          font-size: 10px;
-          font-weight: 600;
-          letter-spacing: 0.18em;
-          color: #9ea3b8;
-          text-transform: uppercase;
-        }
-
-        /* Nav area */
-        .sb-nav {
-          flex: 1;
-          min-height: 0;
-          overflow-y: auto;
-          padding: 12px 14px 8px;
-          scrollbar-width: none;
-        }
-        .sb-nav::-webkit-scrollbar { display: none; }
-
-        /* Section label */
-        .sb-section {
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.13em;
-          text-transform: uppercase;
-          color: #b0b4c8;
-          padding: 0 6px;
-          margin: 14px 0 6px;
-        }
-        .sb-section:first-child { margin-top: 2px; }
-
-        ul { list-style: none; margin: 0; padding: 0; }
-        li { margin: 0 0 2px; }
-
-        /* Nav item */
-        .sb-item {
-          display: flex;
-          align-items: center;
-          gap: 11px;
-          width: 100%;
-          padding: 4px 8px;
-          border-radius: 10px;
-          font-size: 13.5px;
-          font-weight: 500;
-          color: #3d4166;
-          text-decoration: none;
-          cursor: pointer;
-          border: none;
-          background: transparent;
-          transition: background 0.15s, color 0.15s;
-          position: relative;
-          text-align: left;
-        }
-        .sb-item:hover {
-          background: #f4f5fb;
-          color: #1a1d2e;
-        }
-        .sb-item.active {
-          background: #eeecfb;
-          color: #5b4fcf;
-          font-weight: 600;
-        }
-        .sb-item.active::before {
-          content: '';
-          position: absolute;
-          left: -14px;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 3px;
-          height: 58%;
-          background: #5b4fcf;
-          border-radius: 0 3px 3px 0;
-        }
-
-        /* Colored icon wraps */
-        .sb-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 9px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          transition: opacity 0.15s;
-        }
-        .sb-icon.purple { background: #eeecfb; color: #5b4fcf; }
-        .sb-icon.green  { background: #e8f8f0; color: #22a861; }
-        .sb-icon.blue   { background: #e8f0fc; color: #3b72e8; }
-        .sb-icon.orange { background: #fff3e8; color: #f07a1a; }
-        .sb-icon.violet { background: #f0ebff; color: #7c55e8; }
-        .sb-icon.teal   { background: #e5f8f5; color: #1ab89a; }
-        .sb-icon.red    { background: #fdecea; color: #e0443a; }
-        .sb-icon.indigo { background: #eaedfc; color: #4a5cd4; }
-        .sb-icon.gray   { background: #f2f3f7; color: #6b7195; }
-        .sb-icon.yellow { background: #fef9e7; color: #d4a017; }
-        .sb-icon.cyan   { background: #e5f5fb; color: #1a9dc8; }
-
-        .sb-chevron {
-          margin-left: auto;
-          font-size: 10px;
-          color: #b0b4c8;
-        }
-
-        /* Sub menu */
-        .sb-sub {
-          margin-top: 3px;
-          padding-left: 43px;
-          display: flex;
-          flex-direction: column;
-          gap: 1px;
-        }
-        .sb-sub-item {
-          display: block;
-          padding: 7px 10px;
-          border-radius: 8px;
-          font-size: 12.5px;
-          font-weight: 500;
-          color: #6b7195;
-          text-decoration: none;
-          transition: background 0.13s, color 0.13s;
-        }
-        .sb-sub-item:hover {
-          background: #f4f5fb;
-          color: #1a1d2e;
-        }
-        .sb-sub-item.active {
-          color: #5b4fcf;
-          background: #eeecfb;
-        }
-
-        /* Footer */
-        .sb-footer {
-          padding: 12px 14px 16px;
-          border-top: 1px solid #f0f1f5;
-        }
-        .sb-signout {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          width: 100%;
-          padding: 12px 16px;
-          border-radius: 10px;
-          background: #fff5f5;
-          border: 1px solid #fdd8d8;
-          color: #e0443a;
-          font-size: 13.5px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background 0.15s, border-color 0.15s;
-          font-family: 'Inter', sans-serif;
-        }
-        .sb-signout:hover {
-          background: #fdecea;
-          border-color: #f9b5b2;
-        }
-
-        .sb-close {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 36px;
-          height: 36px;
-          border-radius: 999px;
-          border: 1px solid #e5e7eb;
-          background: #ffffff;
-          color: #475569;
-          flex-shrink: 0;
-        }
-
-        .sb-overlay {
-          position: fixed;
-          inset: 0;
-          z-index: 45;
-          background: rgba(15, 23, 42, 0.45);
-          backdrop-filter: blur(2px);
-        }
-
-        @media (min-width: 1024px) {
-          .sb-root {
-            width: 228px;
-            transform: translateX(0);
-          }
-
-          .sb-overlay,
-          .sb-close {
-            display: none;
-          }
-        }
-      `}</style>
-
       {isOpen && (
         <button
           type="button"
@@ -292,155 +203,75 @@ export default function Sidebar({ isOpen, onClose }) {
         />
       )}
 
-      <aside className={`sb-root ${isOpen ? "open" : ""}`}>
+      <aside className={`sb-root ${isOpen ? "open" : ""}`} aria-label="Main navigation">
         {/* Logo */}
         <div className="sb-logo-row">
-        <img
-        src="/logodd.png"
-        alt="Logo"
-        className="sb-logo-icon"
-       />
-     </div>
+          <img src="/logodd.png" alt="Logo" className="sb-logo-icon" />
+        </div>
 
         {/* Navigation */}
         <nav className="sb-nav">
           <ul>
-            <p className="sb-section">Main</p>
+            {visibleSections.map((section, idx) => (
+              <Fragment key={section.label || `section-${idx}`}>
+                {section.label && <li className="sb-section">{section.label}</li>}
 
-            <NavItem to="/dashboard" onClose={onClose} iconClass="purple" icon={<FaHome />} label="Dashboard" active={isActive("/dashboard")} />
-            
-
-            {(role === "admin" || role === "sales" || role === "inventory") && (
-              <p className="sb-section">Management</p>
-            )}
-
-            {(role === "admin" || role === "sales") && (
-              <DropdownItem label="Customers" iconClass="green" icon={<FaUsersCog />} open={openCustomers} onClick={() => setOpenCustomers(!openCustomers)}>
-                <SubNavItem to="/customers" label="Customers List" active={isActive("/customers")} />
-                <SubNavItem to="/sale-bills" label="Sale Bills" active={isActive("/sale-bills")} />
-              </DropdownItem>
-            )}
-
-            {(role === "admin" || role === "inventory") && (
-              <DropdownItem label="Inventory" iconClass="blue" icon={<FaFileInvoice />} open={openInventory} onClick={() => setOpenInventory(!openInventory)}>
-                <SubNavItem to="/products" label="Products" active={isActive("/products")} />
-                <SubNavItem to="/add-product" label="Add Product" active={isActive("/add-product")} />
-                <SubNavItem to="/categories" label="Categories" active={isActive("/categories")} />
-              </DropdownItem>
-            )}
-
-            {(role === "admin" || role === "sales") && (
-              <NavItem to="/orders" iconClass="orange" icon={<FaShoppingBag />} label="Orders" active={isActive("/orders")} />
-            )}
-
-            {(role === "admin" || role === "sales") && (
-              <NavItem to="/payments" iconClass="green" icon={<FaCreditCard />} label="Payments" active={isActive("/payments")} />
-            )}
-
-            {(role === "admin" || role === "sales") && (
-              <NavItem to="/contact-messages" iconClass="cyan" icon={<FaEnvelopeOpenText />} label="Contact Messages" active={isActive("/contact-messages")} />
-            )}
-
-            {(role === "admin" || role === "inventory") && (
-              <DropdownItem label="Vendors" iconClass="teal" icon={<FaUserTie />} open={openVendors} onClick={() => setOpenVendors(!openVendors)}>
-                <SubNavItem to="/vendors" label="Vendor List" active={isActive("/vendors")} />
-                <SubNavItem to="/purchase-bills" label="Purchase Bills" active={isActive("/purchase-bills")} />
-              </DropdownItem>
-            )}
-
-            {(role === "admin" || role === "accounts") && (
-              <p className="sb-section">Finance</p>
-            )}
-
-            {(role === "admin" || role === "accounts") && (
-              <DropdownItem label="Expenses" iconClass="red" icon={<FaMoneyBillWave />} open={openExpenses} onClick={() => setOpenExpenses(!openExpenses)}>
-                <SubNavItem to="/expenses" label="All Expenses" active={isActive("/expenses")} />
-                <SubNavItem to="/expense-bills" label="Expense Bills" active={isActive("/expense-bills")} />
-              </DropdownItem>
-            )}
-
-            {role === "admin" && (
-              <p className="sb-section">Administration</p>
-            )}
-
-            {role === "admin" && (
-              <DropdownItem label="Users" iconClass="yellow" icon={<FaUsersCog />} open={openUsers} onClick={() => setOpenUsers(!openUsers)}>
-                <SubNavItem to="/users" label="Users List" active={isActive("/users")} />
-              </DropdownItem>
-            )}
-
-            {role === "admin" && (
-              <NavItem to="/settings/integrations" iconClass="indigo" icon={<FaCogs />} label="Integrations" active={isActive("/settings/integrations")} />
-            )}
-
-            {role === "admin" && (
-              <NavItem to="/settings/woo-import" iconClass="indigo" icon={<FaCloudDownloadAlt />} label="WooCommerce Import" active={isActive("/settings/woo-import")} />
-            )}
-
-            <NavItem to="/profile" iconClass="blue" icon={<FaUser />} label="Profile" active={isActive("/profile")} />
+                {section.items.map((item) =>
+                  item.children ? (
+                    <li key={item.label}>
+                      <button
+                        type="button"
+                        className="sb-item"
+                        onClick={() => toggleGroup(item.label)}
+                        aria-expanded={!!openGroups[item.label]}
+                      >
+                        <span className={`sb-icon ${item.color}`}><item.icon /></span>
+                        {item.label}
+                        <span className="sb-chevron">
+                          {openGroups[item.label] ? <FaChevronUp /> : <FaChevronDown />}
+                        </span>
+                      </button>
+                      {openGroups[item.label] && (
+                        <div className="sb-sub">
+                          {item.children.map((child) => (
+                            <Link
+                              key={child.to}
+                              to={child.to}
+                              onClick={onClose}
+                              className={`sb-sub-item${isActive(child.to) ? " active" : ""}`}
+                            >
+                              {child.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </li>
+                  ) : (
+                    <li key={item.to}>
+                      <Link
+                        to={item.to}
+                        onClick={onClose}
+                        className={`sb-item${isActive(item.to) ? " active" : ""}`}
+                      >
+                        <span className={`sb-icon ${item.color}`}><item.icon /></span>
+                        {item.label}
+                      </Link>
+                    </li>
+                  )
+                )}
+              </Fragment>
+            ))}
           </ul>
         </nav>
 
         {/* Sign Out */}
         <div className="sb-footer">
-          <button
-            className="sb-signout"
-            onClick={() => {
-              localStorage.removeItem("token");
-              localStorage.removeItem("user");
-              sessionStorage.removeItem("session-auth-active");
-              setAuthHeader(null);
-              window.dispatchEvent(new Event("auth-changed"));
-              window.location.href = "/login";
-            }}
-          >
+          <button className="sb-signout" onClick={signOut}>
             <FaSignOutAlt style={{ width: 14, height: 14 }} />
             Sign Out
           </button>
         </div>
       </aside>
     </>
-  );
-}
-
-function NavItem({ to, icon, label, active, iconClass, onClose }) {
-  return (
-    <li>
-      <Link
-       to={to}
-       onClick={onClose}
-       className={`sb-item${active ? " active" : ""}`} 
-       >
-        <span className={`sb-icon ${iconClass}`}>
-          {React.cloneElement(icon, { style: { width: 13, height: 13 } })}
-        </span>
-        {label}
-      </Link>
-    </li>
-  );
-}
-
-function DropdownItem({ label, icon, iconClass, open, onClick, children }) {
-  return (
-    <li>
-      <button type="button" onClick={onClick} className="sb-item" style={{ width: "100%" }}>
-        <span className={`sb-icon ${iconClass}`}>
-          {React.cloneElement(icon, { style: { width: 13, height: 13 } })}
-        </span>
-        {label}
-        <span className="sb-chevron">
-          {open ? <FaChevronUp /> : <FaChevronDown />}
-        </span>
-      </button>
-      {open && <div className="sb-sub">{children}</div>}
-    </li>
-  );
-}
-
-function SubNavItem({ to, label, active }) {
-  return (
-    <Link to={to} className={`sb-sub-item${active ? " active" : ""}`}>
-      {label}
-    </Link>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FaArrowLeft, FaArrowRight, FaFileExport, FaFileImport, FaSearch, FaTimes, FaUser } from "react-icons/fa";
 import { exportToExcel, exportToPDF } from "../utils/exportReports";
 import { BASE_URL } from "../utils/api";
+import { authHeaders } from "../utils/authHeader";
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -11,7 +12,7 @@ export default function Customers() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/customers`)
+    fetch(`${BASE_URL}/api/customers`, { headers: authHeaders() })
   .then((res) => res.json())
   .then((data) => {
     setCustomers(data.data || []);

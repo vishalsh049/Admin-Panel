@@ -3,8 +3,9 @@ const router = express.Router();
 const sequelize = require("../config/db");
 const { QueryTypes } = require("sequelize");
 const adminAuth = require("../middleware/adminAuth");
+const requirePermission = require("../middleware/requirePermission");
 
-router.use(adminAuth);
+router.use(adminAuth, requirePermission("sale_bills"));
 
 function normalizeItems(items) {
   if (typeof items === "string") {

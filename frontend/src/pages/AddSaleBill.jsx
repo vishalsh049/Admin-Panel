@@ -3,6 +3,7 @@
   import { Country, State } from "country-state-city";
   import { useNavigate } from "react-router-dom";
   import { BASE_URL } from "../utils/api";
+  import { authHeaders } from "../utils/authHeader";
 
   export default function AddSaleBill() {
 
@@ -359,9 +360,7 @@ setItems(updated);
   console.log("Sending bill data:", billData);
                 const res = await fetch(`${BASE_URL}/api/sale-bills`, {
                       method: "POST",
-                      headers: {
-                          "Content-Type": "application/json"
-                      },
+                      headers: authHeaders({ "Content-Type": "application/json" }),
                       body: JSON.stringify(billData)
                 });
 
@@ -401,7 +400,7 @@ setItems(updated);
 
   try {
 
-  const res = await fetch(`${BASE_URL}/api/orders/${orderId}`);
+  const res = await fetch(`${BASE_URL}/api/orders/${orderId}`, { headers: authHeaders() });
 
   if (!res.ok) {
     throw new Error("Order not found");

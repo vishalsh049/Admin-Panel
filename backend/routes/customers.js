@@ -2,8 +2,9 @@ const express = require("express");
 const router = express.Router();
 const StoreCustomer = require("../models/StoreCustomer");
 const adminAuth = require("../middleware/adminAuth");
+const requirePermission = require("../middleware/requirePermission");
 
-router.use(adminAuth);
+router.use(adminAuth, requirePermission("customers"));
 
 router.get("/", async (req, res) => {
   try {

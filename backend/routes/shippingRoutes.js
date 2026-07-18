@@ -1,11 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
+const requirePermission = require("../middleware/requirePermission");
 const shipping = require("../controllers/shippingController");
 
 // All shipping operations are admin-only: FShip credentials never reach the
 // browser, and every call below goes out signed from the backend.
-router.use(adminAuth);
+router.use(adminAuth, requirePermission("orders"));
 
 // Courier master data
 router.get("/couriers", shipping.listCouriers);

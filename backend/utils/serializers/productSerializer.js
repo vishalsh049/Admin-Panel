@@ -132,6 +132,10 @@ function buildProductPayload(productInstance, { context = "admin" } = {}) {
     is_trending: !!data.is_trending,
     rating: 0,
     numReviews: 0,
+    // SEO triplet is public so the storefront PDP can set meta tags.
+    seo_title: data.seo_title || "",
+    seo_description: data.seo_description || "",
+    seo_keywords: data.seo_keywords || "",
     created_at: data.created_at,
     updated_at: data.updated_at,
   };
@@ -155,9 +159,6 @@ function buildProductPayload(productInstance, { context = "admin" } = {}) {
       length: toNumber(data.length, 0),
       width: toNumber(data.width, 0),
       height: toNumber(data.height, 0),
-      seo_title: data.seo_title || "",
-      seo_description: data.seo_description || "",
-      seo_keywords: data.seo_keywords || "",
     };
   }
 

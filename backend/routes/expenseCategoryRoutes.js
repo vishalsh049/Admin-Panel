@@ -2,8 +2,9 @@ const express = require("express");
 const router = express.Router();
 const ExpenseCategory = require("../models/ExpenseCategory");
 const adminAuth = require("../middleware/adminAuth");
+const requirePermission = require("../middleware/requirePermission");
 
-router.use(adminAuth);
+router.use(adminAuth, requirePermission("expenses"));
 
 /* GET ALL */
 router.get("/", async (req, res) => {

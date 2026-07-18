@@ -6,6 +6,7 @@ const { Op, QueryTypes } = require("sequelize");
 const sequelize = require("../config/db");
 const StoreContactMessage = require("../models/StoreContactMessage");
 const adminAuth = require("../middleware/adminAuth");
+const requirePermission = require("../middleware/requirePermission");
 const { sendMail } = require("../utils/mailer");
 
 const JWT_SECRET = process.env.JWT_SECRET || "please-set-JWT_SECRET";
@@ -99,7 +100,7 @@ router.post("/", contactFormLimiter, async (req, res) => {
 });
 
 // ─── GET /api/store/contact/admin  (protected – list, search, filter, paginate) ──
-router.get("/admin", adminAuth, async (req, res) => {
+router.get("/admin", adminAuth, requirePermission("contact_messages"), async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
@@ -132,7 +133,7 @@ router.get("/admin", adminAuth, async (req, res) => {
 });
 
 // ─── GET /api/store/contact/admin/:id  (protected – single message) ───────────
-router.get("/admin/:id", adminAuth, async (req, res) => {
+router.get("/admin/:id", adminAuth, requirePermission("contact_messages"), async (req, res) => {
   try {
     const contactMessage = await StoreContactMessage.findByPk(req.params.id);
     if (!contactMessage) {
@@ -146,7 +147,7 @@ router.get("/admin/:id", adminAuth, async (req, res) => {
 });
 
 // ─── PATCH /api/store/contact/admin/:id/status  (protected – update status) ───
-router.patch("/admin/:id/status", adminAuth, async (req, res) => {
+router.patch("/admin/:id/status", adminAuth, requirePermission("contact_messages"), async (req, res) => {
   try {
     const { status } = req.body;
     if (!STATUSES.includes(status)) {
@@ -166,7 +167,7 @@ router.patch("/admin/:id/status", adminAuth, async (req, res) => {
 });
 
 // ─── POST /api/store/contact/admin/:id/reply  (protected – reply to inquiry) ──
-router.post("/admin/:id/reply", adminAuth, async (req, res) => {
+router.post("/admin/:id/reply", adminAuth, requirePermission("contact_messages"), async (req, res) => {
   try {
     const { message } = req.body;
     if (!message || !message.trim()) {
@@ -213,7 +214,7 @@ router.post("/admin/:id/reply", adminAuth, async (req, res) => {
 });
 
 // ─── DELETE /api/store/contact/admin/:id  (protected) ─────────────────────────
-router.delete("/admin/:id", adminAuth, async (req, res) => {
+router.delete("/admin/:id", adminAuth, requirePermission("contact_messages"), async (req, res) => {
   try {
     const deleted = await StoreContactMessage.destroy({ where: { id: req.params.id } });
     if (!deleted) {

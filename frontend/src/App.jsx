@@ -47,6 +47,17 @@ import RazorpayConfig from "./pages/RazorpayConfig";
 import FshipConfig from "./pages/FshipConfig";
 import WooImport from "./pages/WooImport";
 import Support from "./pages/Support";
+import MediaLibrary from "./pages/MediaLibrary";
+import Blog from "./pages/Blog";
+import BlogPostEditorForm from "./pages/BlogPostEditorForm";
+import BlogCategories from "./pages/BlogCategories";
+import BlogAuthors from "./pages/BlogAuthors";
+import Menus from "./pages/Menus";
+import Banners from "./pages/Banners";
+import Testimonials from "./pages/Testimonials";
+import Pages from "./pages/Pages";
+import PageEditorForm from "./pages/PageEditorForm";
+import Roles from "./pages/Roles";
 
 /* ================= AUTH CHECK ================= */
 const isAuthenticated = () => {
@@ -167,6 +178,20 @@ function AppRoutes({ token }) {
               <Route path="/settings/integrations/fship" element={<FshipConfig />} />
               <Route path="/settings/woo-import" element={<WooImport />} />
               <Route path="/support" element={<Support />} />
+
+              <Route path="/media" element={<MediaLibrary />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/add" element={<BlogPostEditorForm />} />
+              <Route path="/blog/edit/:id" element={<BlogPostEditorForm />} />
+              <Route path="/blog/categories" element={<BlogCategories />} />
+              <Route path="/blog/authors" element={<BlogAuthors />} />
+              <Route path="/menus" element={<Menus />} />
+              <Route path="/banners" element={<Banners />} />
+              <Route path="/testimonials" element={<Testimonials />} />
+              <Route path="/pages" element={<Pages />} />
+              <Route path="/pages/add" element={<PageEditorForm />} />
+              <Route path="/pages/edit/:id" element={<PageEditorForm />} />
+              <Route path="/roles" element={<Roles />} />
             </Route>
 
             {/* Root Redirect */}

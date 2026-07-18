@@ -5,6 +5,8 @@ import {
   AlertCircle,
   CheckCircle2,
   ChevronDown,
+  Eye,
+  EyeOff,
   Gauge,
   LockKeyhole,
   MoreHorizontal,
@@ -21,6 +23,15 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { BASE_URL } from "../utils/api";
+import { getRoles } from "../services/roleService";
+
+// Fallback when the roles API is unavailable — matches the pre-RBAC options.
+const FALLBACK_ROLE_OPTIONS = [
+  { name: "admin", display_name: "Admin" },
+  { name: "sales", display_name: "Sales" },
+  { name: "inventory", display_name: "Inventory" },
+  { name: "accounts", display_name: "Accounts" },
+];
 
 const DEFAULT_NEW_USER = {
   name: "",
@@ -426,6 +437,17 @@ export default function Users() {
   const [editCustomRole, setEditCustomRole] = useState("");
   const [resetUser, setResetUser] = useState(null);
   const [newPassword, setNewPassword] = useState("");
+  const [availableRoles, setAvailableRoles] = useState(FALLBACK_ROLE_OPTIONS);
+
+  useEffect(() => {
+    getRoles()
+      .then((roles) => {
+        if (Array.isArray(roles) && roles.length > 0) {
+          setAvailableRoles(roles.map((r) => ({ name: r.name, display_name: r.display_name })));
+        }
+      })
+      .catch(() => {}); // keep fallback options
+  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -478,13 +500,16 @@ export default function Users() {
   };
 
   const openEditModal = (user) => {
-    const roleKey = getRoleKey(user.role);
+    // A role is "known" if it exists in the roles list; anything else is
+    // edited via the free-text "Other Role" input.
+    const normalized = String(user.role || "").toLowerCase();
+    const isKnown = availableRoles.some((r) => r.name === normalized);
     setEditUser({
       ...user,
-      role: roleKey,
+      role: isKnown ? normalized : "custom",
       password: "",
     });
-    setEditCustomRole(roleKey === "custom" ? user.role : "");
+    setEditCustomRole(isKnown ? "" : user.role);
     setShowEditModal(true);
   };
 
@@ -935,9 +960,9 @@ export default function Users() {
               value={newUser.role}
               onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
             >
-              <option value="sales">Sales</option>
-              <option value="inventory">Inventory</option>
-              <option value="accounts">Accounts</option>
+              {availableRoles.map((r) => (
+                <option key={r.name} value={r.name}>{r.display_name}</option>
+              ))}
               <option value="custom">Other Role</option>
             </SelectField>
             {newUser.role === "custom" ? (
@@ -1041,10 +1066,9 @@ export default function Users() {
               value={editUser.role}
               onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}
             >
-              <option value="admin">Admin</option>
-              <option value="sales">Sales</option>
-              <option value="inventory">Inventory</option>
-              <option value="accounts">Accounts</option>
+              {availableRoles.map((r) => (
+                <option key={r.name} value={r.name}>{r.display_name}</option>
+              ))}
               <option value="custom">Other Role</option>
             </SelectField>
             {editUser.role === "custom" ? (

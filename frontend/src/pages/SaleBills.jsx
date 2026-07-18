@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BASE_URL } from "../utils/api";
+import { authHeaders } from "../utils/authHeader";
 import { FaArrowLeft, FaArrowRight, FaFileExport, FaFileImport, FaSearch, FaTimes } from "react-icons/fa";
 
 export default function SaleBills() {
@@ -16,7 +17,7 @@ export default function SaleBills() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/sale-bills`)
+    fetch(`${BASE_URL}/api/sale-bills`, { headers: authHeaders() })
       .then((res) => res.json())
       .then((data) => {
         console.log("API DATA:", data);
@@ -49,6 +50,7 @@ export default function SaleBills() {
 
     await fetch(`${BASE_URL}/api/sale-bills/${id}`, {
       method: "DELETE",
+      headers: authHeaders(),
     });
 
     setBills(bills.filter((b) => b.id !== id));
@@ -79,6 +81,7 @@ export default function SaleBills() {
       selectedBills.map((id) =>
         fetch(`${BASE_URL}/api/sale-bills/${id}`, {
           method: "DELETE",
+          headers: authHeaders(),
         })
       )
     );

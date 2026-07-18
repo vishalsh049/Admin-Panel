@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { AlertTriangle, X } from "lucide-react";
 
 export default function ConfirmModal({
@@ -18,7 +19,7 @@ export default function ConfirmModal({
       ? "bg-rose-600 hover:bg-rose-700 focus:ring-rose-200"
       : "bg-blue-600 hover:bg-blue-700 focus:ring-blue-200";
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-2xl border border-white/60 bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
@@ -58,6 +59,7 @@ export default function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

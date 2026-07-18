@@ -853,7 +853,7 @@ export default function Expenses() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: 4 }}
               transition={{ duration: 0.18 }}
-              className="fixed z-[9999] w-44 overflow-hidden rounded-[24px] border border-white/80 bg-white/92 p-2 shadow-[0_24px_70px_-24px_rgba(15,23,42,0.42)] backdrop-blur-2xl"
+              className="fixed z-50 w-44 overflow-hidden rounded-[24px] border border-white/80 bg-white/92 p-2 shadow-[0_24px_70px_-24px_rgba(15,23,42,0.42)] backdrop-blur-2xl"
               style={{
                 top: menuPosition.top,
                 left: menuPosition.left - 150,

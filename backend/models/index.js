@@ -11,6 +11,13 @@ require("./ExpenseCategory");
 require("./ExpenseItem");
 require("./Expense");
 require("./Order");
+const BlogCategory = require("./BlogCategory");
+const BlogAuthor = require("./BlogAuthor");
+const BlogPost = require("./BlogPost");
+const MenuItem = require("./MenuItem");
+const Banner = require("./Banner");
+const Testimonial = require("./Testimonial");
+const Page = require("./Page");
 
 // Category parent/child (self-referential)
 Category.belongsTo(Category, { as: "parent", foreignKey: "parent_id" });
@@ -81,6 +88,19 @@ ProductVariationAttributeValue.belongsTo(ProductAttributeValue, {
   foreignKey: "attribute_value_id",
 });
 
+// Blog post <-> category / author
+BlogCategory.hasMany(BlogPost, { as: "posts", foreignKey: "category_id" });
+BlogPost.belongsTo(BlogCategory, { as: "category", foreignKey: "category_id" });
+
+BlogAuthor.hasMany(BlogPost, { as: "posts", foreignKey: "author_id" });
+BlogPost.belongsTo(BlogAuthor, { as: "author", foreignKey: "author_id" });
+
+// Menu item parent/child (self-referential) + optional linked category/blog category
+MenuItem.belongsTo(MenuItem, { as: "parent", foreignKey: "parent_id" });
+MenuItem.hasMany(MenuItem, { as: "children", foreignKey: "parent_id" });
+MenuItem.belongsTo(Category, { as: "categoryRef", foreignKey: "category_id" });
+MenuItem.belongsTo(BlogCategory, { as: "blogCategoryRef", foreignKey: "blog_category_id" });
+
 module.exports = {
   sequelize,
   Category,
@@ -90,4 +110,11 @@ module.exports = {
   ProductAttributeValue,
   ProductVariation,
   ProductVariationAttributeValue,
+  BlogCategory,
+  BlogAuthor,
+  BlogPost,
+  MenuItem,
+  Banner,
+  Testimonial,
+  Page,
 };

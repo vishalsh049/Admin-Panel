@@ -32,7 +32,11 @@ async function loadFromDb(providerCode) {
   const provider = await IntegrationProvider.findOne({ where: { providerCode } });
   if (!provider) return { enabled: false };
 
-  const config = await IntegrationConfig.findOne({ where: { providerId: provider.id } });
+  // One row can exist per environment (sandbox + production). The most
+  // recently saved row wins — i.e. the environment the admin last edited is
+  // the one live payment/shipment traffic uses. Keep in sync with the same
+  // ordering in controllers/integrationsController.js.
+  const config = await IntegrationConfig.findOne({ where: { providerId: provider.id }, order: [["updated_at", "DESC"]] });
   const raw = parseConfigJson(config?.configJson);
   const decrypted = { ...raw };
   for (const field of SECRET_FIELDS[providerCode] || []) {

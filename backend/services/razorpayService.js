@@ -110,6 +110,14 @@ async function testCredentials({ keyId, keySecret }) {
   if (!keyId || !keySecret) {
     throw new Error("Key ID and Key Secret are required");
   }
+  // A real Key ID is rzp_test_/rzp_live_ followed by 14 characters
+  // (23 total). A shorter value is an incomplete paste — fail with a
+  // specific message instead of Razorpay's generic "Authentication failed".
+  if (!/^rzp_(test|live)_[A-Za-z0-9]{10,}$/.test(keyId)) {
+    throw new Error(
+      `Key ID "${keyId}" looks invalid or incomplete — expected the full rzp_test_/rzp_live_ key (23 characters) from Razorpay Dashboard > Settings > API Keys`
+    );
+  }
   const testClient = new Razorpay({ key_id: keyId, key_secret: keySecret });
   await testClient.orders.all({ count: 1 });
 }

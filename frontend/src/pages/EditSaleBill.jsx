@@ -3,6 +3,7 @@ import { FaEllipsisV } from "react-icons/fa";
 import { Country, State } from "country-state-city";
 import { useNavigate, useParams } from "react-router-dom";
 import { BASE_URL } from "../utils/api";
+import { authHeaders } from "../utils/authHeader";
 
 export default function EditSaleBill() {
 
@@ -112,7 +113,7 @@ gstin: billing.gstin
 
 if(!id) return;
 
-fetch(`${BASE_URL}/api/sale-bills/${id}`)
+fetch(`${BASE_URL}/api/sale-bills/${id}`, { headers: authHeaders() })
 .then(res => res.json())
 .then(data => {
 
@@ -414,9 +415,7 @@ const billData = {
 console.log("Sending bill data:", billData);
                const res = await fetch(`${BASE_URL}/api/sale-bills/${id}`, {
 method: "PUT",
-                    headers: {
-                         "Content-Type": "application/json"
-                    },
+                    headers: authHeaders({ "Content-Type": "application/json" }),
                     body: JSON.stringify(billData)
                });
 
@@ -447,7 +446,7 @@ return;
 
 try {
 
-const res = await fetch(`${BASE_URL}/api/orders/${orderId}`);
+const res = await fetch(`${BASE_URL}/api/orders/${orderId}`, { headers: authHeaders() });
 
 if (!res.ok) {
   throw new Error("Order not found");

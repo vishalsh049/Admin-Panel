@@ -10,6 +10,7 @@ import * as productService from "../services/productService";
 import { getImageUrl } from "../utils/getImageUrl";
 import { slugify } from "../utils/slugify";
 import ConfirmModal from "../components/ConfirmModal";
+import SeoFieldsPanel from "../components/SeoFieldsPanel";
 
 export const defaultProductFormValues = {
   name: "",
@@ -547,17 +548,13 @@ export default function ProductEditorForm({
           </GlassCard>
 
           <GlassCard icon={<SearchIcon className="h-5 w-5 text-cyan-600" />} title="SEO" description="Improve how this product appears in search results.">
-            <div className="grid gap-4">
-              <Field label="SEO Title">
-                <input name="seo_title" value={formData.seo_title} onChange={onChange} placeholder="Custom title for search engines" className={inputClassName} />
-              </Field>
-              <Field label="SEO Description">
-                <textarea name="seo_description" value={formData.seo_description} onChange={onChange} rows="3" placeholder="Meta description..." className={`${inputClassName} resize-none`} />
-              </Field>
-              <Field label="SEO Keywords">
-                <input name="seo_keywords" value={formData.seo_keywords} onChange={onChange} placeholder="Comma separated keywords" className={inputClassName} />
-              </Field>
-            </div>
+            <SeoFieldsPanel
+              seoTitle={formData.seo_title}
+              seoDescription={formData.seo_description}
+              seoKeywords={formData.seo_keywords}
+              fallbackTitle={formData.name}
+              onChange={(name, value) => setField(name, value)}
+            />
           </GlassCard>
         </div>
 

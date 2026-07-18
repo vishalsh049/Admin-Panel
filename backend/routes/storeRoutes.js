@@ -37,6 +37,7 @@ const ORDER_REQUEST_TYPES = ["return", "exchange", "refund", "complaint"];
 // Shared with routes/paymentRoutes.js — single source of truth.
 const customerAuth = require("../middleware/customerAuth");
 const adminAuth = require("../middleware/adminAuth");
+const requirePermission = require("../middleware/requirePermission");
 const authRateLimit = require("../middleware/authRateLimit");
 
 // ─── PRODUCTS (public) ────────────────────────────────────────────────────────
@@ -1067,7 +1068,7 @@ router.get("/orders/:id/invoice", async (req, res) => {
 // ─── ADMIN: view all website orders ──────────────────────────────────────────
 
 // GET /api/store/admin/orders
-router.get("/admin/orders", adminAuth, async (req, res) => {
+router.get("/admin/orders", adminAuth, requirePermission("orders"), async (req, res) => {
   try {
     const orders = await StoreOrder.findAll({
       order: [["created_at", "DESC"]],
@@ -1080,7 +1081,7 @@ router.get("/admin/orders", adminAuth, async (req, res) => {
 });
 
 // GET /api/store/admin/orders/:id
-router.get("/admin/orders/:id", adminAuth, async (req, res) => {
+router.get("/admin/orders/:id", adminAuth, requirePermission("orders"), async (req, res) => {
   try {
     const order = await StoreOrder.findByPk(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
@@ -1092,7 +1093,7 @@ router.get("/admin/orders/:id", adminAuth, async (req, res) => {
 });
 
 // PATCH /api/store/admin/orders/:id/status  — update order status
-router.patch("/admin/orders/:id/status", adminAuth, async (req, res) => {
+router.patch("/admin/orders/:id/status", adminAuth, requirePermission("orders"), async (req, res) => {
   try {
     const { status } = req.body;
     const order = await StoreOrder.findByPk(req.params.id);

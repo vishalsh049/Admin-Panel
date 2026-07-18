@@ -17,6 +17,8 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const productRoutes = require("./routes/productRoutes");
 const expenseCategoryRoutes = require("./routes/expenseCategoryRoutes");
 const saleBills = require("./routes/saleBills");
+const purchaseBills = require("./routes/purchaseBills");
+const vendorsRoutes = require("./routes/vendors");
 const usersRoutes = require("./routes/users");
 const customersRoute = require("./routes/customers");
 const storeRoutes = require("./routes/storeRoutes");
@@ -25,6 +27,19 @@ const shippingRoutes = require("./routes/shippingRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const integrationRoutes = require("./routes/integrationRoutes");
 const wooImportRoutes = require("./routes/wooImportRoutes");
+const siteSettingsRoutes = require("./routes/siteSettingsRoutes");
+const storeSiteSettingsRoutes = require("./routes/storeSiteSettingsRoutes");
+const mediaRoutes = require("./routes/mediaRoutes");
+const blogRoutes = require("./routes/blogRoutes");
+const storeBlogRoutes = require("./routes/storeBlogRoutes");
+const menuRoutes = require("./routes/menuRoutes");
+const storeMenuRoutes = require("./routes/storeMenuRoutes");
+const bannerRoutes = require("./routes/bannerRoutes");
+const storeBannerRoutes = require("./routes/storeBannerRoutes");
+const pageRoutes = require("./routes/pageRoutes");
+const storePageRoutes = require("./routes/storePageRoutes");
+const roleRoutes = require("./routes/roleRoutes");
+const { refreshRoleCache } = require("./services/rolePermissionService");
 const { initIntegrationConfigCache } = require("./services/integrationConfigService");
 const { syncActiveShipments } = require("./controllers/shippingController");
 const StoreCustomer = require("./models/StoreCustomer");
@@ -119,6 +134,8 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/expense-categories", expenseCategoryRoutes);
 app.use("/api/sale-bills", saleBills);
+app.use("/api/purchase-bills", purchaseBills);
+app.use("/api/vendors", vendorsRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
@@ -129,6 +146,18 @@ app.use("/api/shipping", shippingRoutes);
 app.use("/api/store/payments", paymentRoutes);
 app.use("/api/admin/integrations", integrationRoutes);
 app.use("/api/admin/woo-import", wooImportRoutes);
+app.use("/api/admin/site-settings", siteSettingsRoutes);
+app.use("/api/store/site-settings", storeSiteSettingsRoutes);
+app.use("/api/admin/media", mediaRoutes);
+app.use("/api/admin/blog", blogRoutes);
+app.use("/api/store/blog", storeBlogRoutes);
+app.use("/api/admin/menu-items", menuRoutes);
+app.use("/api/store/menu", storeMenuRoutes);
+app.use("/api/admin/banners", bannerRoutes);
+app.use("/api/store", storeBannerRoutes);
+app.use("/api/admin/pages", pageRoutes);
+app.use("/api/store/pages", storePageRoutes);
+app.use("/api/admin/roles", roleRoutes);
 
 // Serve built frontend on the same app when deploying to Hostinger.
 // Toggle with SERVE_FRONTEND=true after running `npm run build` inside frontend.
@@ -172,6 +201,9 @@ async function startServer() {
 
     await initIntegrationConfigCache();
     console.log("Integration provider config cache loaded");
+
+    await refreshRoleCache();
+    console.log("Role permission cache loaded");
 
     await syncLegacyProductImages();
     console.log("Legacy product image column reconciled with gallery table");

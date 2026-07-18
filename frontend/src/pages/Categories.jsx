@@ -5,6 +5,7 @@ import * as categoryService from "../services/categoryService";
 import { getImageUrl } from "../utils/getImageUrl";
 import { slugify } from "../utils/slugify";
 import ConfirmModal from "../components/ConfirmModal";
+import SeoFieldsPanel from "../components/SeoFieldsPanel";
 
 const emptyForm = {
   name: "",
@@ -298,11 +299,15 @@ export default function Categories() {
             <ImageField label="Icon" value={form.icon} uploading={uploading.icon} onUpload={(f) => handleUpload("icon", f)} />
           </div>
 
-          <div className="mt-4 space-y-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">SEO</div>
-            <input value={form.seo_title} onChange={(e) => setForm((f) => ({ ...f, seo_title: e.target.value }))} className={fieldClass} placeholder="SEO title" />
-            <textarea value={form.seo_description} onChange={(e) => setForm((f) => ({ ...f, seo_description: e.target.value }))} className={`${fieldClass} min-h-[70px]`} placeholder="SEO description" />
-            <input value={form.seo_keywords} onChange={(e) => setForm((f) => ({ ...f, seo_keywords: e.target.value }))} className={fieldClass} placeholder="SEO keywords" />
+          <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">SEO</div>
+            <SeoFieldsPanel
+              seoTitle={form.seo_title}
+              seoDescription={form.seo_description}
+              seoKeywords={form.seo_keywords}
+              fallbackTitle={form.name}
+              onChange={(name, value) => setForm((f) => ({ ...f, [name]: value }))}
+            />
           </div>
 
           <div className="mt-5 flex gap-3">

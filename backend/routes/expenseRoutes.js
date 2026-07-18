@@ -5,8 +5,9 @@ const Expense = require("../models/Expense");
 const ExpenseItem = require("../models/ExpenseItem");
 const upload = require("../middleware/upload");
 const adminAuth = require("../middleware/adminAuth");
+const requirePermission = require("../middleware/requirePermission");
 
-router.use(adminAuth);
+router.use(adminAuth, requirePermission("expenses"));
 
 /* ================= ADD EXPENSE ================= */
 router.post(
