@@ -7,6 +7,9 @@ const {
   adminCreateBanner,
   adminUpdateBanner,
   adminDeleteBanner,
+  adminDuplicateBanner,
+  adminBulkBannerAction,
+  adminReorderBanners,
   adminGetTestimonials,
   adminCreateTestimonial,
   adminUpdateTestimonial,
@@ -25,6 +28,10 @@ router.delete("/testimonials/:id", testimonials, adminDeleteTestimonial);
 
 router.get("/", banners, adminGetBanners);
 router.post("/", banners, adminCreateBanner);
+// Static paths must be registered before "/:id" so Express doesn't swallow them.
+router.post("/bulk", banners, adminBulkBannerAction);
+router.put("/reorder", banners, adminReorderBanners);
+router.post("/:id/duplicate", banners, adminDuplicateBanner);
 router.put("/:id", banners, adminUpdateBanner);
 router.delete("/:id", banners, adminDeleteBanner);
 

@@ -20,6 +20,21 @@ export async function deleteBanner(id) {
   return data;
 }
 
+export async function duplicateBanner(id) {
+  const { data } = await api.post(`/api/admin/banners/${id}/duplicate`);
+  return data;
+}
+
+export async function bulkBannerAction(ids, action) {
+  const { data } = await api.post("/api/admin/banners/bulk", { ids, action });
+  return data;
+}
+
+export async function reorderBanners(ids) {
+  const { data } = await api.put("/api/admin/banners/reorder", { ids });
+  return data;
+}
+
 export async function getTestimonials() {
   const { data } = await api.get("/api/admin/banners/testimonials/all");
   return data;
