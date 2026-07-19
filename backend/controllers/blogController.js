@@ -4,6 +4,8 @@ const BlogCategory = require("../models/BlogCategory");
 const BlogAuthor = require("../models/BlogAuthor");
 const slugify = require("../utils/slugify");
 const { buildBlogPostPayload } = require("../utils/serializers/blogSerializer");
+const { syncWordPressPosts } = require("../services/wpBlogSyncService");
+const { describeError: describeWpError } = require("../services/wooCommerceService");
 
 const POST_INCLUDES = [
   { model: BlogCategory, as: "category" },
@@ -309,6 +311,18 @@ exports.adminDeleteAuthor = async (req, res) => {
   } catch (err) {
     console.error("ADMIN DELETE BLOG AUTHOR ERROR:", err);
     res.status(400).json({ error: "Delete failed" });
+  }
+};
+
+/* ───────────────────────── ADMIN: WORDPRESS SYNC ───────────────────────── */
+
+exports.adminSyncWordPressPosts = async (req, res) => {
+  try {
+    const report = await syncWordPressPosts();
+    res.json({ success: true, report });
+  } catch (err) {
+    console.error("ADMIN SYNC WORDPRESS BLOGS ERROR:", err);
+    res.status(502).json({ success: false, message: describeWpError(err) });
   }
 };
 

@@ -21,6 +21,8 @@ const BlogPost = sequelize.define(
     seo_title: { type: DataTypes.STRING, allowNull: true, field: "seo_title" },
     seo_description: { type: DataTypes.TEXT, allowNull: true, field: "seo_description" },
     seo_keywords: { type: DataTypes.STRING, allowNull: true, field: "seo_keywords" },
+    wp_post_id: { type: DataTypes.INTEGER, allowNull: true, unique: true, field: "wp_post_id" },
+    wp_modified_at: { type: DataTypes.DATE, allowNull: true, field: "wp_modified_at" },
   },
   {
     tableName: "blog_posts",

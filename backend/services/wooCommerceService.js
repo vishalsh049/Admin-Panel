@@ -1,6 +1,8 @@
-// TEMPORARY WooCommerce integration — used only to migrate existing products
-// into this app's own MySQL database. Not a live/ongoing sync target; once
-// the migration is done, WOO_* env vars and this file can be removed.
+// WooCommerce/WordPress import source. The /wc/v3 product endpoints are a
+// TEMPORARY one-time migration; the /wp/v2 blog-post fetcher backs the
+// recurring "Sync Blogs" action (services/wpBlogSyncService.js), so WOO_URL
+// must stay configured for as long as blog syncing is used. Either way this
+// app only ever reads from WordPress — never a live/two-way sync target.
 const axios = require("axios");
 
 const PER_PAGE = 100;
@@ -85,10 +87,47 @@ async function fetchProductVariations(productId) {
   return fetchAllPages(client, `/products/${productId}/variations`);
 }
 
+// WordPress core REST client (blog posts live under /wp-json/wp/v2, not the
+// WooCommerce /wc/v3 namespace). Published posts are public, so no auth is
+// needed — only WOO_URL is reused.
+function getWpClient() {
+  const baseURL = (process.env.WOO_URL || "").trim().replace(/\/+$/, "");
+  if (!baseURL) {
+    throw new Error("WordPress is not configured — set WOO_URL in .env");
+  }
+  return axios.create({ baseURL: `${baseURL}/wp-json/wp/v2`, timeout: 30000 });
+}
+
+// All published blog posts with author, featured image, and category/tag
+// terms embedded. Paginates via the X-WP-TotalPages header because WordPress
+// returns a 400 (rest_post_invalid_page_number) for a page past the end,
+// unlike WooCommerce's empty-batch behaviour fetchAllPages relies on.
+async function fetchAllBlogPosts() {
+  const client = getWpClient();
+  const results = [];
+  let page = 1;
+  let totalPages = 1;
+  do {
+    const res = await client.get("/posts", {
+      params: {
+        status: "publish",
+        per_page: PER_PAGE,
+        page,
+        _embed: "author,wp:featuredmedia,wp:term",
+      },
+    });
+    results.push(...(res.data || []));
+    totalPages = Math.min(Number(res.headers["x-wp-totalpages"]) || 1, 200);
+    page += 1;
+  } while (page <= totalPages);
+  return results;
+}
+
 module.exports = {
   testConnection,
   fetchAllCategories,
   fetchAllProducts,
   fetchProductVariations,
+  fetchAllBlogPosts,
   describeError,
 };

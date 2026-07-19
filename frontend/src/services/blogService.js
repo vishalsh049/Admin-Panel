@@ -25,6 +25,13 @@ export async function deletePost(id) {
   return data;
 }
 
+// Imports/updates every published WordPress post — can take a while when
+// images need downloading, so no client timeout.
+export async function syncWordPressPosts() {
+  const { data } = await api.post("/api/admin/blog/sync-wordpress", {}, { timeout: 0 });
+  return data;
+}
+
 export async function getCategories() {
   const { data } = await api.get("/api/admin/blog/categories");
   return data;

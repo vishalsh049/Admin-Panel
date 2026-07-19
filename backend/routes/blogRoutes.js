@@ -16,9 +16,14 @@ const {
   adminCreateAuthor,
   adminUpdateAuthor,
   adminDeleteAuthor,
+  adminSyncWordPressPosts,
 } = require("../controllers/blogController");
 
 router.use(adminAuth, requirePermission("blog"));
+
+// One-way WordPress import — only writes blog tables, so the "blog"
+// permission (not the admin role) is the right gate.
+router.post("/sync-wordpress", adminSyncWordPressPosts);
 
 router.get("/posts", adminGetPosts);
 router.get("/posts/:id", adminGetPost);
