@@ -266,12 +266,13 @@ router.post("/auth/google", async (req, res) => {
       return res.status(400).json({ message: "Google access token is required" });
     }
 
-    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-    if (!GOOGLE_CLIENT_ID) {
-      return res
-        .status(503)
-        .json({ message: "Google sign-in is not configured on the server" });
-    }
+    // Baked-in default (same pattern as DEFAULT_PRODUCTION_ORIGINS in
+    // server.js): the client ID is public — it ships in the frontend bundle —
+    // so sign-in keeps working even if the Render env var is missing/reset.
+    // GOOGLE_CLIENT_ID still overrides it when set.
+    const GOOGLE_CLIENT_ID =
+      process.env.GOOGLE_CLIENT_ID ||
+      "1044460214029-6mqa81idrnign8oqh39674017lcuplp3.apps.googleusercontent.com";
 
     const infoRes = await fetch(
       `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
