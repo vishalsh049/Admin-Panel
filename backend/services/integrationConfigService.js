@@ -10,6 +10,8 @@ const { decrypt } = require("../utils/encryption");
 const SECRET_FIELDS = {
   razorpay: ["keySecret", "webhookSecret"],
   fship: ["clientSecret", "clientId", "username", "password"],
+  google: ["clientSecret"],
+  facebook: ["appSecret"],
 };
 
 const cache = new Map(); // providerCode -> { enabled, ...decrypted config fields }
@@ -57,7 +59,7 @@ function getCachedConfig(providerCode) {
 }
 
 async function initIntegrationConfigCache() {
-  await Promise.all(["razorpay", "fship"].map(refreshConfig));
+  await Promise.all(["razorpay", "fship", "google", "facebook"].map(refreshConfig));
 }
 
 module.exports = { initIntegrationConfigCache, refreshConfig, getCachedConfig, SECRET_FIELDS, parseConfigJson };

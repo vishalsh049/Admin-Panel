@@ -45,6 +45,8 @@ import Settings from "./pages/Setting";
 import Integrations from "./pages/Integrations";
 import RazorpayConfig from "./pages/RazorpayConfig";
 import FshipConfig from "./pages/FshipConfig";
+import GoogleOAuthConfig from "./pages/GoogleOAuthConfig";
+import FacebookOAuthConfig from "./pages/FacebookOAuthConfig";
 import WooImport from "./pages/WooImport";
 import Support from "./pages/Support";
 import MediaLibrary from "./pages/MediaLibrary";
@@ -176,6 +178,8 @@ function AppRoutes({ token }) {
               <Route path="/settings/integrations" element={<Integrations />} />
               <Route path="/settings/integrations/razorpay" element={<RazorpayConfig />} />
               <Route path="/settings/integrations/fship" element={<FshipConfig />} />
+              <Route path="/settings/integrations/google" element={<GoogleOAuthConfig />} />
+              <Route path="/settings/integrations/facebook" element={<FacebookOAuthConfig />} />
               <Route path="/settings/woo-import" element={<WooImport />} />
               <Route path="/support" element={<Support />} />
 

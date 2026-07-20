@@ -5,17 +5,33 @@ const { encrypt, decrypt } = require("../utils/encryption");
 const { refreshConfig, SECRET_FIELDS, parseConfigJson } = require("../services/integrationConfigService");
 const razorpayService = require("../services/razorpayService");
 const fshipService = require("../services/fshipService");
+const googleAuthService = require("../services/googleAuthService");
+const facebookAuthService = require("../services/facebookAuthService");
 
-const PROVIDER_CODES = new Set(["razorpay", "fship"]);
+const PROVIDER_CODES = new Set(["razorpay", "fship", "google", "facebook"]);
 
 const REQUIRED_FIELDS = {
   razorpay: ["keyId", "keySecret", "currency", "environment"],
   fship: ["apiUrl", "clientSecret", "pickupAddressId"],
+  google: ["clientId", "clientSecret"],
+  facebook: ["appId", "appSecret"],
 };
 
 const NUMERIC_FIELDS = {
   razorpay: [],
   fship: ["pickupAddressId", "returnAddressId", "defaultCourierId", "defaultWeight", "defaultLength", "defaultWidth", "defaultHeight"],
+  google: [],
+  facebook: [],
+};
+
+// Each entry takes the candidate (possibly unsaved) credential values and
+// throws on failure — see the individual services for how each provider is
+// actually probed.
+const TEST_CONNECTION_FNS = {
+  razorpay: ({ keyId, keySecret }) => razorpayService.testCredentials({ keyId, keySecret }),
+  fship: ({ apiUrl, clientSecret }) => fshipService.testCredentials({ apiUrl, clientSecret }),
+  google: ({ clientId, clientSecret }) => googleAuthService.testCredentials({ clientId, clientSecret }),
+  facebook: ({ appId, appSecret }) => facebookAuthService.testCredentials({ appId, appSecret }),
 };
 
 function findProviderCode(req, res) {
@@ -228,11 +244,7 @@ async function testConnection(req, res) {
     let ok = true;
     let errorMessage = null;
     try {
-      if (providerCode === "razorpay") {
-        await razorpayService.testCredentials({ keyId: testValues.keyId, keySecret: testValues.keySecret });
-      } else {
-        await fshipService.testCredentials({ apiUrl: testValues.apiUrl, clientSecret: testValues.clientSecret });
-      }
+      await TEST_CONNECTION_FNS[providerCode](testValues);
     } catch (err) {
       ok = false;
       errorMessage = err.error?.description || err.message || "Connection test failed";

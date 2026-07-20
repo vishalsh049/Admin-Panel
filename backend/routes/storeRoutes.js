@@ -24,6 +24,8 @@ const StoreWishlist = require("../models/StoreWishlist");
 const StoreAddress = require("../models/StoreAddress");
 const { cancelFshipOrder } = require("../services/fshipService");
 const { createShipmentForOrder } = require("../controllers/shippingController");
+const googleAuthService = require("../services/googleAuthService");
+const facebookAuthService = require("../services/facebookAuthService");
 
 const JWT_SECRET = process.env.JWT_SECRET || "please-set-JWT_SECRET";
 const CLIENT_URL =
@@ -254,11 +256,46 @@ router.post("/auth/login", authRateLimit, async (req, res) => {
   }
 });
 
+// GET /api/store/auth/social-config  (public)
+// Tells the login/register page which social buttons to show. Never
+// returns secrets — just the public Client/App ID and the admin's
+// enable/disable toggle from Settings > Integrations.
+router.get("/auth/social-config", (req, res) => {
+  res.json({
+    google: googleAuthService.getPublicConfig(),
+    facebook: facebookAuthService.getPublicConfig(),
+  });
+});
+
+// Shared by /auth/google and /auth/facebook: look up (or create) the store
+// customer for a verified social profile and issue the normal customer JWT.
+async function loginOrCreateCustomerFromSocialProfile(res, { email, name }) {
+  const normalizedEmail = email.toLowerCase().trim();
+  let customer = await StoreCustomer.findOne({ where: { email: normalizedEmail } });
+  if (!customer) {
+    // Social-only accounts never use this password — it exists because the
+    // column is NOT NULL. A user can still set a real one via reset link.
+    customer = await StoreCustomer.create({
+      name: (name || normalizedEmail.split("@")[0]).trim(),
+      email: normalizedEmail,
+      password: crypto.randomBytes(32).toString("hex"),
+    });
+  }
+
+  const token = jwt.sign({ id: customer.id, type: "customer" }, JWT_SECRET, { expiresIn: "30d" });
+  res.json({
+    id: customer.id,
+    name: customer.name,
+    email: customer.email,
+    phone: customer.phone,
+    token,
+  });
+}
+
 // POST /api/store/auth/google  (public)
 // Google Sign-In: the frontend obtains an OAuth access token via Google
-// Identity Services and sends it here. We never trust the token as-is —
-// tokeninfo confirms Google issued it *for this app* (audience check),
-// then userinfo gives us the verified profile.
+// Identity Services and sends it here. googleAuthService verifies it was
+// issued for this app's DB-configured Client ID before we trust the profile.
 router.post("/auth/google", async (req, res) => {
   try {
     const { accessToken } = req.body;
@@ -266,62 +303,32 @@ router.post("/auth/google", async (req, res) => {
       return res.status(400).json({ message: "Google access token is required" });
     }
 
-    // Baked-in default (same pattern as DEFAULT_PRODUCTION_ORIGINS in
-    // server.js): the client ID is public — it ships in the frontend bundle —
-    // so sign-in keeps working even if the Render env var is missing/reset.
-    // GOOGLE_CLIENT_ID still overrides it when set.
-    const GOOGLE_CLIENT_ID =
-      process.env.GOOGLE_CLIENT_ID ||
-      "1044460214029-6mqa81idrnign8oqh39674017lcuplp3.apps.googleusercontent.com";
-
-    const infoRes = await fetch(
-      `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
-    );
-    if (!infoRes.ok) {
-      return res.status(401).json({ message: "Invalid or expired Google token" });
-    }
-    const tokenInfo = await infoRes.json();
-    if (tokenInfo.aud !== GOOGLE_CLIENT_ID) {
-      return res.status(401).json({ message: "Google token was not issued for this app" });
-    }
-
-    const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!profileRes.ok) {
-      return res.status(401).json({ message: "Could not fetch Google profile" });
-    }
-    const profile = await profileRes.json();
-    if (!profile.email || profile.email_verified !== true) {
-      return res.status(401).json({ message: "Google account email is not verified" });
-    }
-
-    const email = profile.email.toLowerCase().trim();
-    let customer = await StoreCustomer.findOne({ where: { email } });
-    if (!customer) {
-      // Google-only accounts never use this password — it exists because the
-      // column is NOT NULL. A user can still set a real one via reset link.
-      customer = await StoreCustomer.create({
-        name: (profile.name || email.split("@")[0]).trim(),
-        email,
-        password: crypto.randomBytes(32).toString("hex"),
-      });
-    }
-
-    const token = jwt.sign({ id: customer.id, type: "customer" }, JWT_SECRET, {
-      expiresIn: "30d",
-    });
-
-    res.json({
-      id: customer.id,
-      name: customer.name,
-      email: customer.email,
-      phone: customer.phone,
-      token,
-    });
+    const profile = await googleAuthService.verifyAccessToken(accessToken);
+    await loginOrCreateCustomerFromSocialProfile(res, { email: profile.email, name: profile.name });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
     console.error("Google auth error:", err.message);
     res.status(500).json({ message: "Google sign-in failed" });
+  }
+});
+
+// POST /api/store/auth/facebook  (public)
+// Facebook Login: the frontend obtains a user access token via the Facebook
+// JS SDK's FB.login() and sends it here. facebookAuthService verifies it
+// against this app's DB-configured App ID/Secret before we trust the profile.
+router.post("/auth/facebook", async (req, res) => {
+  try {
+    const { accessToken } = req.body;
+    if (!accessToken) {
+      return res.status(400).json({ message: "Facebook access token is required" });
+    }
+
+    const profile = await facebookAuthService.verifyAccessToken(accessToken);
+    await loginOrCreateCustomerFromSocialProfile(res, { email: profile.email, name: profile.name });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error("Facebook auth error:", err.message);
+    res.status(500).json({ message: "Facebook sign-in failed" });
   }
 });
 

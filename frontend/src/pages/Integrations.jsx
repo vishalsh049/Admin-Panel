@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { CreditCard, Truck, AlertCircle } from "lucide-react";
+import { CreditCard, Truck, AlertCircle, Chrome, Facebook } from "lucide-react";
 import toast from "react-hot-toast";
 import { getIntegrations, toggleIntegration } from "../services/integrationsService";
 import ToggleSwitch from "../components/ToggleSwitch";
@@ -20,6 +20,8 @@ const STATUS_LABELS = {
 const PROVIDER_META = {
   razorpay: { label: "Razorpay", description: "Online payment gateway for the storefront checkout.", icon: CreditCard, configurePath: "/settings/integrations/razorpay" },
   fship: { label: "FShip", description: "Courier aggregator for order shipment and tracking.", icon: Truck, configurePath: "/settings/integrations/fship" },
+  google: { label: "Google OAuth", description: "\"Continue with Google\" sign-in on the storefront login/register pages.", icon: Chrome, configurePath: "/settings/integrations/google" },
+  facebook: { label: "Facebook OAuth", description: "\"Continue with Facebook\" sign-in on the storefront login/register pages.", icon: Facebook, configurePath: "/settings/integrations/facebook" },
 };
 
 function formatDate(value) {
