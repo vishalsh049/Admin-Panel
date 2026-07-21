@@ -6,6 +6,7 @@ import App from "./App";
 import "./index.css";
 import { VendorProvider } from "./context/VendorContext";
 import { ExpenseProvider } from "./context/ExpenseContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { setAuthHeader } from "./utils/authHeader";
 
 setAuthHeader(localStorage.getItem("token"));
@@ -19,12 +20,14 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <VendorProvider>
-        <ExpenseProvider>
-          <Toaster position="top-right" toastOptions={{ duration: 2500 }} />
-          <App />
-        </ExpenseProvider>
-      </VendorProvider>
+      <ThemeProvider>
+        <VendorProvider>
+          <ExpenseProvider>
+            <Toaster position="top-right" toastOptions={{ duration: 2500 }} />
+            <App />
+          </ExpenseProvider>
+        </VendorProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   </React.StrictMode>
 );

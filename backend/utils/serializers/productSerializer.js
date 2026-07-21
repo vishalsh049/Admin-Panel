@@ -152,6 +152,8 @@ function buildProductPayload(productInstance, { context = "admin" } = {}) {
       ...base,
       source: data.source || "admin",
       cost_price: data.cost_price ? toNumber(data.cost_price) : null,
+      barcode: data.barcode || "",
+      gst_percent: toNumber(data.gst_percent, 0),
       hsn: data.hsn || "",
       tax_class: data.tax_class || "",
       tax_status: data.tax_status || "",

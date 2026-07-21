@@ -23,7 +23,7 @@ function getTransporter() {
 // Best-effort email send — never throws. Callers should not depend on
 // delivery to complete their own request/response cycle (e.g. saving a
 // contact inquiry must succeed even if SMTP isn't configured yet).
-async function sendMail({ to, subject, html }) {
+async function sendMail({ to, subject, html, attachments }) {
   const activeTransporter = getTransporter();
   if (!activeTransporter) {
     console.log(`[mailer] SMTP not configured — skipping email to ${to} ("${subject}")`);
@@ -35,6 +35,7 @@ async function sendMail({ to, subject, html }) {
       to,
       subject,
       html,
+      ...(attachments ? { attachments } : {}),
     });
     return { skipped: false };
   } catch (err) {

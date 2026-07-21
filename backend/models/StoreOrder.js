@@ -50,6 +50,10 @@ const StoreOrder = sequelize.define(
     shippingCharges: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     expectedDeliveryDate: { type: DataTypes.DATE, allowNull: true },
     invoiceNumber: { type: DataTypes.STRING, allowNull: true },
+    assignedTo: { type: DataTypes.INTEGER, allowNull: true },
+    assignedToName: { type: DataTypes.STRING, allowNull: true },
+    isHold: { type: DataTypes.BOOLEAN, defaultValue: false },
+    holdReason: { type: DataTypes.STRING, allowNull: true },
   },
   {
     tableName: "store_orders",

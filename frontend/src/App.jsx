@@ -7,6 +7,7 @@ import TopNavbar from "./components/TopNavbar";
 /* Pages */
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Pos from "./pages/Pos";
 
 import Customers from "./pages/Customers";
 import SaleBills from "./pages/SaleBills";
@@ -103,8 +104,10 @@ function AppRoutes({ token }) {
     setSidebarOpen(false);
   }, [location.pathname]);
 
+  const isPosRoute = location.pathname.startsWith("/pos");
+
   return (
-    <div className="min-h-screen bg-[#f5f6fa]">
+    <div className="min-h-screen bg-[#f5f6fa] dark:bg-slate-950">
       {/* Sidebar */}
       {auth && !hideSidebar && (
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -113,11 +116,13 @@ function AppRoutes({ token }) {
       {/* Main Content */}
       <div className={`min-h-screen ${auth ? "lg:pl-56" : ""}`}>
         {/* Navbar */}
-        {auth && <TopNavbar onMenuClick={() => setSidebarOpen(true)} />}
+        {auth && !isPosRoute && <TopNavbar onMenuClick={() => setSidebarOpen(true)} />}
 
         <main
           className={
-            auth && !hideSidebar
+            isPosRoute
+              ? "h-screen lg:h-screen"
+              : auth && !hideSidebar
               ? "mx-auto w-full max-w-7xl px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6"
              : "p-0"
           }
@@ -129,6 +134,7 @@ function AppRoutes({ token }) {
             {/* Protected Routes */}
             <Route element={<PrivateRoute token={token} />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/pos" element={<Pos />} />
 
               <Route path="/customers" element={<Customers />} />
 

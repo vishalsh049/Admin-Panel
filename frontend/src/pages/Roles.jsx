@@ -6,6 +6,7 @@ import ConfirmModal from "../components/ConfirmModal";
 
 // Module keys must match what the backend's requirePermission() calls use.
 const MODULES = [
+  ["pos", "POS"],
   ["blog", "Blog"],
   ["pages", "Pages"],
   ["media", "Media Library"],

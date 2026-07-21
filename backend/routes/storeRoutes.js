@@ -22,24 +22,30 @@ const StoreOrderStatusHistory = require("../models/StoreOrderStatusHistory");
 const StoreOrderRequest = require("../models/StoreOrderRequest");
 const StoreWishlist = require("../models/StoreWishlist");
 const StoreAddress = require("../models/StoreAddress");
+const SiteSetting = require("../models/SiteSetting");
 const { cancelFshipOrder } = require("../services/fshipService");
 const { createShipmentForOrder } = require("../controllers/shippingController");
 const googleAuthService = require("../services/googleAuthService");
 const facebookAuthService = require("../services/facebookAuthService");
+const { renderInvoicePdf } = require("../utils/invoiceRenderer");
+const { orderConfirmationEmail } = require("../utils/emailTemplates");
 
 const JWT_SECRET = process.env.JWT_SECRET || "please-set-JWT_SECRET";
 const CLIENT_URL =
   process.env.CLIENT_URL || process.env.CLIENT_ORIGIN?.split(",")[0]?.trim() || "";
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
-const RETURN_WINDOW_HOURS = 48;
-const NON_RETURNABLE_CATEGORY_KEYWORDS = ["puja", "perfume", "attar"];
 const ORDER_REQUEST_TYPES = ["return", "exchange", "refund", "complaint"];
+const {
+  resolveOwnedOrder,
+  buildCourierUrl,
+  parseJsonField,
+  computeReturnEligibility,
+  formatOrder,
+} = require("../utils/orderHelpers");
 
 // ─── Customer Auth Middleware ──────────────────────────────────────────────────
 // Shared with routes/paymentRoutes.js — single source of truth.
 const customerAuth = require("../middleware/customerAuth");
-const adminAuth = require("../middleware/adminAuth");
-const requirePermission = require("../middleware/requirePermission");
 const authRateLimit = require("../middleware/authRateLimit");
 
 // ─── PRODUCTS (public) ────────────────────────────────────────────────────────
@@ -808,6 +814,14 @@ router.post("/orders", customerAuth, async (req, res) => {
       description: "Order placed",
     });
 
+    // Best-effort — sendMail() never throws, so a mail outage can never block
+    // order placement.
+    sendMail({
+      to: order.customerEmail,
+      subject: `Order Confirmed — #${order.id}`,
+      html: orderConfirmationEmail(order),
+    });
+
     res.status(201).json({ message: "Order placed successfully", orderId: order.id });
   } catch (err) {
     console.error("Create order error:", err.message);
@@ -986,6 +1000,8 @@ router.post("/orders/:id/requests", async (req, res) => {
 });
 
 // GET /api/store/orders/:id/invoice  (dual-mode – streams a PDF invoice)
+// ?layout=thermal for a narrow thermal-printer layout (default a4).
+// ?share=<token> — signed order-scoped link (see issueInvoiceShareToken).
 router.get("/orders/:id/invoice", async (req, res) => {
   try {
     const order = await resolveOwnedOrder(req);
@@ -996,74 +1012,18 @@ router.get("/orders/:id/invoice", async (req, res) => {
       await order.update({ invoiceNumber: `INV-${order.id}` });
     }
 
+    const siteSettings = await SiteSetting.findByPk(1);
+    const layout = req.query.layout === "thermal" ? "thermal" : "a4";
+
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="invoice-${order.id}.pdf"`);
+    res.setHeader(
+      "Content-Disposition",
+      `${req.query.share ? "inline" : "attachment"}; filename="invoice-${order.id}.pdf"`
+    );
 
-    const doc = new PDFDocument({ margin: 50 });
+    const doc = new PDFDocument(layout === "thermal" ? { size: [227, 800], margin: 10 } : { margin: 50 });
     doc.pipe(res);
-
-    doc.fontSize(20).fillColor("#7A1212").text("Divya Darshnam", { align: "left" });
-    doc.fontSize(10).fillColor("#555555").text("Tax Invoice", { align: "left" });
-    doc.moveDown();
-
-    doc.fontSize(11).fillColor("#000000");
-    doc.text(`Invoice No: ${order.invoiceNumber}`);
-    doc.text(`Order ID: #${order.id}`);
-    doc.text(`Order Date: ${new Date(order.created_at).toLocaleDateString("en-IN")}`);
-    doc.moveDown();
-
-    const billing =
-      parseJsonField(order.billingAddress, null) || parseJsonField(order.shippingAddress, null) || {};
-    doc.font("Helvetica-Bold").text("Billed To:");
-    doc.font("Helvetica").text(order.customerName);
-    if (billing.address) doc.text(billing.address);
-    doc.text(`${billing.city || ""}${billing.city ? ", " : ""}${billing.state || ""} ${billing.postalCode || ""}`.trim());
-    if (billing.country) doc.text(billing.country);
-    doc.moveDown();
-
-    const items = parseJsonField(order.items, []);
-    doc.font("Helvetica-Bold").text("Items:");
-    doc.font("Helvetica");
-    items.forEach((item) => {
-      const qty = Number(item.quantity || 1);
-      const price = Number(item.price || 0);
-      doc.text(`${item.name}  x${qty}  -  Rs. ${(price * qty).toFixed(2)}`);
-    });
-    doc.moveDown();
-
-    const subtotal = items.reduce(
-      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1),
-      0
-    );
-    doc.font("Helvetica-Bold").text("Summary:");
-    doc.font("Helvetica");
-    doc.text(`Subtotal: Rs. ${subtotal.toFixed(2)}`);
-    if (Number(order.discountAmount) > 0) doc.text(`Discount: -Rs. ${Number(order.discountAmount).toFixed(2)}`);
-    if (Number(order.shippingCharges) > 0) doc.text(`Shipping: Rs. ${Number(order.shippingCharges).toFixed(2)}`);
-    if (Number(order.gstAmount) > 0) doc.text(`GST: Rs. ${Number(order.gstAmount).toFixed(2)}`);
-    doc.font("Helvetica-Bold").text(`Grand Total: Rs. ${Number(order.totalPrice).toFixed(2)}`);
-    doc.moveDown();
-
-    doc.font("Helvetica-Bold").text("Payment:");
-    doc.font("Helvetica");
-    doc.text(
-      order.paymentMethod === "razorpay"
-        ? `Paid Online (Razorpay) — ${order.isPaid ? "PAID" : "PAYMENT PENDING"}`
-        : `Cash on Delivery — ${order.isPaid ? "PAID" : "payable on delivery"}`
-    );
-    if (order.razorpayPaymentId) doc.text(`Payment ID: ${order.razorpayPaymentId}`);
-    if (order.paidAt) doc.text(`Paid on: ${new Date(order.paidAt).toLocaleDateString("en-IN")}`);
-    if (Number(order.refundAmount) > 0) {
-      doc.text(`Refunded: Rs. ${Number(order.refundAmount).toFixed(2)}${order.refundId ? ` (${order.refundId})` : ""}`);
-    }
-    doc.moveDown(2);
-
-    doc
-      .font("Helvetica")
-      .fontSize(9)
-      .fillColor("#777777")
-      .text("Thank you for shopping with Divya Darshnam.", { align: "center" });
-
+    await renderInvoicePdf(doc, { order, siteSettings, layout });
     doc.end();
   } catch (err) {
     console.error("Invoice generation error:", err.message);
@@ -1073,222 +1033,10 @@ router.get("/orders/:id/invoice", async (req, res) => {
   }
 });
 
-// ─── ADMIN: view all website orders ──────────────────────────────────────────
-
-// GET /api/store/admin/orders
-router.get("/admin/orders", adminAuth, requirePermission("orders"), async (req, res) => {
-  try {
-    const orders = await StoreOrder.findAll({
-      order: [["created_at", "DESC"]],
-    });
-    res.json({ success: true, data: orders, total: orders.length });
-  } catch (err) {
-    console.error("Admin store orders error:", err.message);
-    res.status(500).json({ success: false, message: "Failed to fetch store orders" });
-  }
-});
-
-// GET /api/store/admin/orders/:id
-router.get("/admin/orders/:id", adminAuth, requirePermission("orders"), async (req, res) => {
-  try {
-    const order = await StoreOrder.findByPk(req.params.id);
-    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
-    res.json({ success: true, data: order });
-  } catch (err) {
-    console.error("Admin store order details error:", err.message);
-    res.status(500).json({ success: false, message: "Failed to fetch order" });
-  }
-});
-
-// PATCH /api/store/admin/orders/:id/status  — update order status
-router.patch("/admin/orders/:id/status", adminAuth, requirePermission("orders"), async (req, res) => {
-  try {
-    const { status } = req.body;
-    const order = await StoreOrder.findByPk(req.params.id);
-    if (!order) return res.status(404).json({ message: "Order not found" });
-    await order.update({ status });
-    await StoreOrderStatusHistory.create({ order_id: order.id, status, description: null });
-    res.json({ success: true, message: "Status updated" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-function normalizeContact(value) {
-  return (value || "").toString().trim().toLowerCase();
-}
-
-function normalizePhone(value) {
-  return (value || "").toString().replace(/\D/g, "").slice(-10);
-}
-
-// Resolves an order for either a logged-in customer (JWT, ownership re-checked)
-// or a guest (must supply the order id/tracking number AND a matching contact
-// value) — never trusts an id/tracking number alone.
-async function resolveOwnedOrder(req) {
-  const body = req.body || {};
-  const idParam = req.params.id || body.orderId || req.query.orderId;
-  const authHeader = req.headers.authorization;
-
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    let decoded;
-    try {
-      decoded = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
-    } catch {
-      return null;
-    }
-    if (decoded.type !== "customer" || !idParam) return null;
-    const order = await StoreOrder.findByPk(idParam);
-    if (!order || order.customerId !== decoded.id) return null;
-    return order;
-  }
-
-  const contact = normalizeContact(body.contact || req.query.contact);
-  const identifier = idParam || req.query.trackingNumber || body.trackingNumber;
-  if (!contact || !identifier) return null;
-
-  const orConditions = [{ trackingNumber: identifier }];
-  const numericId = Number(identifier);
-  if (Number.isInteger(numericId) && numericId > 0) orConditions.push({ id: numericId });
-
-  const order = await StoreOrder.findOne({ where: { [Op.or]: orConditions } });
-  if (!order) return null;
-
-  const emailMatch = normalizeContact(order.customerEmail) === contact;
-  const phoneMatch = order.customerPhone && normalizePhone(order.customerPhone) === normalizePhone(contact);
-  return emailMatch || phoneMatch ? order : null;
-}
-
-const COURIER_URL_BUILDERS = {
-  delhivery: (t) => `https://www.delhivery.com/track/package/${t}`,
-  bluedart: (t) => `https://www.bluedart.com/tracking?trackingNumber=${t}`,
-  dtdc: (t) => `https://www.dtdc.in/trace.asp?trackingNumber=${t}`,
-  "india post": (t) => `https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx?consignmentno=${t}`,
-  "ecom express": (t) => `https://www.ecomexpress.in/tracking/?awb_field=${t}`,
-};
-
-function buildCourierUrl(courierName, trackingNumber) {
-  if (!trackingNumber) return null;
-  const builder = COURIER_URL_BUILDERS[(courierName || "").toLowerCase().trim()];
-  if (builder) return builder(encodeURIComponent(trackingNumber));
-  const query = encodeURIComponent(`track ${courierName || ""} ${trackingNumber}`.trim());
-  return `https://www.google.com/search?q=${query}`;
-}
-
-// MySQL JSON columns can come back from Sequelize as either a parsed
-// object/array or a raw JSON-encoded string depending on driver version —
-// this app's pre-existing /orders/my endpoint already exhibits the latter,
-// so every JSON column is normalized defensively before use.
-function parseJsonField(value, fallback) {
-  if (value == null) return fallback;
-  if (typeof value === "string") {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return fallback;
-    }
-  }
-  return value;
-}
-
-function computeReturnEligibility(status, items, deliveredAt) {
-  if (status !== "delivered") {
-    return { eligible: false, reason: "Order has not been delivered yet.", windowEndsAt: null };
-  }
-  const hasNonReturnable = items.some((item) => {
-    const category = (item.category || "").toLowerCase();
-    return NON_RETURNABLE_CATEGORY_KEYWORDS.some((kw) => category.includes(kw));
-  });
-  if (hasNonReturnable) {
-    return { eligible: false, reason: "One or more items in this order are non-returnable.", windowEndsAt: null };
-  }
-  const windowEndsAt = new Date(new Date(deliveredAt).getTime() + RETURN_WINDOW_HOURS * 60 * 60 * 1000);
-  const eligible = Date.now() <= windowEndsAt.getTime();
-  return {
-    eligible,
-    reason: eligible ? null : "The 48-hour return window has ended.",
-    windowEndsAt,
-  };
-}
-
-async function formatOrder(order) {
-  const historyRows = await StoreOrderStatusHistory.findAll({
-    where: { order_id: order.id },
-    order: [["created_at", "ASC"]],
-  });
-
-  const timeline = historyRows.length
-    ? historyRows.map((h) => ({ status: h.status, description: h.description, createdAt: h.created_at }))
-    : [{ status: order.status, description: null, createdAt: order.updated_at }];
-
-  const items = parseJsonField(order.items, []);
-  const shippingAddress = parseJsonField(order.shippingAddress, null);
-  const billingAddress = parseJsonField(order.billingAddress, null) || shippingAddress;
-
-  const deliveredEntry = [...timeline].reverse().find((t) => t.status === "delivered");
-  const returnEligibility = computeReturnEligibility(
-    order.status,
-    items,
-    deliveredEntry ? deliveredEntry.createdAt : order.updated_at
-  );
-
-  const subtotal = items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
-
-  return {
-    id: order.id,
-    status: order.status,
-    createdAt: order.created_at,
-    updatedAt: order.updated_at,
-    customer: {
-      name: order.customerName,
-      email: order.customerEmail,
-      phone: order.customerPhone,
-    },
-    shippingAddress,
-    billingAddress,
-    items,
-    totals: {
-      subtotal,
-      shippingCharges: Number(order.shippingCharges || 0),
-      discountAmount: Number(order.discountAmount || 0),
-      couponCode: order.couponCode || null,
-      gstAmount: Number(order.gstAmount || 0),
-      totalPrice: Number(order.totalPrice),
-    },
-    payment: {
-      method: order.paymentMethod,
-      status: order.isPaid ? "paid" : "unpaid",
-      paidAt: order.paidAt,
-      gatewayStatus: order.paymentStatus || null,
-      razorpayOrderId: order.razorpayOrderId || null,
-      razorpayPaymentId: order.razorpayPaymentId || null,
-      refundId: order.refundId || null,
-      refundAmount: order.refundAmount != null ? Number(order.refundAmount) : null,
-    },
-    tracking: {
-      trackingNumber: order.trackingNumber || null,
-      courierName: order.courierName || null,
-      courierTrackingUrl: buildCourierUrl(order.courierName, order.trackingNumber),
-      expectedDeliveryDate: order.expectedDeliveryDate,
-      shippingStatus: order.shippingStatus || "not_created",
-      currentStatus: order.trackingStatus || null,
-      location: order.trackingLocation || null,
-      remark: order.trackingRemark || null,
-      lastScanAt: order.lastScanAt || null,
-    },
-    invoiceNumber: order.invoiceNumber || null,
-    fship: {
-      orderId: order.fshipOrderId || null,
-      pickupId: order.fshipPickupId || null,
-      response: parseJsonField(order.fshipResponse, null),
-    },
-    timeline,
-    returnEligibility,
-    canCancel: ["pending", "processing"].includes(order.status),
-  };
-}
+// normalizeContact/normalizePhone/resolveOwnedOrder/buildCourierUrl/
+// parseJsonField/computeReturnEligibility/formatOrder now live in
+// ../utils/orderHelpers.js (imported above) so orderAdmin.js can share them.
 
 // Thin wrapper kept for call-site compatibility — all shaping now lives in
 // the shared serializer so admin and store responses can never drift again.

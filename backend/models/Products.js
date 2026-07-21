@@ -51,6 +51,17 @@ const Product = sequelize.define(
       type: DataTypes.STRING,
       field: "sku",
     },
+    barcode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "barcode",
+    },
+    gst_percent: {
+      type: DataTypes.DECIMAL(6, 3),
+      allowNull: true,
+      defaultValue: 0,
+      field: "gst_percent",
+    },
     stock: {
       type: DataTypes.INTEGER,
       defaultValue: 0,

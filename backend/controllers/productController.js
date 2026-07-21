@@ -87,6 +87,7 @@ exports.getProducts = async (req, res) => {
       where[Op.or] = [
         { name: { [Op.like]: `%${req.query.search}%` } },
         { sku: { [Op.like]: `%${req.query.search}%` } },
+        { barcode: { [Op.like]: `%${req.query.search}%` } },
       ];
     }
 

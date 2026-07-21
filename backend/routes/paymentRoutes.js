@@ -14,6 +14,7 @@
 const express = require("express");
 const router = express.Router();
 const { Op } = require("sequelize");
+const sequelize = require("../config/db");
 
 const customerAuth = require("../middleware/customerAuth");
 const adminAuth = require("../middleware/adminAuth");
@@ -23,6 +24,8 @@ const StoreOrder = require("../models/StoreOrder");
 const StoreOrderStatusHistory = require("../models/StoreOrderStatusHistory");
 const { createShipmentForOrder } = require("../controllers/shippingController");
 const { priceOrderItems } = require("../utils/orderPricing");
+const { sendMail } = require("../utils/mailer");
+const { orderConfirmationEmail } = require("../utils/emailTemplates");
 const {
   isRazorpayConfigured,
   isWebhookConfigured,
@@ -111,6 +114,12 @@ async function markOrderPaid(order, { paymentId, signature, paymentEntity, sourc
       console.error(`FShip shipment for paid order ${order.id} not created:`, shipmentResult.error);
     }
   }
+
+  sendMail({
+    to: order.customerEmail,
+    subject: `Order Confirmed — #${order.id}`,
+    html: orderConfirmationEmail(order),
+  });
 
   return { alreadyPaid: false };
 }
@@ -565,6 +574,24 @@ router.post("/admin/:orderId/refund", adminAuth, requirePermission("payments"), 
       status: order.status,
       description: `Refund of Rs. ${(Number(refund.amount) / 100).toFixed(2)} initiated by admin`,
     });
+
+    // Ledger row for the new refunds panel/history — additive, the legacy
+    // refundId/refundAmount columns on store_orders above are left untouched.
+    await sequelize.query(
+      `INSERT INTO store_order_refunds
+        (order_id, amount, reason, method, razorpay_refund_id, status, initiated_by, initiated_by_name, created_at, updated_at)
+       VALUES (:orderId, :amount, :reason, 'razorpay', :refundId, 'processed', :initiatedBy, :initiatedByName, NOW(), NOW())`,
+      {
+        replacements: {
+          orderId: order.id,
+          amount: Number(refund.amount) / 100,
+          reason: requestedAmount != null ? "Partial refund" : "Full refund",
+          refundId: refund.id,
+          initiatedBy: req.adminId || null,
+          initiatedByName: req.adminEmail || null,
+        },
+      }
+    );
 
     res.json({ success: true, message: "Refund initiated", refund: { id: refund.id, amount: refund.amount, status: refund.status } });
   } catch (err) {

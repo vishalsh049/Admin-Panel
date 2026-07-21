@@ -72,7 +72,56 @@ button {
   border-right: 1px solid #e8eaf0;
   overflow-y: auto;
   transform: translateX(-100%);
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.dark .sb-root {
+  background: #0f172a;
+  border-right-color: #1e293b;
+}
+
+.dark .sb-section {
+  color: #64748b;
+}
+
+.dark .sb-item {
+  color: #cbd5e1;
+}
+.dark .sb-item:hover {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+.dark .sb-item.active {
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+}
+.dark .sb-item.active::before {
+  background: #818cf8;
+}
+.dark .sb-sub-item {
+  color: #94a3b8;
+}
+.dark .sb-sub-item:hover {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+.dark .sb-sub-item.active {
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.18);
+}
+.dark .sb-chevron {
+  color: #64748b;
+}
+.dark .sb-footer {
+  border-top-color: #1e293b;
+}
+.dark .sb-signout {
+  background: rgba(224, 68, 58, 0.12);
+  border-color: rgba(224, 68, 58, 0.35);
+  color: #f87171;
+}
+.dark .sb-signout:hover {
+  background: rgba(224, 68, 58, 0.2);
 }
 
 .sb-root.open {
@@ -287,6 +336,14 @@ button {
   --status-green: #10b981;
   --status-yellow: #f59e0b;
   --status-red: #ef4444;
+}
+
+.dark {
+  --bg-gradient: linear-gradient(135deg, #0b1120 0%, #0f172a 50%, #111827 100%);
+  --glass-bg: rgba(30, 41, 59, 0.75);
+  --glass-border: 1px solid rgba(148, 163, 184, 0.12);
+  --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 0 1px rgba(129, 140, 248, 0.25);
 }
 
 /* Glassmorphism Card */

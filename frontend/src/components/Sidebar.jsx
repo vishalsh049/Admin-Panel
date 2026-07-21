@@ -20,6 +20,7 @@ import {
   FaBullhorn,
   FaCommentDots,
   FaFileAlt,
+  FaCashRegister,
 } from "react-icons/fa";
 
 /**
@@ -40,6 +41,7 @@ const NAV_SECTIONS = [
   {
     label: "Operations",
     items: [
+      { to: "/pos", label: "POS", icon: FaCashRegister, color: "green", roles: ["admin", "sales"] },
       {
         label: "Sales", icon: FaShoppingCart, color: "green", roles: ["admin", "sales"],
         children: [

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { BASE_URL } from "../utils/api";
+import ConfirmModal from "./ConfirmModal";
 
 const STATUS_LABELS = {
   not_created: "Not Created",
@@ -25,6 +26,7 @@ export default function OrderShippingSection({ orderId }) {
   const [scans, setScans] = useState(null);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState(null); // { type: "success"|"error", text }
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const authHeaders = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -73,10 +75,8 @@ export default function OrderShippingSection({ orderId }) {
   const refreshTracking = () =>
     runAction("refresh", () => axios.post(`${BASE_URL}/api/shipping/orders/${orderId}/refresh-tracking`, {}, authHeaders()), "Tracking refreshed");
 
-  const cancelShipment = () => {
-    if (!window.confirm("Cancel this shipment with the courier? The order itself stays open.")) return;
-    return runAction("cancel", () => axios.post(`${BASE_URL}/api/shipping/orders/${orderId}/cancel`, {}, authHeaders()), "Shipment cancelled");
-  };
+  const cancelShipment = () =>
+    runAction("cancel", () => axios.post(`${BASE_URL}/api/shipping/orders/${orderId}/cancel`, {}, authHeaders()), "Shipment cancelled");
 
   const loadTimeline = async () => {
     const data = await runAction("timeline", () => axios.get(`${BASE_URL}/api/shipping/orders/${orderId}/tracking`, authHeaders()), "Timeline loaded");
@@ -85,9 +85,9 @@ export default function OrderShippingSection({ orderId }) {
 
   if (!shipping) {
     return (
-      <div className="bg-white p-6 rounded-xl shadow mb-4">
-        <h3 className="text-lg font-semibold mb-2">Shipping</h3>
-        <p className="text-gray-500">Loading shipping details...</p>
+      <div className="bg-white p-6 rounded-xl shadow mb-4 dark:bg-slate-900 dark:shadow-none dark:border dark:border-slate-800">
+        <h3 className="text-lg font-semibold mb-2 dark:text-slate-100">Shipping</h3>
+        <p className="text-gray-500 dark:text-slate-400">Loading shipping details...</p>
       </div>
     );
   }
@@ -98,30 +98,30 @@ export default function OrderShippingSection({ orderId }) {
     `px-3 py-2 rounded text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed ${extra}`;
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow mb-4">
+    <div className="bg-white p-6 rounded-xl shadow mb-4 dark:bg-slate-900 dark:shadow-none dark:border dark:border-slate-800">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold">Shipping (FShip)</h3>
+        <h3 className="text-lg font-semibold dark:text-slate-100">Shipping (FShip)</h3>
         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[shipping.shippingStatus] || STATUS_COLORS.not_created}`}>
           {STATUS_LABELS[shipping.shippingStatus] || shipping.shippingStatus}
         </span>
       </div>
 
       {message && (
-        <p className={`mb-3 text-sm rounded px-3 py-2 ${message.type === "error" ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
+        <p className={`mb-3 text-sm rounded px-3 py-2 ${message.type === "error" ? "bg-red-50 text-red-700 dark:bg-rose-500/10 dark:text-rose-300" : "bg-green-50 text-green-700 dark:bg-emerald-500/10 dark:text-emerald-300"}`}>
           {message.text}
         </p>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-y-3 gap-x-8 text-sm mb-4">
-        <div><p className="font-semibold">Courier:</p><p>{shipping.courierName || "—"}</p></div>
-        <div><p className="font-semibold">AWB Number:</p><p>{shipping.awb || "—"}</p></div>
-        <div><p className="font-semibold">Route Code:</p><p>{shipping.routeCode || "—"}</p></div>
-        <div><p className="font-semibold">FShip Order ID:</p><p>{shipping.fshipOrderId || "—"}</p></div>
-        <div><p className="font-semibold">Pickup Order ID:</p><p>{shipping.fshipPickupId || "—"}</p></div>
-        <div><p className="font-semibold">Last Scan:</p><p>{shipping.lastScanAt ? new Date(shipping.lastScanAt).toLocaleString() : "—"}</p></div>
-        <div><p className="font-semibold">Tracking Status:</p><p>{shipping.trackingStatus || "—"}</p></div>
-        <div><p className="font-semibold">Location:</p><p>{shipping.trackingLocation || "—"}</p></div>
-        <div><p className="font-semibold">Remark:</p><p>{shipping.trackingRemark || "—"}</p></div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-y-3 gap-x-8 text-sm mb-4 dark:text-slate-300">
+        <div><p className="font-semibold dark:text-slate-100">Courier:</p><p>{shipping.courierName || "—"}</p></div>
+        <div><p className="font-semibold dark:text-slate-100">AWB Number:</p><p>{shipping.awb || "—"}</p></div>
+        <div><p className="font-semibold dark:text-slate-100">Route Code:</p><p>{shipping.routeCode || "—"}</p></div>
+        <div><p className="font-semibold dark:text-slate-100">FShip Order ID:</p><p>{shipping.fshipOrderId || "—"}</p></div>
+        <div><p className="font-semibold dark:text-slate-100">Pickup Order ID:</p><p>{shipping.fshipPickupId || "—"}</p></div>
+        <div><p className="font-semibold dark:text-slate-100">Last Scan:</p><p>{shipping.lastScanAt ? new Date(shipping.lastScanAt).toLocaleString() : "—"}</p></div>
+        <div><p className="font-semibold dark:text-slate-100">Tracking Status:</p><p>{shipping.trackingStatus || "—"}</p></div>
+        <div><p className="font-semibold dark:text-slate-100">Location:</p><p>{shipping.trackingLocation || "—"}</p></div>
+        <div><p className="font-semibold dark:text-slate-100">Remark:</p><p>{shipping.trackingRemark || "—"}</p></div>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -166,7 +166,7 @@ export default function OrderShippingSection({ orderId }) {
           </button>
         )}
         {hasAwb && shipping.shippingStatus !== "cancelled" && (
-          <button onClick={cancelShipment} disabled={!!busy} className={btn("bg-red-600 hover:bg-red-700")}>
+          <button onClick={() => setConfirmCancel(true)} disabled={!!busy} className={btn("bg-red-600 hover:bg-red-700")}>
             {busy === "cancel" ? "Cancelling..." : "Cancel Shipment"}
           </button>
         )}
@@ -174,17 +174,17 @@ export default function OrderShippingSection({ orderId }) {
 
       {scans && (
         <div className="mt-5">
-          <h4 className="font-semibold mb-2">Tracking Timeline</h4>
+          <h4 className="font-semibold mb-2 dark:text-slate-100">Tracking Timeline</h4>
           {scans.length === 0 ? (
-            <p className="text-sm text-gray-500">No scans available yet.</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400">No scans available yet.</p>
           ) : (
-            <ol className="relative border-l border-gray-200 ml-2 space-y-4">
+            <ol className="relative border-l border-gray-200 dark:border-slate-700 ml-2 space-y-4">
               {scans.map((scan, idx) => (
                 <li key={idx} className="ml-4">
                   <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full bg-blue-500" />
-                  <p className="text-sm font-semibold">{scan.Status}</p>
-                  <p className="text-xs text-gray-600">{scan.Remark}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm font-semibold dark:text-slate-100">{scan.Status}</p>
+                  <p className="text-xs text-gray-600 dark:text-slate-400">{scan.Remark}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-500">
                     {scan.Location} · {scan.DateandTime}
                   </p>
                 </li>
@@ -193,6 +193,16 @@ export default function OrderShippingSection({ orderId }) {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmCancel}
+        title="Cancel this shipment?"
+        confirmLabel="Cancel Shipment"
+        isBusy={busy === "cancel"}
+        message="This cancels the shipment with the courier. The order itself stays open and can be re-shipped."
+        onConfirm={() => { setConfirmCancel(false); cancelShipment(); }}
+        onCancel={() => setConfirmCancel(false)}
+      />
     </div>
   );
 }

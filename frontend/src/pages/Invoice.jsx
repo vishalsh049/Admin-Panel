@@ -1,6 +1,11 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import html2pdf from "html2pdf.js";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
+import { saveAs } from "file-saver";
+import {
+  emailInvoice, fetchInvoicePdfBlob, fetchInvoiceShareLink, fetchOrderInvoiceData, fetchOrderRefunds, generateCreditNote,
+} from "../services/orderService";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("en-IN", {
@@ -14,28 +19,44 @@ const formatLine = (...parts) => parts.filter(Boolean).join(", ");
 export default function Invoice() {
   const location = useLocation();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get("orderId");
   const printRef = useRef(null);
 
-  const billing = location.state?.billing || {};
-  const shipping = location.state?.shipping || {};
-  const items = location.state?.items || [];
+  // Orders reach this page via ?orderId= and fetch their own data (also
+  // survives a refresh, unlike the Sale Bills state-only flow below).
+  const [orderData, setOrderData] = useState(null);
+  const [orderRefunds, setOrderRefunds] = useState([]);
+  const [busy, setBusy] = useState("");
 
-  const grandTotal = Number(location.state?.grandTotal) || 0;
-  const subtotal = Number(location.state?.subtotal) || 0;
-  const shippingCharge = Number(location.state?.shippingCharge) || 0;
-  const discount = Number(location.state?.discount) || 0;
+  useEffect(() => {
+    if (!orderId) return;
+    fetchOrderInvoiceData(orderId).then(setOrderData).catch(() => toast.error("Failed to load invoice data"));
+    fetchOrderRefunds(orderId).then(setOrderRefunds).catch(() => {});
+  }, [orderId]);
 
-  const paymentMethod = location.state?.paymentMethod || "-";
-  const date = location.state?.date || "-";
+  const source = orderId ? orderData : location.state;
 
-  const invoiceNumber = `DD202627${String(id || 1).padStart(3, "0")}`;
+  const billing = source?.billing || {};
+  const shipping = source?.shipping || {};
+  const items = source?.items || [];
 
-  const taxableAmount = Number(location.state?.taxableAmount) || 0;
-  const gstAmount = Number(location.state?.gstAmount) || 0;
+  const grandTotal = Number(source?.grandTotal) || 0;
+  const subtotal = Number(source?.subtotal) || 0;
+  const shippingCharge = Number(source?.shippingCharge) || 0;
+  const discount = Number(source?.discount) || 0;
 
-  const amountInWords = `Rupees ${Math.round(
-    grandTotal
-  )} Only`;
+  const paymentMethod = source?.paymentMethod || "-";
+  const date = source?.date || "-";
+
+  // Orders carry their real backend invoice number; Sale Bills (no
+  // orderId, no invoiceNumber in state) keep their existing scheme unchanged.
+  const invoiceNumber = orderId
+    ? source?.invoiceNumber || `INV-${id}`
+    : `DD202627${String(id || 1).padStart(3, "0")}`;
+
+  const taxableAmount = Number(source?.taxableAmount) || 0;
+  const gstAmount = Number(source?.gstAmount) || 0;
 
   const generatePDF = async () => {
     const element = printRef.current;
@@ -58,7 +79,42 @@ export default function Invoice() {
     await html2pdf().set(options).from(element).save();
   };
 
-  if (!location.state) {
+  const doThermal = async () => {
+    setBusy("thermal");
+    try {
+      const blob = await fetchInvoicePdfBlob(orderId, "thermal");
+      saveAs(blob, `invoice-${orderId}-thermal.pdf`);
+    } catch { toast.error("Thermal download failed"); } finally { setBusy(""); }
+  };
+
+  const doEmail = async () => {
+    setBusy("email");
+    try {
+      const r = await emailInvoice({ id: orderId });
+      toast.success(r.message || "Invoice emailed");
+    } catch { toast.error("Failed to email invoice"); } finally { setBusy(""); }
+  };
+
+  const doWhatsApp = async () => {
+    setBusy("whatsapp");
+    try {
+      const { url } = await fetchInvoiceShareLink(orderId);
+      const phone = (shipping.phone || billing.phone || "").replace(/\D/g, "");
+      const name = [billing.firstName, billing.lastName].filter(Boolean).join(" ");
+      const message = `Hi ${name}, here's your invoice for Order #${orderId} (${invoiceNumber}): ${url}`;
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank");
+    } catch { toast.error("Failed to generate share link"); } finally { setBusy(""); }
+  };
+
+  const doCreditNote = async (refundId) => {
+    setBusy(`credit-${refundId}`);
+    try {
+      const blob = await generateCreditNote({ id: orderId, refundId });
+      saveAs(blob, `credit-note-${orderId}-${refundId}.pdf`);
+    } catch { toast.error("Failed to generate credit note"); } finally { setBusy(""); }
+  };
+
+  if (!source) {
     return (
       <div className="p-10 text-center">
         <h2 className="text-2xl font-bold text-red-500">
@@ -66,7 +122,7 @@ export default function Invoice() {
         </h2>
 
         <Link
-          to="/sale-bills"
+          to={orderId ? `/orders/${orderId}` : "/sale-bills"}
           className="mt-5 inline-block bg-black text-white px-5 py-3 rounded-xl"
         >
           Go Back
@@ -79,21 +135,46 @@ export default function Invoice() {
     <div className="min-h-screen">
 
       {/* TOP BAR */}
-      <div className="max-w-3xl mx-auto flex items-center justify-between mb-4 no-print">
+      <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-2 mb-4 no-print">
 
         <Link
-          to="/sale-bills"
+          to={orderId ? `/orders/${orderId}` : "/sale-bills"}
           className="text-sm font-semibold text-blue-600"
         >
-          Back to Order
+          {orderId ? "Back to Order" : "Back to Sale Bills"}
         </Link>
 
-        <button
-          onClick={generatePDF}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-semibold transition-all"
-        >
-          Download PDF
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {orderId && (
+            <>
+              <button onClick={doThermal} disabled={busy === "thermal"} className="bg-slate-600 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50">
+                Thermal PDF
+              </button>
+              <button onClick={doEmail} disabled={busy === "email"} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50">
+                Email
+              </button>
+              <button onClick={doWhatsApp} disabled={busy === "whatsapp"} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50">
+                WhatsApp
+              </button>
+              {orderRefunds.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => doCreditNote(r.id)}
+                  disabled={busy === `credit-${r.id}`}
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+                >
+                  Credit Note (₹{Number(r.amount).toFixed(0)})
+                </button>
+              ))}
+            </>
+          )}
+          <button
+            onClick={generatePDF}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-semibold transition-all"
+          >
+            Download PDF
+          </button>
+        </div>
       </div>
 
       {/* INVOICE */}
@@ -252,7 +333,7 @@ export default function Invoice() {
         </th>
 
         <th className="border border-gray-300 px-3 pb-3 text-xs">
-          Qty 
+          Qty
         </th>
 
         <th className="border border-gray-300 px-3 pb-3 text-xs">
@@ -505,11 +586,11 @@ const tax = total - taxable;
   </div>
 
 </div>
-          
+
 
         </div>
 
-      
+
 
       </div>
     </div>
