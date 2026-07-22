@@ -167,7 +167,6 @@ export default function BannerFormModal({ open, banner, defaultPlacement, nextSo
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.title.trim()) { setTab("content"); return toast.error("Title is required"); }
     if (scheduleError) { setTab("schedule"); return toast.error(scheduleError); }
 
     setIsSaving(true);
@@ -267,7 +266,7 @@ export default function BannerFormModal({ open, banner, defaultPlacement, nextSo
                     <Field label="Eyebrow" hint="small text above the title">
                       <input name="eyebrow" value={form.eyebrow} onChange={onChange} placeholder="e.g. Limited Time" className={inputCls} />
                     </Field>
-                    <Field label="Title *">
+                    <Field label="Title" hint="optional">
                       <input name="title" value={form.title} onChange={onChange} placeholder="Banner headline" className={inputCls} />
                     </Field>
                     <Field label="Subtitle">

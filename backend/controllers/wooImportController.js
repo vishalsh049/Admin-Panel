@@ -17,6 +17,7 @@ const { downloadImage } = require("../utils/wooImageDownloader");
 const slugify = require("../utils/slugify");
 const fs = require("fs");
 const path = require("path");
+const { writeSyncLog } = require("../utils/integrationSyncLog");
 
 async function deleteLocalImage(imagePath) {
   if (!imagePath || !imagePath.startsWith("/uploads/")) return;
@@ -183,25 +184,45 @@ exports.syncProducts = async (req, res) => {
 
         // Images — replace this product's gallery with the current WC set so
         // re-running the sync reflects WooCommerce's current state instead
-        // of accumulating duplicates.
+        // of accumulating duplicates. Downloads happen BEFORE the old gallery
+        // is touched: if every download fails (e.g. a transient network
+        // blip), the existing images are left alone instead of the product
+        // ending up with zero images.
         if (Array.isArray(wp.images) && wp.images.length) {
-          const oldImages = await ProductImage.findAll({ where: { product_id: product.id } });
-          for (const old of oldImages) await deleteLocalImage(old.image_path);
-          await ProductImage.destroy({ where: { product_id: product.id } });
-          let sortOrder = 0;
+          const downloaded = [];
+          let failedCount = 0;
           for (const img of wp.images) {
             const localPath = await downloadImage(img.src, "products");
             if (localPath) {
+              downloaded.push({ localPath, alt: img.alt || wp.name });
+            } else {
+              failedCount += 1;
+            }
+          }
+
+          if (downloaded.length) {
+            const oldImages = await ProductImage.findAll({ where: { product_id: product.id } });
+            for (const old of oldImages) await deleteLocalImage(old.image_path);
+            await ProductImage.destroy({ where: { product_id: product.id } });
+            for (let i = 0; i < downloaded.length; i += 1) {
               await ProductImage.create({
                 product_id: product.id,
-                image_path: localPath,
-                is_primary: sortOrder === 0,
-                sort_order: sortOrder,
-                alt_text: img.alt || wp.name,
+                image_path: downloaded[i].localPath,
+                is_primary: i === 0,
+                sort_order: i,
+                alt_text: downloaded[i].alt,
               });
               report.imagesImported += 1;
-              sortOrder += 1;
             }
+            if (failedCount) {
+              report.errors.push(
+                `Product ${wp.id} (${wp.name}): ${failedCount} of ${wp.images.length} image(s) failed to download — kept the ${downloaded.length} that succeeded.`
+              );
+            }
+          } else {
+            report.errors.push(
+              `Product ${wp.id} (${wp.name}): all ${wp.images.length} image download(s) failed — existing gallery left unchanged.`
+            );
           }
         }
 
@@ -283,8 +304,10 @@ exports.syncProducts = async (req, res) => {
       }
     }
 
+    await writeSyncLog(req, "woocommerce", "product_sync", report);
     res.json({ success: true, report });
   } catch (err) {
+    await writeSyncLog(req, "woocommerce", "product_sync_failed", { ...report, fatalError: woo.describeError(err) });
     res.status(502).json({
       success: false,
       message: woo.describeError(err),

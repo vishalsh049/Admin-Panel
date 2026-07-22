@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Pencil, Trash2, Eye, RefreshCw, X, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, RefreshCw, X, AlertTriangle, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import { getPosts, deletePost, updatePost, syncWordPressPosts } from "../services/blogService";
 import ConfirmModal from "../components/ConfirmModal";
@@ -17,7 +17,10 @@ const SYNC_STAT_LABELS = [
 
 export default function Blog() {
   const [posts, setPosts] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [pendingDelete, setPendingDelete] = useState(null);
   const [isBusy, setIsBusy] = useState(false);
   const [syncConfirmOpen, setSyncConfirmOpen] = useState(false);
@@ -25,28 +28,38 @@ export default function Blog() {
   const [syncReport, setSyncReport] = useState(null);
   const [syncError, setSyncError] = useState(null);
 
-  useEffect(() => {
-    loadPosts();
-  }, []);
+  const loadPosts = useCallback(
+    async (page = 1) => {
+      setLoading(true);
+      try {
+        const params = { page, limit: pagination.limit };
+        if (searchTerm.trim()) params.search = searchTerm.trim();
+        if (statusFilter) params.status = statusFilter;
 
-  async function loadPosts() {
-    setLoading(true);
-    try {
-      const data = await getPosts();
-      setPosts(data);
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to load posts");
-    } finally {
-      setLoading(false);
-    }
-  }
+        const data = await getPosts(params);
+        setPosts(Array.isArray(data.posts) ? data.posts : []);
+        setPagination(data.pagination);
+      } catch (err) {
+        toast.error(err.response?.data?.error || "Failed to load posts");
+        setPosts([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [pagination.limit, searchTerm, statusFilter]
+  );
+
+  useEffect(() => {
+    loadPosts(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, statusFilter]);
 
   async function togglePublish(post) {
     try {
       const nextStatus = post.status === "published" ? "draft" : "published";
       await updatePost(post.id, { ...post, status: nextStatus, content: post.content, tags: post.tags, category_id: post.category_id, author_id: post.author_id });
       toast.success(nextStatus === "published" ? "Post published" : "Post moved to draft");
-      loadPosts();
+      loadPosts(pagination.page);
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to update status");
     }
@@ -61,7 +74,7 @@ export default function Blog() {
       const data = await syncWordPressPosts();
       setSyncReport(data.report);
       toast.success(`Sync complete: ${data.report.postsCreated} new, ${data.report.postsUpdated} updated`);
-      loadPosts();
+      loadPosts(1);
     } catch (err) {
       const data = err.response?.data;
       setSyncError(data?.message || err.message);
@@ -76,9 +89,12 @@ export default function Blog() {
     setIsBusy(true);
     try {
       await deletePost(pendingDelete.id);
-      setPosts((prev) => prev.filter((p) => p.id !== pendingDelete.id));
       toast.success("Post deleted");
       setPendingDelete(null);
+      // Deleting the last post on a page would otherwise leave a stale
+      // total/empty page — refetch the current page instead of splicing
+      // the local array.
+      loadPosts(pagination.page);
     } catch (err) {
       toast.error(err.response?.data?.error || "Delete failed");
     } finally {
@@ -110,6 +126,28 @@ export default function Blog() {
             <Plus className="h-4 w-4" /> Add Post
           </Link>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap">
+        <div className="relative min-w-[240px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search posts by title..."
+            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+        >
+          <option value="">All Status</option>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+        </select>
       </div>
 
       {syncing && (
@@ -216,6 +254,35 @@ export default function Blog() {
           </tbody>
         </table>
       </div>
+
+      {!loading && pagination.total > 0 && (
+        <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm sm:flex-row">
+          <p className="text-sm text-slate-500">
+            Showing <span className="font-semibold">{(pagination.page - 1) * pagination.limit + 1}</span> to{" "}
+            <span className="font-semibold">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of{" "}
+            <span className="font-semibold">{pagination.total}</span> posts
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => loadPosts(pagination.page - 1)}
+              disabled={pagination.page === 1}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-slate-500">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            <button
+              onClick={() => loadPosts(pagination.page + 1)}
+              disabled={pagination.page === pagination.totalPages}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         open={syncConfirmOpen}

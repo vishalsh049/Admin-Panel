@@ -35,8 +35,10 @@ export default function Categories() {
   const [isSaving, setIsSaving] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [uploading, setUploading] = useState({ image: false, banner: false, icon: false });
+  const [loading, setLoading] = useState(true);
 
   const fetchCategories = async () => {
+    setLoading(true);
     try {
       const data = await categoryService.getCategories();
       setCategories(Array.isArray(data) ? data : []);
@@ -44,6 +46,8 @@ export default function Categories() {
       console.error("Fetch categories error:", err);
       toast.error("Failed to load categories");
       setCategories([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -180,7 +184,12 @@ export default function Categories() {
           <td className="py-3 pr-3">
             <div className="flex items-start gap-3">
               {node.image ? (
-                <img src={getImageUrl(node.image)} alt="" className="h-9 w-9 rounded-lg object-cover border border-gray-200" />
+                <img
+                  src={getImageUrl(node.image)}
+                  onError={(e) => { e.target.src = getImageUrl(null); }}
+                  alt=""
+                  className="h-9 w-9 rounded-lg object-cover border border-gray-200"
+                />
               ) : (
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-100 bg-gray-50 text-gray-300">
                   <ImagePlus className="h-4 w-4" />
@@ -347,16 +356,29 @@ export default function Categories() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {renderTree(treeData)}
-                {filteredCategories.length === 0 && (
+                {loading ? (
                   <tr>
-                    <td colSpan="6" className="px-5 py-10 text-center">
-                      <div className="mx-auto max-w-md">
-                        <div className="text-gray-900 font-semibold">No categories found</div>
-                        <div className="mt-1 text-sm text-gray-600">Add your first category from the form on the left.</div>
+                    <td colSpan="6" className="px-5 py-16 text-center">
+                      <div className="mx-auto flex flex-col items-center gap-3">
+                        <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
+                        <p className="text-sm font-medium text-gray-500">Loading categories...</p>
                       </div>
                     </td>
                   </tr>
+                ) : (
+                  <>
+                    {renderTree(treeData)}
+                    {filteredCategories.length === 0 && (
+                      <tr>
+                        <td colSpan="6" className="px-5 py-10 text-center">
+                          <div className="mx-auto max-w-md">
+                            <div className="text-gray-900 font-semibold">No categories found</div>
+                            <div className="mt-1 text-sm text-gray-600">Add your first category from the form on the left.</div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 )}
               </tbody>
             </table>

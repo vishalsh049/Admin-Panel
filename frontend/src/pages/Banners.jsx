@@ -143,7 +143,7 @@ export default function Banners() {
       if (deviceFilter !== "all" && (b.device || "all") !== deviceFilter) return false;
       if (statusFilter !== "all" && bannerStatus(b, now) !== statusFilter) return false;
       if (q) {
-        const hay = `${b.title} ${b.eyebrow || ""} ${b.subtitle || ""} ${b.cta_label || ""} ${b.cta_url || ""} ${b.description || ""}`.toLowerCase();
+        const hay = `${b.title || ""} ${b.eyebrow || ""} ${b.subtitle || ""} ${b.cta_label || ""} ${b.cta_url || ""} ${b.description || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -267,8 +267,8 @@ export default function Banners() {
     try {
       const rows = JSON.parse(await file.text());
       if (!Array.isArray(rows)) throw new Error("Expected a JSON array");
-      const valid = rows.filter((r) => r && r.title && r.placement);
-      if (valid.length === 0) return toast.error("No valid banners in file (need title + placement)");
+      const valid = rows.filter((r) => r && r.placement);
+      if (valid.length === 0) return toast.error("No valid banners in file (need a placement)");
       for (const row of valid) {
         // eslint-disable-next-line no-await-in-loop
         await createBanner({ ...row, id: undefined, view_count: undefined, click_count: undefined });
@@ -476,7 +476,7 @@ export default function Banners() {
                             )}
                           </button>
                           <div className="min-w-0">
-                            <p className="max-w-[240px] truncate text-sm font-semibold text-stone-800">{banner.title}</p>
+                            <p className={`max-w-[240px] truncate text-sm font-semibold ${banner.title ? "text-stone-800" : "italic text-stone-400"}`}>{banner.title || "Untitled banner"}</p>
                             <p className="max-w-[240px] truncate text-[11px] text-stone-400">
                               {banner.eyebrow || banner.subtitle || "—"} · #{banner.sort_order}
                               {banner.cta_label ? ` · ${banner.cta_label}` : ""}

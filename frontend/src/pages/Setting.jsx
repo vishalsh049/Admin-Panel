@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, Plus, Trash2, ChevronUp, ChevronDown, Megaphone } from "lucide-react";
 import { getSiteSettings, updateSiteSettings } from "../services/siteSettingsService";
 import { getImageUrl } from "../utils/getImageUrl";
 import MediaPicker from "../components/MediaPicker";
@@ -17,7 +17,10 @@ const emptyForm = {
   social_youtube: "",
   social_whatsapp: "",
   announcement_bar_text: "",
+  extra: {},
 };
+
+let nextAnnouncementKey = 1;
 
 export default function Settings() {
   const [form, setForm] = useState(emptyForm);
@@ -29,7 +32,14 @@ export default function Settings() {
     (async () => {
       try {
         const data = await getSiteSettings();
-        setForm({ ...emptyForm, ...data });
+        const extra = data.extra && typeof data.extra === "object" ? data.extra : {};
+        const savedAnnouncements = Array.isArray(extra.announcements) ? extra.announcements : null;
+        const announcements = savedAnnouncements && savedAnnouncements.length > 0
+          ? savedAnnouncements.map((a) => ({ _key: nextAnnouncementKey++, text: a?.text || "", is_active: a?.is_active !== false }))
+          : data.announcement_bar_text
+            ? [{ _key: nextAnnouncementKey++, text: data.announcement_bar_text, is_active: true }]
+            : [];
+        setForm({ ...emptyForm, ...data, extra: { ...extra, announcements } });
       } catch (err) {
         toast.error(err.response?.data?.error || "Failed to load settings");
       } finally {
@@ -43,10 +53,51 @@ export default function Settings() {
     setForm((f) => ({ ...f, [name]: value }));
   }
 
+  function addAnnouncement() {
+    setForm((f) => ({
+      ...f,
+      extra: {
+        ...f.extra,
+        announcements: [...(f.extra?.announcements || []), { _key: nextAnnouncementKey++, text: "", is_active: true }],
+      },
+    }));
+  }
+
+  function updateAnnouncement(key, patch) {
+    setForm((f) => ({
+      ...f,
+      extra: {
+        ...f.extra,
+        announcements: (f.extra?.announcements || []).map((a) => (a._key === key ? { ...a, ...patch } : a)),
+      },
+    }));
+  }
+
+  function removeAnnouncement(key) {
+    setForm((f) => ({
+      ...f,
+      extra: { ...f.extra, announcements: (f.extra?.announcements || []).filter((a) => a._key !== key) },
+    }));
+  }
+
+  function moveAnnouncement(key, dir) {
+    setForm((f) => {
+      const list = [...(f.extra?.announcements || [])];
+      const i = list.findIndex((a) => a._key === key);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= list.length) return f;
+      [list[i], list[j]] = [list[j], list[i]];
+      return { ...f, extra: { ...f.extra, announcements: list } };
+    });
+  }
+
   async function handleSave() {
     setIsSaving(true);
     try {
-      await updateSiteSettings(form);
+      const announcements = (form.extra?.announcements || [])
+        .map((a) => ({ text: (a.text || "").trim(), is_active: a.is_active !== false }))
+        .filter((a) => a.text);
+      await updateSiteSettings({ ...form, extra: { ...form.extra, announcements } });
       toast.success("Settings saved");
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to save settings");
@@ -193,15 +244,64 @@ export default function Settings() {
 
       {/* ANNOUNCEMENT BAR */}
       <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-base font-semibold text-slate-900">Announcement Bar</h2>
-        <p className="mb-4 text-sm text-slate-500">The scrolling text strip shown at the top of every storefront page.</p>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="mb-1 flex items-center gap-2 text-base font-semibold text-slate-900">
+              <Megaphone className="h-4 w-4 text-indigo-500" /> Announcement Bar
+            </h2>
+            <p className="text-sm text-slate-500">
+              Auto-scrolling ticker shown at the top of every storefront page. Add as many messages as you like — only active ones are shown, in this order.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={addAnnouncement}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-100"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add message
+          </button>
+        </div>
 
-        <input
-          name="announcement_bar_text"
-          value={form.announcement_bar_text || ""}
-          onChange={onChange}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none"
-        />
+        {(form.extra?.announcements || []).length === 0 ? (
+          <p className="rounded-lg border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-400">
+            No announcement messages yet. Add one to show the scrolling bar.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {form.extra.announcements.map((a, i) => (
+              <div key={a._key} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
+                <div className="flex shrink-0 flex-col text-slate-300">
+                  <button type="button" disabled={i === 0} onClick={() => moveAnnouncement(a._key, -1)}
+                    className="hover:text-indigo-500 disabled:opacity-30 disabled:hover:text-slate-300">
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button type="button" disabled={i === form.extra.announcements.length - 1} onClick={() => moveAnnouncement(a._key, 1)}
+                    className="hover:text-indigo-500 disabled:opacity-30 disabled:hover:text-slate-300">
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <input
+                  value={a.text}
+                  onChange={(e) => updateAnnouncement(a._key, { text: e.target.value })}
+                  placeholder="e.g. Free Shipping on all orders above ₹299"
+                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none"
+                />
+                <label className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-slate-500">
+                  <input
+                    type="checkbox"
+                    checked={a.is_active !== false}
+                    onChange={(e) => updateAnnouncement(a._key, { is_active: e.target.checked })}
+                    className="h-3.5 w-3.5 rounded border-slate-300 accent-indigo-500"
+                  />
+                  Active
+                </label>
+                <button type="button" onClick={() => removeAnnouncement(a._key)} className="shrink-0 rounded-lg p-1.5 text-rose-500 hover:bg-rose-50">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <MediaPicker

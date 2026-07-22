@@ -16,6 +16,7 @@ const {
 } = require("../models");
 const { buildProductPayload } = require("../utils/serializers/productSerializer");
 const toRelativeUploadPath = require("../utils/toRelativeUploadPath");
+const { PLACEHOLDER_IMAGE_PATH } = require("../utils/constants");
 const StoreCustomer = require("../models/StoreCustomer");
 const StoreOrder = require("../models/StoreOrder");
 const StoreOrderStatusHistory = require("../models/StoreOrderStatusHistory");
@@ -69,19 +70,52 @@ const STORE_PRODUCT_INCLUDE_FULL = [
   },
 ];
 
+// Selecting a parent category should also surface its children's products —
+// walks the (shallow, but not assumed single-level) parent_id tree.
+async function withDescendantCategoryIds(rootId) {
+  const ids = [Number(rootId)];
+  let frontier = [Number(rootId)];
+  while (frontier.length) {
+    const children = await Category.findAll({
+      where: { parent_id: { [Op.in]: frontier } },
+      attributes: ["id"],
+      raw: true,
+    });
+    frontier = children.map((c) => c.id).filter((id) => !ids.includes(id));
+    ids.push(...frontier);
+  }
+  return ids;
+}
+
 // GET /api/store/products
 router.get("/products", async (req, res) => {
   try {
-    const { category, category_id, search, sort, page, limit } = req.query;
+    const { category, category_id, search, sort, page, limit, price_max, in_stock } = req.query;
 
     const where = { status: "publish" };
     if (category_id) {
-      where.category_id = category_id;
+      const categoryIds = await withDescendantCategoryIds(category_id);
+      where.category_id = { [Op.in]: categoryIds };
     } else if (category && category !== "All Categories") {
-      where.category = { [Op.like]: `%${category}%` };
+      // Legacy `?category=Name` deep links only — exact match, not a
+      // substring, so e.g. "Puja" doesn't also match "Puja Potli".
+      where.category = category;
     }
     if (search) {
       where.name = { [Op.like]: `%${search}%` };
+    }
+    if (price_max) {
+      // Effective price is regular_price unless a (lower) sale_price is set —
+      // match either so a discounted item under budget isn't excluded just
+      // because its regular_price is higher than price_max.
+      const max = parseFloat(price_max);
+      where[Op.or] = [
+        { regular_price: { [Op.lte]: max } },
+        { sale_price: { [Op.ne]: null, [Op.lte]: max } },
+      ];
+    }
+    if (in_stock === "true" || in_stock === "1") {
+      where.stock_status = "in_stock";
     }
 
     let order = [["created_at", "DESC"]];
@@ -136,7 +170,7 @@ router.get("/categories", async (req, res) => {
         name: c.name,
         slug: c.slug,
         description: c.description || "",
-        image: c.image ? toRelativeUploadPath(c.image) : null,
+        image: c.image ? toRelativeUploadPath(c.image) : PLACEHOLDER_IMAGE_PATH,
         banner: c.banner ? toRelativeUploadPath(c.banner) : null,
         icon: c.icon ? toRelativeUploadPath(c.icon) : null,
         parent_id: c.parent_id,

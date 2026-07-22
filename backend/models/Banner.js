@@ -6,7 +6,7 @@ const Banner = sequelize.define(
   {
     placement: { type: DataTypes.STRING, allowNull: false },
     eyebrow: { type: DataTypes.STRING, allowNull: true },
-    title: { type: DataTypes.STRING, allowNull: false },
+    title: { type: DataTypes.STRING, allowNull: true },
     subtitle: { type: DataTypes.STRING, allowNull: true },
     cta_label: { type: DataTypes.STRING, allowNull: true, field: "cta_label" },
     cta_url: { type: DataTypes.STRING, allowNull: true, field: "cta_url" },

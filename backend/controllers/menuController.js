@@ -111,6 +111,56 @@ exports.adminDeleteItem = async (req, res) => {
   }
 };
 
+// POST /api/admin/menu-items/seed-from-categories { location }
+// Bulk-populates a menu location with every Active, top-level category that
+// doesn't already have a menu item linked to it — dedup by category_id, so
+// it's safe to run repeatedly (won't create duplicates) as new categories
+// are added. Existing items (custom links, renamed labels, reordering) are
+// left untouched.
+exports.adminSeedFromCategories = async (req, res) => {
+  try {
+    const location = req.body.location || "header";
+
+    const [categories, existingItems] = await Promise.all([
+      Category.findAll({
+        where: { status: "Active", parent_id: null },
+        order: [["sort_order", "ASC"], ["name", "ASC"]],
+      }),
+      MenuItem.findAll({ where: { location, link_type: "category" }, attributes: ["category_id"] }),
+    ]);
+
+    const alreadyLinked = new Set(existingItems.map((i) => i.category_id));
+    const toCreate = categories.filter((c) => !alreadyLinked.has(c.id));
+
+    const maxSortOrder = await MenuItem.max("sort_order", { where: { location, parent_id: null } });
+    let nextSortOrder = (Number(maxSortOrder) || 0) + 1;
+
+    const created = [];
+    for (const category of toCreate) {
+      const item = await MenuItem.create({
+        location,
+        label: category.name,
+        link_type: "category",
+        category_id: category.id,
+        sort_order: nextSortOrder,
+        is_active: true,
+      });
+      created.push(item.id);
+      nextSortOrder += 1;
+    }
+
+    res.json({
+      success: true,
+      created: created.length,
+      skipped: categories.length - created.length,
+      total: categories.length,
+    });
+  } catch (err) {
+    console.error("ADMIN SEED MENU FROM CATEGORIES ERROR:", err);
+    res.status(500).json({ error: "Failed to populate menu from categories" });
+  }
+};
+
 /* ───────────────────────── PUBLIC ───────────────────────── */
 
 // GET /api/store/menu/:location — returns a nested tree of active items.

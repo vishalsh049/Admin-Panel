@@ -6,6 +6,7 @@ const Product = require("../models/Products");
 const slugify = require("../utils/slugify");
 const toRelativeUploadPath = require("../utils/toRelativeUploadPath");
 const categoryUpload = require("../middleware/categoryUpload");
+const { PLACEHOLDER_IMAGE_PATH } = require("../utils/constants");
 
 function safeUnlink(relativePath) {
   if (!relativePath) return;
@@ -51,7 +52,7 @@ exports.getCategories = async (req, res) => {
 
     const counts = await Product.findAll({
       attributes: ["category_id", [Product.sequelize.fn("COUNT", Product.sequelize.col("id")), "count"]],
-      where: { category_id: { [Op.ne]: null } },
+      where: { category_id: { [Op.ne]: null }, status: "publish" },
       group: ["category_id"],
       raw: true,
     });
@@ -60,6 +61,7 @@ exports.getCategories = async (req, res) => {
     const withCounts = categories.map((cat) => {
       const json = cat.toJSON();
       json.productCount = countMap.get(cat.id) || 0;
+      json.image = json.image || PLACEHOLDER_IMAGE_PATH;
       return json;
     });
 
@@ -133,6 +135,19 @@ exports.updateCategory = async (req, res) => {
 
     if (parent_id && Number(parent_id) === Number(id)) {
       return res.status(400).json({ error: "A category cannot be its own parent" });
+    }
+
+    if (parent_id) {
+      let ancestorId = Number(parent_id);
+      const visited = new Set([Number(id)]);
+      while (ancestorId) {
+        if (visited.has(ancestorId)) {
+          return res.status(400).json({ error: "This parent would create a category loop" });
+        }
+        visited.add(ancestorId);
+        const ancestor = await Category.findByPk(ancestorId, { attributes: ["parent_id"] });
+        ancestorId = ancestor?.parent_id ? Number(ancestor.parent_id) : null;
+      }
     }
 
     const finalSlug =

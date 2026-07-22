@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, ExternalLink, Sparkles } from "lucide-react";
 import toast from "react-hot-toast";
-import { getMenuItems, createMenuItem, updateMenuItem, deleteMenuItem } from "../services/menuService";
+import { getMenuItems, createMenuItem, updateMenuItem, deleteMenuItem, seedMenuFromCategories } from "../services/menuService";
 import { getCategories as getProductCategories } from "../services/categoryService";
 import { getCategories as getBlogCategories } from "../services/blogService";
 import ConfirmModal from "../components/ConfirmModal";
@@ -33,6 +33,8 @@ export default function Menus() {
   const [isSaving, setIsSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [showSeedConfirm, setShowSeedConfirm] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const activeLocationMeta = LOCATIONS.find((l) => l.key === location);
 
@@ -120,6 +122,24 @@ export default function Menus() {
     }
   }
 
+  async function confirmSeedFromCategories() {
+    setIsSeeding(true);
+    try {
+      const result = await seedMenuFromCategories(location);
+      toast.success(
+        result.created > 0
+          ? `Added ${result.created} categor${result.created === 1 ? "y" : "ies"} to the menu (${result.skipped} already linked)`
+          : "Every active top-level category is already in this menu"
+      );
+      setShowSeedConfirm(false);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to populate menu from categories");
+    } finally {
+      setIsSeeding(false);
+    }
+  }
+
   async function moveItem(item, direction) {
     const siblings = items
       .filter((i) => (i.parent_id || null) === (item.parent_id || null))
@@ -172,8 +192,19 @@ export default function Menus() {
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-        <h1 className="text-lg font-semibold text-slate-900">Menus</h1>
-        <p className="text-sm text-slate-500">Manage the header navigation and footer link columns shown on the storefront.</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">Menus</h1>
+            <p className="text-sm text-slate-500">Manage the header navigation and footer link columns shown on the storefront.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSeedConfirm(true)}
+            className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Populate from Categories
+          </button>
+        </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {LOCATIONS.map((loc) => (
@@ -299,6 +330,17 @@ export default function Menus() {
         isBusy={isBusy}
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}
+      />
+
+      <ConfirmModal
+        open={showSeedConfirm}
+        title="Populate this menu from categories?"
+        message={`Adds every active, top-level product category to "${activeLocationMeta?.label}" that isn't already linked. Existing items are left untouched — safe to run more than once.`}
+        confirmLabel="Populate"
+        tone="info"
+        isBusy={isSeeding}
+        onConfirm={confirmSeedFromCategories}
+        onCancel={() => setShowSeedConfirm(false)}
       />
     </div>
   );

@@ -6,6 +6,7 @@ const slugify = require("../utils/slugify");
 const { buildBlogPostPayload } = require("../utils/serializers/blogSerializer");
 const { syncWordPressPosts } = require("../services/wpBlogSyncService");
 const { describeError: describeWpError } = require("../services/wooCommerceService");
+const { writeSyncLog } = require("../utils/integrationSyncLog");
 
 const POST_INCLUDES = [
   { model: BlogCategory, as: "category" },
@@ -34,6 +35,31 @@ exports.adminGetPosts = async (req, res) => {
     const where = {};
     if (req.query.status) where.status = req.query.status;
     if (req.query.search) where.title = { [Op.like]: `%${req.query.search}%` };
+
+    // `page`/`limit` are opt-in, same as routes/storeRoutes.js's product
+    // list, so existing callers expecting a flat array keep working.
+    const { page, limit } = req.query;
+    if (page || limit) {
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+      const { rows, count } = await BlogPost.findAndCountAll({
+        where,
+        include: POST_INCLUDES,
+        order: [["created_at", "DESC"]],
+        limit: limitNum,
+        offset: (pageNum - 1) * limitNum,
+        distinct: true,
+      });
+      return res.json({
+        posts: rows.map((p) => buildBlogPostPayload(p, { context: "admin" })),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: count,
+          totalPages: Math.max(1, Math.ceil(count / limitNum)),
+        },
+      });
+    }
 
     const posts = await BlogPost.findAll({
       where,
@@ -319,9 +345,11 @@ exports.adminDeleteAuthor = async (req, res) => {
 exports.adminSyncWordPressPosts = async (req, res) => {
   try {
     const report = await syncWordPressPosts();
+    await writeSyncLog(req, "woocommerce", "blog_sync", report);
     res.json({ success: true, report });
   } catch (err) {
     console.error("ADMIN SYNC WORDPRESS BLOGS ERROR:", err);
+    await writeSyncLog(req, "woocommerce", "blog_sync_failed", { fatalError: describeWpError(err) });
     res.status(502).json({ success: false, message: describeWpError(err) });
   }
 };

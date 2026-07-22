@@ -31,7 +31,7 @@ const BANNER_DEVICES = ["all", "desktop", "mobile"];
 function pickBannerFields(body) {
   const out = {};
   if (body.eyebrow !== undefined) out.eyebrow = body.eyebrow || null;
-  if (body.title !== undefined) out.title = body.title;
+  if (body.title !== undefined) out.title = body.title && body.title.trim() ? body.title.trim() : null;
   if (body.subtitle !== undefined) out.subtitle = body.subtitle || null;
   if (body.description !== undefined) out.description = body.description || null;
   if (body.cta_label !== undefined) out.cta_label = body.cta_label || null;
@@ -76,8 +76,8 @@ exports.adminGetBanners = async (req, res) => {
 exports.adminCreateBanner = async (req, res) => {
   try {
     const body = req.body;
-    if (!body.placement || !body.title || !body.title.trim()) {
-      return res.status(400).json({ error: "Placement and title are required" });
+    if (!body.placement) {
+      return res.status(400).json({ error: "Placement is required" });
     }
 
     const fields = pickBannerFields(body);
@@ -100,8 +100,6 @@ exports.adminUpdateBanner = async (req, res) => {
     if (!banner) return res.status(404).json({ error: "Banner not found" });
 
     const body = req.body;
-    if (!body.title || !body.title.trim()) return res.status(400).json({ error: "Title is required" });
-
     const fields = pickBannerFields(body);
     if (body.placement && typeof body.placement === "string") fields.placement = body.placement;
     await banner.update(fields);
@@ -136,7 +134,7 @@ exports.adminDuplicateBanner = async (req, res) => {
     const copy = await Banner.create({
       placement: data.placement,
       eyebrow: data.eyebrow,
-      title: `${data.title} (Copy)`,
+      title: data.title ? `${data.title} (Copy)` : null,
       subtitle: data.subtitle,
       description: data.description,
       cta_label: data.cta_label,

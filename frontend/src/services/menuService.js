@@ -19,3 +19,8 @@ export async function deleteMenuItem(id) {
   const { data } = await api.delete(`/api/admin/menu-items/${id}`);
   return data;
 }
+
+export async function seedMenuFromCategories(location) {
+  const { data } = await api.post("/api/admin/menu-items/seed-from-categories", { location });
+  return data;
+}
