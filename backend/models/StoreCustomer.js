@@ -12,6 +12,7 @@ const StoreCustomer = sequelize.define(
     phone: { type: DataTypes.STRING, allowNull: true },
     resetPasswordToken: { type: DataTypes.STRING, allowNull: true },
     resetPasswordExpires: { type: DataTypes.DATE, allowNull: true },
+    woo_customer_id: { type: DataTypes.INTEGER, allowNull: true },
   },
   {
     tableName: "store_customers",

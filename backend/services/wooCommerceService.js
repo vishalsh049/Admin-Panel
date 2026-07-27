@@ -87,6 +87,16 @@ async function fetchProductVariations(productId) {
   return fetchAllPages(client, `/products/${productId}/variations`);
 }
 
+async function fetchAllCustomers() {
+  const client = getClient();
+  return fetchAllPages(client, "/customers");
+}
+
+async function fetchAllOrders() {
+  const client = getClient();
+  return fetchAllPages(client, "/orders", { status: "any" });
+}
+
 // WordPress core REST client (blog posts live under /wp-json/wp/v2, not the
 // WooCommerce /wc/v3 namespace). Published posts are public, so no auth is
 // needed — only WOO_URL is reused.
@@ -128,6 +138,8 @@ module.exports = {
   fetchAllCategories,
   fetchAllProducts,
   fetchProductVariations,
+  fetchAllCustomers,
+  fetchAllOrders,
   fetchAllBlogPosts,
   describeError,
 };

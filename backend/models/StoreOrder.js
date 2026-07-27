@@ -54,6 +54,7 @@ const StoreOrder = sequelize.define(
     assignedToName: { type: DataTypes.STRING, allowNull: true },
     isHold: { type: DataTypes.BOOLEAN, defaultValue: false },
     holdReason: { type: DataTypes.STRING, allowNull: true },
+    woo_order_id: { type: DataTypes.INTEGER, allowNull: true },
   },
   {
     tableName: "store_orders",

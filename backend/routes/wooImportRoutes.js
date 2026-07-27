@@ -11,5 +11,7 @@ router.use(adminAuth, requireAdminRole);
 
 router.get("/test-connection", ctrl.testConnection);
 router.post("/sync-products", ctrl.syncProducts);
+router.post("/sync-customers", ctrl.syncCustomers);
+router.post("/sync-orders", ctrl.syncOrders);
 
 module.exports = router;

@@ -12,11 +12,16 @@ const {
   ProductVariation,
   ProductVariationAttributeValue,
 } = require("../models");
+const StoreCustomer = require("../models/StoreCustomer");
+const StoreOrder = require("../models/StoreOrder");
+const StoreOrderStatusHistory = require("../models/StoreOrderStatusHistory");
+const sequelize = require("../config/db");
 const woo = require("../services/wooCommerceService");
 const { downloadImage } = require("../utils/wooImageDownloader");
 const slugify = require("../utils/slugify");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { writeSyncLog } = require("../utils/integrationSyncLog");
 
 async function deleteLocalImage(imagePath) {
@@ -313,5 +318,257 @@ exports.syncProducts = async (req, res) => {
       message: woo.describeError(err),
       report,
     });
+  }
+};
+
+exports.syncCustomers = async (req, res) => {
+  const report = { customersCreated: 0, customersUpdated: 0, customersSkippedSpam: 0, customersSkipped: 0, errors: [] };
+  try {
+    const wooCustomers = await woo.fetchAllCustomers();
+
+    for (const wc of wooCustomers) {
+      // WooCommerce stores set is_paying_customer=true only after a real
+      // paid order — mass bot-registered accounts (a common WooCommerce
+      // problem: garbage "1000 USD bonus" spam signups via the storefront
+      // signup form) never place an order, so this is the reliable signal
+      // to exclude them without touching real customer data.
+      if (!wc.is_paying_customer) {
+        report.customersSkippedSpam += 1;
+        continue;
+      }
+      try {
+        const email = (wc.email || "").trim().toLowerCase() || null;
+        let local = await StoreCustomer.findOne({ where: { woo_customer_id: wc.id } });
+        if (!local && email) {
+          local = await StoreCustomer.findOne({ where: { email } });
+        }
+
+        const name =
+          [wc.first_name, wc.last_name].filter(Boolean).join(" ").trim() ||
+          wc.username ||
+          email ||
+          `Customer ${wc.id}`;
+
+        const payload = {
+          name,
+          email,
+          phone: wc.billing?.phone || null,
+          woo_customer_id: wc.id,
+        };
+
+        if (local) {
+          await local.update(payload);
+          report.customersUpdated += 1;
+        } else {
+          // Imported accounts get an unusable random password — same
+          // precedent as social-login signups in routes/storeRoutes.js
+          // (loginOrCreateCustomerFromSocialProfile). They use the existing
+          // "forgot password" flow to set a real one.
+          await StoreCustomer.create({ ...payload, password: crypto.randomBytes(32).toString("hex") });
+          report.customersCreated += 1;
+        }
+      } catch (err) {
+        report.customersSkipped += 1;
+        report.errors.push(`Customer ${wc.id} (${wc.email || "no email"}): ${describeSequelizeError(err)}`);
+      }
+    }
+
+    await writeSyncLog(req, "woocommerce", "customer_sync", report);
+    res.json({ success: true, report });
+  } catch (err) {
+    await writeSyncLog(req, "woocommerce", "customer_sync_failed", { ...report, fatalError: woo.describeError(err) });
+    res.status(502).json({ success: false, message: woo.describeError(err), report });
+  }
+};
+
+function mapOrderStatus(wooStatus) {
+  switch (wooStatus) {
+    case "completed":
+      return "delivered";
+    case "processing":
+      return "processing";
+    case "cancelled":
+    case "failed":
+    case "refunded":
+      return "cancelled";
+    case "on-hold":
+    case "pending":
+    default:
+      return "pending";
+  }
+}
+
+// Maps a WooCommerce billing/shipping address block onto the shape this app
+// already stores in StoreOrder.shippingAddress/billingAddress (matches
+// models/StoreAddress.js's fields) — returns null for an empty block so the
+// caller can fall back (e.g. shipping -> billing) instead of storing blanks.
+function mapWooAddress(wooAddr) {
+  if (!wooAddr) return null;
+  const fullName = [wooAddr.first_name, wooAddr.last_name].filter(Boolean).join(" ").trim();
+  const addressLine = [wooAddr.address_1, wooAddr.address_2].filter(Boolean).join(", ").trim();
+  if (!fullName && !addressLine && !wooAddr.city && !wooAddr.postcode) return null;
+  return {
+    fullName: fullName || null,
+    phone: wooAddr.phone || null,
+    addressLine: addressLine || null,
+    city: wooAddr.city || null,
+    state: wooAddr.state || null,
+    postalCode: wooAddr.postcode || null,
+    country: wooAddr.country || "India",
+  };
+}
+
+async function resolveProductImage(productId, imageCache) {
+  if (imageCache.has(productId)) return imageCache.get(productId);
+  const img = await ProductImage.findOne({ where: { product_id: productId, is_primary: true } });
+  const imagePath = img ? img.image_path : null;
+  imageCache.set(productId, imagePath);
+  return imagePath;
+}
+
+// StoreOrder.items must carry the LOCAL product id (frontend/src/pages/
+// Checkout.jsx reads item.id/name/price/quantity/image), not WooCommerce's —
+// resolved via the woo_product_id/woo_variation_id columns the product
+// import already populated. A line whose product was never migrated (or was
+// deleted) is kept in the order with id: null and reported, rather than
+// dropping the line and silently understating the order total.
+async function mapOrderItems(wooLineItems, imageCache) {
+  const items = [];
+  const unresolved = [];
+  for (const li of wooLineItems || []) {
+    let localProductId = null;
+    if (li.variation_id) {
+      const variation = await ProductVariation.findOne({ where: { woo_variation_id: li.variation_id } });
+      if (variation) localProductId = variation.product_id;
+    }
+    if (!localProductId && li.product_id) {
+      const product = await Product.findOne({ where: { woo_product_id: li.product_id } });
+      if (product) localProductId = product.id;
+    }
+    if (!localProductId) unresolved.push(li.name || `product ${li.product_id}`);
+
+    const image = localProductId ? await resolveProductImage(localProductId, imageCache) : null;
+    const price =
+      li.price != null
+        ? parseFloat(li.price)
+        : li.total && li.quantity
+        ? parseFloat(li.total) / li.quantity
+        : 0;
+
+    items.push({
+      id: localProductId,
+      name: li.name,
+      price: Number.isFinite(price) ? price : 0,
+      quantity: li.quantity || 1,
+      image,
+    });
+  }
+  return { items, unresolved };
+}
+
+exports.syncOrders = async (req, res) => {
+  const report = { ordersCreated: 0, ordersUpdated: 0, ordersSkipped: 0, unresolvedItems: 0, errors: [] };
+  const imageCache = new Map();
+
+  try {
+    const wooOrders = await woo.fetchAllOrders();
+
+    for (const wo of wooOrders) {
+      try {
+        let order = await StoreOrder.findOne({ where: { woo_order_id: wo.id } });
+
+        let customerId = null;
+        if (wo.customer_id) {
+          const customer = await StoreCustomer.findOne({ where: { woo_customer_id: wo.customer_id } });
+          if (customer) customerId = customer.id;
+        }
+
+        const { items, unresolved } = await mapOrderItems(wo.line_items, imageCache);
+        if (unresolved.length) {
+          report.unresolvedItems += unresolved.length;
+          report.errors.push(`Order ${wo.id}: no local product match for: ${unresolved.join(", ")}`);
+        }
+
+        const shippingAddress =
+          mapWooAddress(wo.shipping) ||
+          mapWooAddress(wo.billing) || {
+            fullName: null,
+            phone: null,
+            addressLine: null,
+            city: null,
+            state: null,
+            postalCode: null,
+            country: "India",
+          };
+        if (!shippingAddress.phone) shippingAddress.phone = wo.billing?.phone || null;
+        const billingAddress = mapWooAddress(wo.billing);
+
+        const customerName = [wo.billing?.first_name, wo.billing?.last_name].filter(Boolean).join(" ").trim() || "Guest";
+        let customerEmail = (wo.billing?.email || "").trim().toLowerCase() || null;
+        if (!customerEmail) {
+          customerEmail = `order-${wo.id}@no-email.invalid`;
+          report.errors.push(`Order ${wo.id}: WooCommerce order had no billing email, used a placeholder.`);
+        }
+
+        const status = mapOrderStatus(wo.status);
+        const payload = {
+          customerId,
+          customerName,
+          customerEmail,
+          customerPhone: wo.billing?.phone || null,
+          items,
+          shippingAddress,
+          billingAddress,
+          totalPrice: parseFloat(wo.total || 0) || 0,
+          paymentMethod: wo.payment_method_title || wo.payment_method || "unknown",
+          status,
+          isPaid: !!wo.date_paid,
+          paidAt: wo.date_paid ? new Date(wo.date_paid) : null,
+          paymentStatus: wo.date_paid ? "paid" : "not_applicable",
+          discountAmount: parseFloat(wo.discount_total || 0) || 0,
+          couponCode: (wo.coupon_lines || [])[0]?.code || null,
+          shippingCharges: parseFloat(wo.shipping_total || 0) || 0,
+          woo_order_id: wo.id,
+        };
+        if (order) {
+          await order.update(payload);
+          report.ordersUpdated += 1;
+        } else {
+          order = await StoreOrder.create(payload);
+          report.ordersCreated += 1;
+        }
+
+        // Preserve the WooCommerce order's original creation date instead of
+        // "now". Verified empirically: Sequelize's ORM refuses to write the
+        // createdAt-designated attribute via .create()/.update() no matter
+        // how it's passed (wrong key, right key, silent:true, explicit
+        // `fields` option — none worked), so a raw query is the only way.
+        const originalCreatedAt = wo.date_created ? new Date(wo.date_created) : new Date();
+        await sequelize.query("UPDATE store_orders SET created_at = ? WHERE id = ?", {
+          replacements: [originalCreatedAt, order.id],
+        });
+
+        // The exact original WooCommerce status is preserved verbatim here
+        // even though it had to be mapped onto this app's 5-value ENUM above
+        // — exact-string match means re-running the sync only adds a new
+        // history row when the WooCommerce status actually changed.
+        const historyDescription = `Imported from WooCommerce (original status: ${wo.status})`;
+        const existingHistory = await StoreOrderStatusHistory.findOne({
+          where: { order_id: order.id, description: historyDescription },
+        });
+        if (!existingHistory) {
+          await StoreOrderStatusHistory.create({ order_id: order.id, status, description: historyDescription });
+        }
+      } catch (err) {
+        report.ordersSkipped += 1;
+        report.errors.push(`Order ${wo.id}: ${describeSequelizeError(err)}`);
+      }
+    }
+
+    await writeSyncLog(req, "woocommerce", "order_sync", report);
+    res.json({ success: true, report });
+  } catch (err) {
+    await writeSyncLog(req, "woocommerce", "order_sync_failed", { ...report, fatalError: woo.describeError(err) });
+    res.status(502).json({ success: false, message: woo.describeError(err), report });
   }
 };

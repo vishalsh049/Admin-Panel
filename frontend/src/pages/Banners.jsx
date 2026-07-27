@@ -15,6 +15,8 @@ import { getImageUrl } from "../utils/getImageUrl";
 import ConfirmModal from "../components/ConfirmModal";
 import BannerFormModal from "../components/banners/BannerFormModal";
 import BannerPreview from "../components/banners/BannerPreview";
+import BannerSizeGuideSection from "../components/banners/BannerSizeGuideSection";
+import BannerGuidelinesPanel from "../components/banners/BannerGuidelinesPanel";
 import { PLACEMENTS, DEVICES, STATUS_META, bannerStatus, placementLabel } from "../components/banners/bannerConstants";
 
 const PAGE_SIZE = 10;
@@ -312,6 +314,10 @@ export default function Banners() {
           </div>
         </div>
       </div>
+
+      {/* ── size guidance ── */}
+      <BannerSizeGuideSection />
+      <BannerGuidelinesPanel />
 
       {/* ── stats ── */}
       <div className="grid grid-cols-2 gap-3 px-1 sm:grid-cols-4 xl:grid-cols-8">

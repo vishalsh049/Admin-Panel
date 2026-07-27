@@ -3,14 +3,18 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, ImagePlus, Trash2, Monitor, Smartphone, Type, Palette, Target,
-  CalendarClock, Loader2, Sparkles,
+  CalendarClock, Loader2, Sparkles, Ruler, CheckCircle2, AlertTriangle,
+  Wand2, Grid3x3,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { createBanner, updateBanner } from "../../services/bannerService";
+import { uploadMedia } from "../../services/mediaService";
 import { getImageUrl } from "../../utils/getImageUrl";
+import { getImageDimensions, matchesRecommended, centerCropResizeToBlob } from "../../utils/imageDimensions";
 import MediaPicker from "../MediaPicker";
 import BannerPreview from "./BannerPreview";
 import { PLACEMENTS, DEVICES, TONES } from "./bannerConstants";
+import { sizeGuideFor } from "./bannerSizeGuide";
 
 const DRAFT_KEY = "dd_banner_draft_v1";
 
@@ -84,7 +88,48 @@ function Field({ label, hint, children }) {
   );
 }
 
-function ImageField({ label, value, onPick, onClear }) {
+// Dimension check + auto-fit live on top of the existing MediaPicker flow —
+// MediaPicker itself stays generic/untouched since it's shared by products,
+// categories, blog, and site settings, not just banners.
+function BannerImageField({ label, value, onPick, onClear, target, onAutoFit }) {
+  const [dimCheck, setDimCheck] = useState(null); // { width, height, exact, ratioOk }
+  const [checking, setChecking] = useState(false);
+  const [autoFitting, setAutoFitting] = useState(false);
+  const autoFitInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!value) { setDimCheck(null); return; }
+    let cancelled = false;
+    setChecking(true);
+    getImageDimensions(getImageUrl(value))
+      .then(({ width, height }) => {
+        if (cancelled) return;
+        const match = target ? matchesRecommended(width, height, target) : { exact: false, ratioOk: true };
+        setDimCheck({ width, height, ...match });
+      })
+      .catch(() => { if (!cancelled) setDimCheck(null); })
+      .finally(() => { if (!cancelled) setChecking(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, target?.w, target?.h]);
+
+  async function handleAutoFitFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !target) return;
+    setAutoFitting(true);
+    try {
+      const cropped = await centerCropResizeToBlob(file, target.w, target.h);
+      const { asset } = await uploadMedia(cropped);
+      onAutoFit(asset.path);
+      toast.success(`Auto-fit to ${target.w}×${target.h}px and uploaded`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || err.message || "Auto-fit failed");
+    } finally {
+      setAutoFitting(false);
+    }
+  }
+
   return (
     <Field label={label}>
       {value ? (
@@ -100,14 +145,44 @@ function ImageField({ label, value, onPick, onClear }) {
           </div>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={onPick}
-          className="flex h-28 w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-stone-200 bg-stone-50/60 text-stone-400 transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-600"
-        >
-          <ImagePlus className="h-5 w-5" />
-          <span className="text-xs font-medium">Choose from Media Library</span>
-        </button>
+        <div className="space-y-1.5">
+          <button
+            type="button"
+            onClick={onPick}
+            className="flex h-28 w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-stone-200 bg-stone-50/60 text-stone-400 transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-600"
+          >
+            <ImagePlus className="h-5 w-5" />
+            <span className="text-xs font-medium">Choose from Media Library</span>
+          </button>
+          {target && (
+            <button
+              type="button"
+              onClick={() => autoFitInputRef.current?.click()}
+              disabled={autoFitting}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50/60 py-1.5 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
+            >
+              {autoFitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+              {autoFitting ? "Auto-fitting…" : `Auto-fit an image to ${target.w}×${target.h}px`}
+            </button>
+          )}
+          <input ref={autoFitInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAutoFitFile} />
+        </div>
+      )}
+
+      {value && checking && (
+        <p className="mt-1.5 text-[11px] text-stone-400">Checking dimensions…</p>
+      )}
+      {value && !checking && dimCheck && target && (
+        <p className={`mt-1.5 flex items-center gap-1 text-[11px] font-medium ${
+          dimCheck.exact ? "text-emerald-600" : dimCheck.ratioOk ? "text-amber-600" : "text-rose-600"
+        }`}>
+          {dimCheck.exact ? <CheckCircle2 className="h-3 w-3 shrink-0" /> : <AlertTriangle className="h-3 w-3 shrink-0" />}
+          {dimCheck.exact
+            ? `Matches recommended size exactly (${dimCheck.width}×${dimCheck.height}px)`
+            : dimCheck.ratioOk
+            ? `${dimCheck.width}×${dimCheck.height}px uploaded — close to recommended ${target.w}×${target.h}px`
+            : `${dimCheck.width}×${dimCheck.height}px uploaded — recommended ${target.w}×${target.h}px (aspect ratio mismatch, will look cropped/stretched)`}
+        </p>
       )}
     </Field>
   );
@@ -122,7 +197,10 @@ export default function BannerFormModal({ open, banner, defaultPlacement, nextSo
   const [previewDevice, setPreviewDevice] = useState("desktop");
   const [isSaving, setIsSaving] = useState(false);
   const [picker, setPicker] = useState(null); // "desktop" | "mobile" | null
+  const [showSafeArea, setShowSafeArea] = useState(false);
   const draftRestored = useRef(false);
+
+  const guide = sizeGuideFor(form.placement);
 
   useEffect(() => {
     if (!open) return;
@@ -292,6 +370,15 @@ export default function BannerFormModal({ open, banner, defaultPlacement, nextSo
 
                 {tab === "design" && (
                   <>
+                    {guide && (
+                      <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3">
+                        <Ruler className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                        <div className="text-xs text-amber-900">
+                          <p className="font-bold">{guide.label} — recommended {guide.desktop.w}×{guide.desktop.h}px{guide.mobile ? ` (mobile ${guide.mobile.w}×${guide.mobile.h}px)` : ""}, ratio {guide.aspectRatioLabel}</p>
+                          <p className="mt-0.5 text-amber-700">Max {guide.maxFileSizeMB}MB · {guide.formats.join(", ")} · {guide.appearsOn}</p>
+                        </div>
+                      </div>
+                    )}
                     <Field label="Background gradient">
                       <div className="grid grid-cols-3 gap-2">
                         {TONES.map((tone) => (
@@ -308,21 +395,25 @@ export default function BannerFormModal({ open, banner, defaultPlacement, nextSo
                       </div>
                     </Field>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <ImageField
+                      <BannerImageField
                         label="Desktop image (optional)"
                         value={form.image_path}
+                        target={guide?.desktop}
                         onPick={() => setPicker("desktop")}
                         onClear={() => setForm((f) => ({ ...f, image_path: "" }))}
+                        onAutoFit={(path) => setForm((f) => ({ ...f, image_path: path }))}
                       />
-                      <ImageField
+                      <BannerImageField
                         label="Mobile image (optional)"
                         value={form.mobile_image_path}
+                        target={guide?.mobile}
                         onPick={() => setPicker("mobile")}
                         onClear={() => setForm((f) => ({ ...f, mobile_image_path: "" }))}
+                        onAutoFit={(path) => setForm((f) => ({ ...f, mobile_image_path: path }))}
                       />
                     </div>
                     <p className="rounded-xl bg-amber-50/80 px-4 py-3 text-xs leading-relaxed text-amber-800">
-                      If no mobile image is set, the desktop image is used everywhere. Uploads are managed in the shared Media Library (drag &amp; drop supported there).
+                      If no mobile image is set, the desktop image is used everywhere. Uploads are managed in the shared Media Library (drag &amp; drop supported there), or use "Auto-fit" to automatically crop &amp; resize any image to the recommended size.
                     </p>
                   </>
                 )}
@@ -388,18 +479,33 @@ export default function BannerFormModal({ open, banner, defaultPlacement, nextSo
           <div className="hidden flex-col border-l border-amber-100/80 bg-stone-50/60 lg:flex">
             <div className="flex items-center justify-between px-5 py-3.5">
               <p className="text-xs font-bold uppercase tracking-wider text-stone-500">Live preview</p>
-              <div className="flex gap-1 rounded-lg bg-stone-200/70 p-1">
-                <button type="button" onClick={() => setPreviewDevice("desktop")} className={`rounded-md p-1.5 transition ${previewDevice === "desktop" ? "bg-white text-amber-600 shadow-sm" : "text-stone-400"}`}>
-                  <Monitor className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSafeArea((s) => !s)}
+                  title="Toggle crop-safe area — content inside stays visible even if this image gets cropped tighter on another screen size"
+                  className={`rounded-md p-1.5 transition ${showSafeArea ? "bg-white text-amber-600 shadow-sm" : "text-stone-400 hover:text-stone-600"}`}
+                >
+                  <Grid3x3 className="h-3.5 w-3.5" />
                 </button>
-                <button type="button" onClick={() => setPreviewDevice("mobile")} className={`rounded-md p-1.5 transition ${previewDevice === "mobile" ? "bg-white text-amber-600 shadow-sm" : "text-stone-400"}`}>
-                  <Smartphone className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex gap-1 rounded-lg bg-stone-200/70 p-1">
+                  <button type="button" onClick={() => setPreviewDevice("desktop")} className={`rounded-md p-1.5 transition ${previewDevice === "desktop" ? "bg-white text-amber-600 shadow-sm" : "text-stone-400"}`}>
+                    <Monitor className="h-3.5 w-3.5" />
+                  </button>
+                  <button type="button" onClick={() => setPreviewDevice("mobile")} className={`rounded-md p-1.5 transition ${previewDevice === "mobile" ? "bg-white text-amber-600 shadow-sm" : "text-stone-400"}`}>
+                    <Smartphone className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
             <div className="flex flex-1 items-start justify-center overflow-y-auto px-5 pb-5">
-              <div className={`overflow-hidden rounded-2xl shadow-lg shadow-stone-900/10 ring-1 ring-stone-200 ${previewDevice === "mobile" ? "w-[240px]" : "w-full"}`}>
+              <div className={`relative overflow-hidden rounded-2xl shadow-lg shadow-stone-900/10 ring-1 ring-stone-200 ${previewDevice === "mobile" ? "w-[240px]" : "w-full"}`}>
                 <BannerPreview banner={form} device={previewDevice} className={previewDevice === "mobile" ? "min-h-[280px]" : "min-h-[210px]"} />
+                {showSafeArea && (
+                  <div className="pointer-events-none absolute inset-[10%] rounded-lg border-2 border-dashed border-white/80 shadow-[0_0_0_2000px_rgba(0,0,0,0.15)]">
+                    <span className="absolute -top-5 left-0 text-[10px] font-bold uppercase tracking-wider text-white/90 drop-shadow">Safe area</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

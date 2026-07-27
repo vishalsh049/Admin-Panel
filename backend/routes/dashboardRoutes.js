@@ -3,6 +3,7 @@ const Expense = require("../models/Expense");
 const StoreOrder = require("../models/StoreOrder");
 const StoreCustomer = require("../models/StoreCustomer");
 const adminAuth = require("../middleware/adminAuth");
+const { parseJsonField } = require("../utils/orderHelpers");
 
 const router = express.Router();
 
@@ -92,9 +93,16 @@ const [expensesResult, ordersResult, customersResult] = await Promise.allSettled
   StoreCustomer.count(),
 ]);
 
+// order.items is a JSON column — Sequelize/mysql2 returns it as a raw
+// string here, not an auto-parsed array (see website-dd-architecture
+// memory), so every downstream `order.items.forEach(...)` in this file
+// would throw on any order with real items unless parsed up front.
 const allOrders =
   ordersResult.status === "fulfilled"
-    ? ordersResult.value.map((o) => o.toJSON())
+    ? ordersResult.value.map((o) => {
+        const data = o.toJSON();
+        return { ...data, items: parseJsonField(data.items, []) };
+      })
     : [];
 
 const orders = allOrders.filter(order => {
